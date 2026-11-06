@@ -1,0 +1,161 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.SalidaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura">
+  <UserControl.Resources>
+    <infra:BindingProxy x:Key="Proxy" Data="{Binding}" />
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}">
+      <Setter Property="Margin" Value="0,0,10,10" />
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+  </UserControl.Resources>
+
+  <Grid Margin="26,18,26,18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="160" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="160" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="*Granja Origen:" Style="{StaticResource Etiq}" />
+        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaSeleccionada}"
+                  DisplayMemberPath="Nombre" IsEnabled="{Binding EsEditable}" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="*Clase Salida:" Style="{StaticResource Etiq}" />
+        <ComboBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Clases}" SelectedItem="{Binding ClaseSeleccionada}"
+                  DisplayMemberPath="Nombre" IsEnabled="{Binding PuedeCambiarClase}" />
+
+        <TextBlock Grid.Row="1" Text="*Fecha Salida:" Style="{StaticResource Etiq}" />
+        <DatePicker Grid.Row="1" Grid.Column="1" Margin="0,0,28,10" SelectedDate="{Binding FechaSalida, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsEditable}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="*Remisión:" Style="{StaticResource Etiq}" />
+        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding NumeroRemision, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" />
+      </Grid>
+
+      <!-- Solo ventas: Oficio → Remisión → Recibo de Caja -->
+      <Grid Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="160" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="160" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="*N° Oficio:" Style="{StaticResource Etiq}" />
+        <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" Text="{Binding NumeroOficio, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40"
+                 ToolTip="Oficio de venta. Si ya existe, la remisión se agrega a ese oficio." />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="*Recibo Caja:" Style="{StaticResource Etiq}" />
+        <TextBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" Text="{Binding ReciboCaja, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" />
+
+        <TextBlock Grid.Row="1" Text="*Comprador / Entidad:" Style="{StaticResource Etiq}" />
+        <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,0,0,10" Text="{Binding Comprador, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="120" />
+      </Grid>
+
+      <!-- Solo bajas: documento de soporte -->
+      <Grid Visibility="{Binding EsBaja, Converter={StaticResource BoolAVisibilidad}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="160" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="*Documento de soporte:" Style="{StaticResource Etiq}" />
+        <TextBox Grid.Column="1" Margin="0,0,0,10" Text="{Binding DocumentoSoporte, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="160"
+                 ToolTip="Acta sanitaria, denuncia u otro documento que respalde la baja." />
+      </Grid>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="160" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Observaciones:" Style="{StaticResource Etiq}" VerticalAlignment="Top" Margin="0,6,10,0" />
+        <TextBox Grid.Column="1" Height="48" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top"
+                 Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="400" />
+      </Grid>
+
+      <Border Margin="0,10,0,0" Background="#FDECEA" BorderBrush="{StaticResource Brush.Peligro}" BorderThickness="1" CornerRadius="4" Padding="10,6"
+              Visibility="{Binding Anulada, Converter={StaticResource BoolAVisibilidad}}">
+        <TextBlock Text="SALIDA ANULADA: los animales volvieron al inventario." Foreground="{StaticResource Brush.Peligro}" FontWeight="SemiBold" />
+      </Border>
+    </StackPanel>
+
+    <!-- Animales -->
+    <DataGrid Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding Animales}" SelectedItem="{Binding FilaSeleccionada}" IsReadOnly="False" SelectionUnit="FullRow">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Chapeta Roja" Binding="{Binding Animal.ChapetaRoja, TargetNullValue='-'}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Sexo" Binding="{Binding Animal.Sexo}" Width="0.8*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Raza" Binding="{Binding Animal.Raza}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Valor en libros" Binding="{Binding Animal.ValorContable, StringFormat='$#,##0'}" Width="1.1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Derecha}" />
+        <DataGridTemplateColumn Header="Precio Venta" Width="1.2*" MinWidth="120"
+                                Visibility="{Binding Data.EsVenta, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <TextBox Text="{Binding PrecioVenta, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Right"
+                       IsReadOnly="{Binding Data.EsLectura, Source={StaticResource Proxy}}"
+                       ToolTip="Precio real pactado por el animal." />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="Acciones" Width="105">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Button Content="🗑 Quitar" Style="{StaticResource Boton.Enlace}" Foreground="{StaticResource Brush.Peligro}"
+                      Visibility="{Binding Data.EsEditable, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}"
+                      Command="{Binding DataContext.QuitarAnimalCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                      CommandParameter="{Binding}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <Button Grid.Row="3" Margin="0,8,0,0" Content="+ Agregar Animal" Command="{Binding AgregarAnimalCommand}"
+            Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" HorizontalAlignment="Stretch" />
+
+    <Grid Grid.Row="4" Margin="0,14,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="{Binding CantidadTexto}" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,26,0" />
+        <TextBlock Text="{Binding EtiquetaTotal}" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+        <Border Style="{StaticResource Tarjeta}" Padding="14,5" MinWidth="150">
+          <TextBlock Text="{Binding TotalTexto}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
+        </Border>
+      </StackPanel>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal">
+        <Button Content="👁 VER DETALLE ANIMAL" Command="{Binding VerDetalleAnimalCommand}" />
+        <Button Margin="10,0,0,0" Content="✎ EDITAR SALIDA" Command="{Binding EditarSalidaCommand}"
+                Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="⊘ ANULAR SALIDA" Command="{Binding AnularCommand}" Style="{StaticResource Boton.Peligro}"
+                Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="💾 GUARDAR" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}"
+                Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100"
+                Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="CERRAR" Command="{Binding CancelarCommand}" MinWidth="100"
+                Visibility="{Binding EsEditable, Converter={StaticResource InvertirVisibilidad}}" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pruebas unitarias y de integración (xUnit + FluentAssertions). Usan SQLite real en archivos temporales. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RootNamespace>UCaldas.Granjas.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UCaldas.Granjas.Domain\UCaldas.Granjas.Domain.csproj" />
+    <ProjectReference Include="..\..\src\UCaldas.Granjas.Data\UCaldas.Granjas.Data.csproj" />
+    <ProjectReference Include="..\..\src\UCaldas.Granjas.Services\UCaldas.Granjas.Services.csproj" />
+    <!-- ViewModels de la aplicación WPF (se prueban sin abrir ventanas). -->
+    <ProjectReference Include="..\..\src\UCaldas.Granjas.App\UCaldas.Granjas.App.csproj" />
+  </ItemGroup>
+
+</Project>

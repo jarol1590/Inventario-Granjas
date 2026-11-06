@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Capa de acceso a datos: SQLite local (Microsoft.Data.Sqlite + Dapper), esquema, semillas, repositorios. -->
+  <PropertyGroup>
+    <RootNamespace>UCaldas.Granjas.Data</RootNamespace>
+    <AssemblyName>UCaldas.Granjas.Data</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UCaldas.Granjas.Domain\UCaldas.Granjas.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Schema\*.sql" />
+  </ItemGroup>
+
+</Project>

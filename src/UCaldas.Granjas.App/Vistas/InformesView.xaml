@@ -1,0 +1,61 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.InformesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="0,0,12,0" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="CENTRO DE GENERACIÓN DE INFORMES Y KARDEX" Style="{StaticResource Texto.Titulo}" />
+
+      <TextBlock Margin="0,22,0,10" Text="1. SELECCIONE EL TIPO DE INFORME A GENERAR" Style="{StaticResource Texto.Seccion}" />
+      <Border Style="{StaticResource Tarjeta}">
+        <StackPanel>
+          <RadioButton GroupName="Informe" IsChecked="{Binding EsKardex}" Margin="0,0,0,4">
+            <TextBlock Text="Kardex Financiero de Semovientes (Entradas, Salidas, Saldos y Valorización)" FontSize="14" />
+          </RadioButton>
+          <TextBlock Margin="22,0,0,14" Style="{StaticResource Texto.Suave}"
+                     Text="Libro mensual por granja con saldo anterior, compras, nacimientos, ventas, bajas, traslados, valorización y saldo final, más una hoja de consolidado general." />
+          <RadioButton GroupName="Informe" IsChecked="{Binding EsInventario}" Margin="0,0,0,4">
+            <TextBlock Text="Inventario Físico de Semovientes por Granja y Categoría" FontSize="14" />
+          </RadioButton>
+          <TextBlock Margin="22,0,0,0" Style="{StaticResource Texto.Suave}"
+                     Text="Relación de animales por chapeta agrupada por categoría, con subtotales y gran total del valor de compra y del valor contable." />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Margin="0,26,0,10" Text="2. DEFINA LOS PARÁMETROS" Style="{StaticResource Texto.Seccion}" />
+      <Border Style="{StaticResource Tarjeta}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="Alcance:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+            <TextBlock Text="{Binding AlcanceTexto}" VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,0,0,14"
+                     Text="La granja y el programa se toman de los filtros de la parte superior." />
+
+          <StackPanel Orientation="Horizontal" Visibility="{Binding EsKardex, Converter={StaticResource BoolAVisibilidad}}">
+            <TextBlock Text="Mes:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+            <ComboBox Width="150" ItemsSource="{Binding Meses}" SelectedItem="{Binding MesSeleccionado}" DisplayMemberPath="Nombre" />
+            <TextBlock Text="Año:" Style="{StaticResource Texto.Etiqueta}" Margin="24,0,10,0" />
+            <ComboBox Width="100" ItemsSource="{Binding Anios}" SelectedItem="{Binding Anio}" />
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Visibility="{Binding EsInventario, Converter={StaticResource BoolAVisibilidad}}">
+            <TextBlock Text="Categoría:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+            <ComboBox Width="200" ItemsSource="{Binding Categorias}" SelectedItem="{Binding CategoriaSeleccionada}" DisplayMemberPath="Nombre" />
+            <TextBlock Text="Animales:" Style="{StaticResource Texto.Etiqueta}" Margin="24,0,10,0" />
+            <ComboBox Width="180" ItemsSource="{Binding Estados}" SelectedItem="{Binding EstadoSeleccionado}" DisplayMemberPath="Nombre" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Margin="0,26,0,10" Text="3. GENERE EL ARCHIVO" Style="{StaticResource Texto.Seccion}" />
+      <TextBlock Text="{Binding AdvertenciaFirma}" Style="{StaticResource Texto.Suave}" Margin="0,0,0,10" />
+      <StackPanel Orientation="Horizontal">
+        <Button Content="📊 GENERAR INFORME EN EXCEL (.XLSX)" Command="{Binding GenerarCommand}" Style="{StaticResource Boton.Primario}" Padding="18,11" />
+        <Button Margin="10,0,0,0" Content="Abrir último" Command="{Binding AbrirUltimoCommand}" />
+        <Button Margin="10,0,0,0" Content="Mostrar en carpeta" Command="{Binding MostrarUltimoCommand}" />
+      </StackPanel>
+      <TextBlock Margin="0,10,0,24" Text="{Binding UltimoArchivo, StringFormat='Último informe: {0}'}" Style="{StaticResource Texto.Suave}"
+                 Visibility="{Binding UltimoArchivo, Converter={StaticResource NuloAVisibilidad}}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

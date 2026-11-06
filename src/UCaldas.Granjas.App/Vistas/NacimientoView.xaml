@@ -1,0 +1,131 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.NacimientoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FocusManager.FocusedElement="{Binding ElementName=CampoChapeta}">
+  <UserControl.Resources>
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}">
+      <Setter Property="Margin" Value="0,0,10,10" />
+    </Style>
+  </UserControl.Resources>
+
+  <StackPanel Margin="28,20,28,22">
+    <TextBlock Text="Ubicación y Fecha" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="140" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Text="Granja de Nacimiento:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Column="1" Margin="0,0,24,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaSeleccionada}" DisplayMemberPath="Nombre" />
+      <TextBlock Grid.Column="2" Text="Fecha Nacimiento:" Style="{StaticResource Etiq}" />
+      <DatePicker Grid.Column="3" Margin="0,0,0,10" SelectedDate="{Binding FechaNacimiento, UpdateSourceTrigger=PropertyChanged}" />
+    </Grid>
+
+    <TextBlock Text="Datos Animal" Style="{StaticResource Texto.Seccion}" Margin="0,10,0,10" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="140" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="*Chapeta Amarilla:" Style="{StaticResource Etiq}" />
+      <TextBox x:Name="CampoChapeta" Grid.Row="0" Grid.Column="1" Margin="0,0,24,10" Text="{Binding ChapetaAmarilla, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
+      <TextBlock Grid.Row="0" Grid.Column="2" Text="Chapeta Roja:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" Text="{Binding ChapetaRoja, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
+
+      <TextBlock Grid.Row="1" Text="Nombre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="*Raza:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" IsEditable="True" ItemsSource="{Binding Razas}" Text="{Binding Raza, UpdateSourceTrigger=PropertyChanged}" />
+
+      <TextBlock Grid.Row="2" Text="*Sexo:" Style="{StaticResource Etiq}" />
+      <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
+        <RadioButton GroupName="Sexo" Content="Hembra" IsChecked="{Binding EsHembra}" Margin="0,0,18,0" />
+        <RadioButton GroupName="Sexo" Content="Macho" IsChecked="{Binding EsMacho}" />
+      </StackPanel>
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="*Orientación:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Orientaciones}" SelectedItem="{Binding OrientacionSeleccionada}" DisplayMemberPath="Nombre" />
+
+      <TextBlock Grid.Row="3" Text="Peso al nacer (kg):" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,24,10" Text="{Binding PesoAlNacerKg, StringFormat='0.##', UpdateSourceTrigger=LostFocus}" />
+    </Grid>
+
+    <!-- Vista previa de la valoración inicial -->
+    <Border Style="{StaticResource Tarjeta}" Padding="14,10" Margin="0,2,0,6">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Categoría Inicial:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,8,0" />
+        <TextBlock Grid.Column="1" Text="{Binding CategoriaInicial}" VerticalAlignment="Center" TextWrapping="Wrap">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SinTarifa}" Value="True">
+                  <Setter Property="Foreground" Value="{StaticResource Brush.Advertencia}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Grid.Column="2" Text="Valor Inicial:" Style="{StaticResource Texto.Etiqueta}" Margin="16,0,8,0" />
+        <TextBlock Grid.Column="3" Text="{Binding ValorInicial}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,0,0,6"
+               Text="El valor de compra de una cría nacida en la granja es $0; el valor contable sale de la matriz de tarifas vigente." />
+
+    <TextBlock Text="Genealogía y Tipo de Concepción" Style="{StaticResource Texto.Seccion}" Margin="0,12,0,10" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="140" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="*Tipo Concepción:" Style="{StaticResource Etiq}" />
+      <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,4,0,10">
+        <RadioButton GroupName="Concepcion" Content="Monta Directa" IsChecked="{Binding EsMontaDirecta}" Margin="0,0,18,0" />
+        <RadioButton GroupName="Concepcion" Content="Inseminación" IsChecked="{Binding EsInseminacion}" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="1" Text="*Id Madre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" Text="{Binding MadreIdentificacion, UpdateSourceTrigger=PropertyChanged}"
+               ToolTip="Chapeta de la madre. Si está en el sistema, se le suma un parto." />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Id Padre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding PadreChapeta, UpdateSourceTrigger=PropertyChanged}"
+               IsEnabled="{Binding EsMontaDirecta}" ToolTip="Chapeta del reproductor (monta directa). Opcional." />
+
+      <TextBlock Grid.Row="2" Text="Nombre Padre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,0" Text="{Binding NombrePadre, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsInseminacion}" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="*Raza Padre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding RazaPadre, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsInseminacion}" />
+    </Grid>
+    <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,8,0,0"
+               Text="* Datos obligatorios. En la inseminación artificial la raza del padre es obligatoria." />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="💾 GUARDAR NACIMIENTO" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" />
+      <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

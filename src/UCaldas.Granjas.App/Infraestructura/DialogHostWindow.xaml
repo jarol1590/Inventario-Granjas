@@ -1,0 +1,15 @@
+<Window x:Class="UCaldas.Granjas.App.Infraestructura.DialogHostWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Titulo}"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeToContent="Height"
+        MinWidth="360"
+        Background="{StaticResource Brush.Fondo}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+  <!-- La vista se resuelve por la plantilla de datos asociada al ViewModel (Vistas/Plantillas.xaml). -->
+  <ContentPresenter Content="{Binding}" />
+</Window>

@@ -1,0 +1,73 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.InicioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- KPIs -->
+    <UniformGrid Grid.Row="0" Rows="1" Columns="4">
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,12,0" Padding="14,12">
+        <StackPanel>
+          <TextBlock Text="Total Animales" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding TotalAnimales, StringFormat='{}{0:N0}'}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,12,0" Padding="14,12">
+        <StackPanel>
+          <TextBlock Text="Saldo total" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding SaldoTotalTexto}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,12,0" Padding="14,12">
+        <StackPanel>
+          <TextBlock Text="Nacimientos del Mes" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding NacimientosMes}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Padding="14,12">
+        <StackPanel>
+          <TextBlock Text="Salidas del Mes" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding SalidasMes}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <!-- Gráficas -->
+    <Grid Grid.Row="1" Margin="0,16,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Style="{StaticResource Tarjeta}" Margin="0,0,8,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="{Binding TituloAnimales}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+          <Grid>
+            <lvc:CartesianChart Series="{Binding SeriesAnimales}" XAxes="{Binding EjesAnimalesX}" YAxes="{Binding EjesAnimalesY}"
+                                LegendPosition="Hidden" TooltipPosition="Hidden" />
+            <TextBlock Text="No hay animales para el filtro elegido." Style="{StaticResource Texto.Suave}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{Binding HayDatos, Converter={StaticResource InvertirVisibilidad}}" />
+          </Grid>
+        </DockPanel>
+      </Border>
+
+      <Border Grid.Column="1" Style="{StaticResource Tarjeta}" Margin="8,0,0,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="{Binding TituloMovimientos}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
+          <Grid>
+            <lvc:CartesianChart Series="{Binding SeriesMovimientos}" XAxes="{Binding EjesMovimientosX}" YAxes="{Binding EjesMovimientosY}"
+                                LegendPosition="Bottom" TooltipPosition="Hidden" />
+            <TextBlock Text="Aún no hay movimientos registrados en este mes." Style="{StaticResource Texto.Suave}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,40"
+                       Visibility="{Binding HayMovimientos, Converter={StaticResource InvertirVisibilidad}}" />
+          </Grid>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,0 +1,140 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.FichaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}">
+      <Setter Property="Margin" Value="0,0,10,10" />
+    </Style>
+    <Style x:Key="Dato" TargetType="TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,0,10" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </UserControl.Resources>
+
+  <StackPanel Margin="28,20,28,22">
+    <TextBlock Text="Datos Básicos" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Chapeta Amarilla:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,24,10" Text="{Binding ChapetaAmarilla, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
+      <TextBlock Grid.Row="0" Grid.Column="2" Text="Raza:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" IsEditable="True" ItemsSource="{Binding Razas}" Text="{Binding Raza, UpdateSourceTrigger=PropertyChanged}" />
+
+      <TextBlock Grid.Row="1" Text="Chapeta Roja:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" Text="{Binding ChapetaRoja, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Id Madre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding MadreIdentificacion, UpdateSourceTrigger=PropertyChanged}" />
+
+      <TextBlock Grid.Row="2" Text="Nombre:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="Peso Actual (kg):" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" Text="{Binding PesoActualKg, StringFormat='0.##', UpdateSourceTrigger=LostFocus}" />
+
+      <TextBlock Grid.Row="3" Text="Sexo:" Style="{StaticResource Etiq}" />
+      <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
+        <RadioButton GroupName="SexoFicha" Content="Hembra" IsChecked="{Binding EsHembra}" Margin="0,0,18,0" />
+        <RadioButton GroupName="SexoFicha" Content="Macho" IsChecked="{Binding EsMacho}" />
+      </StackPanel>
+      <TextBlock Grid.Row="3" Grid.Column="2" Text="Orientación:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="3" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Orientaciones}" SelectedItem="{Binding OrientacionSeleccionada}" DisplayMemberPath="Nombre" />
+
+      <TextBlock Grid.Row="4" Text="Fecha Nacimiento:" Style="{StaticResource Etiq}" />
+      <DatePicker Grid.Row="4" Grid.Column="1" Margin="0,0,24,10" SelectedDate="{Binding FechaNacimiento, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="4" Grid.Column="2" Text="Ubicación Actual:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding UbicacionActual}" Style="{StaticResource Dato}" FontWeight="SemiBold"
+                 ToolTip="La ubicación solo cambia con un traslado entre granjas." />
+
+      <TextBlock Grid.Row="5" Text="Fecha Compra:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding FechaCompraTexto}" Style="{StaticResource Dato}" Margin="0,0,24,10" />
+      <TextBlock Grid.Row="5" Grid.Column="2" Text="Estado / Edad:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="5" Grid.Column="3" Style="{StaticResource Dato}">
+        <Run Text="{Binding EstadoTexto, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding EdadTexto, Mode=OneWay}" />
+      </TextBlock>
+    </Grid>
+
+    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+      <CheckBox IsChecked="{Binding ExentoValorizacion}" Content="Exento de valorización masiva"
+                ToolTip="El cierre mensual actualiza su categoría pero conserva su valor contable." />
+      <StackPanel Orientation="Horizontal" Margin="28,0,0,0" Visibility="{Binding EsHembra, Converter={StaticResource BoolAVisibilidad}}">
+        <TextBlock Text="Partos:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,8,0" />
+        <TextBox Width="60" Text="{Binding NumeroPartos, UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Center"
+                 ToolTip="Número de partos de la hembra (define si le aplica la tarifa de vaca)." />
+      </StackPanel>
+    </StackPanel>
+    <TextBlock Margin="0,8,0,0" Style="{StaticResource Texto.Suave}" FontSize="11.5">
+      <Run Text="Origen: " /><Run Text="{Binding OrigenTexto, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding GenealogiaTexto, Mode=OneWay}" />
+    </TextBlock>
+
+    <Separator Margin="0,16,0,14" Background="{StaticResource Brush.Borde}" />
+
+    <TextBlock Text="Valorización" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="200" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Valor Compra:" Style="{StaticResource Etiq}" />
+      <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Tarjeta}" Padding="12,5" Margin="0,0,0,10" Background="{StaticResource Brush.Deshabilitado}">
+        <TextBlock Text="{Binding ValorCompraTexto}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+      </Border>
+      <TextBlock Grid.Row="0" Grid.Column="2" Text="🔒  Costo de adquisición según factura: no se puede modificar." Style="{StaticResource Texto.Suave}"
+                 VerticalAlignment="Center" Margin="12,0,0,10" />
+
+      <TextBlock Grid.Row="1" Text="Valor Contable:" Style="{StaticResource Etiq}" />
+      <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Tarjeta}" Padding="12,5" Margin="0,0,0,0" Background="{StaticResource Brush.Deshabilitado}">
+        <TextBlock Text="{Binding ValorContableTexto}" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
+      </Border>
+      <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+        <TextBlock Text="{Binding CategoriaTexto}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <TextBlock Text=" (!)" Foreground="{StaticResource Brush.Advertencia}" FontWeight="Bold" VerticalAlignment="Center"
+                   Visibility="{Binding SinTarifa, Converter={StaticResource BoolAVisibilidad}}"
+                   ToolTip="Ninguna tarifa de la vigencia activa cubre a este animal." />
+        <TextBlock Text="  ·  Variación acumulada: " Style="{StaticResource Texto.Suave}" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding VariacionTexto}" FontWeight="SemiBold" VerticalAlignment="Center"
+                   Foreground="{Binding VariacionAcumulada, Converter={StaticResource SignoABrocha}}" />
+      </StackPanel>
+    </Grid>
+
+    <Separator Margin="0,16,0,14" Background="{StaticResource Brush.Borde}" />
+
+    <TextBlock Text="Historial" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
+    <DataGrid ItemsSource="{Binding Historial}" Height="190" VerticalScrollBarVisibility="Auto">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat='dd/MM/yyyy'}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Movimiento" Binding="{Binding Tipo}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Granja Origen" Binding="{Binding GranjaOrigen, TargetNullValue='-'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Granja Destino" Binding="{Binding GranjaDestino, TargetNullValue='-'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="N° Remisión" Binding="{Binding NumeroRemision, TargetNullValue='-'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Valor" Binding="{Binding Valor, StringFormat='+$#,##0;-$#,##0;$0', TargetNullValue='-'}" Width="Auto" MinWidth="110" ElementStyle="{StaticResource Celda.Derecha}" />
+        <DataGridTextColumn Header="Observaciones" Binding="{Binding Descripcion}" Width="2*" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="💾 GUARDAR CAMBIOS" Command="{Binding GuardarCambiosCommand}" Style="{StaticResource Boton.Primario}" />
+      <Button Margin="10,0,0,0" Content="📊 GENERAR INFORME" Command="{Binding GenerarInformeCommand}" />
+      <Button Margin="10,0,0,0" Content="CERRAR" Command="{Binding CerrarCommand}" IsCancel="True" MinWidth="100" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

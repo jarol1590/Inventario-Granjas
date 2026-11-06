@@ -1,0 +1,59 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.Configuracion.GranjasProgramasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="0,0,12,0">
+      <TextBlock Text="SEDES / GRANJAS" Style="{StaticResource Texto.Titulo}" />
+      <DataGrid Margin="0,12,0,0" ItemsSource="{Binding Granjas}" ScrollViewer.VerticalScrollBarVisibility="Disabled" MaxHeight="230">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Código Granja" Binding="{Binding Codigo}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Nombre de la Granja" Binding="{Binding Nombre}" Width="2*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Observaciones" Binding="{Binding Observaciones}" Width="2.4*" />
+          <DataGridTemplateColumn Header="Acciones" Width="Auto">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal">
+                  <Button Content="✎ Editar" Style="{StaticResource Boton.Enlace}"
+                          Command="{Binding DataContext.EditarGranjaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          CommandParameter="{Binding}" />
+                  <Button Content="🗑 Quitar" Style="{StaticResource Boton.Enlace}" Foreground="{StaticResource Brush.Peligro}"
+                          Command="{Binding DataContext.QuitarGranjaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          CommandParameter="{Binding}" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+      <Button Margin="0,10,0,0" Content="+ Agregar Nueva Granja" HorizontalAlignment="Left" Command="{Binding AgregarGranjaCommand}" />
+
+      <Line Margin="0,26,0,22" X1="0" X2="1" Stretch="Fill" Stroke="{StaticResource Brush.Borde}" StrokeDashArray="4 3" StrokeThickness="1.5" />
+
+      <TextBlock Text="PROGRAMAS PRODUCTIVOS" Style="{StaticResource Texto.Titulo}" />
+      <DataGrid Margin="0,12,0,0" ItemsSource="{Binding Programas}" ScrollViewer.VerticalScrollBarVisibility="Disabled" MaxHeight="230">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Código Programa" Binding="{Binding Codigo}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Nombre del Programa" Binding="{Binding Nombre}" Width="2*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Tipo Inventario" Binding="{Binding Tipo}" Width="1.5*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Observaciones" Binding="{Binding Observaciones}" Width="2*" />
+          <DataGridTemplateColumn Header="Acciones" Width="Auto">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal">
+                  <Button Content="✎ Editar" Style="{StaticResource Boton.Enlace}"
+                          Command="{Binding DataContext.EditarProgramaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          CommandParameter="{Binding}" />
+                  <Button Content="🗑 Quitar" Style="{StaticResource Boton.Enlace}" Foreground="{StaticResource Brush.Peligro}"
+                          Command="{Binding DataContext.QuitarProgramaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          CommandParameter="{Binding}" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+      <Button Margin="0,10,0,0" Content="+ Agregar Nuevo Programa" HorizontalAlignment="Left" Command="{Binding AgregarProgramaCommand}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

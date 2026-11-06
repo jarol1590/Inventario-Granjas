@@ -1,0 +1,104 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura"
+                    xmlns:vm="clr-namespace:UCaldas.Granjas.App.ViewModels"
+                    xmlns:vmc="clr-namespace:UCaldas.Granjas.App.ViewModels.Configuracion"
+                    xmlns:vistas="clr-namespace:UCaldas.Granjas.App.Vistas"
+                    xmlns:vc="clr-namespace:UCaldas.Granjas.App.Vistas.Configuracion">
+
+  <!-- Barra de botones segmentados: módulos del sistema o pestañas de Configuración -->
+  <DataTemplate DataType="{x:Type infra:BarraDePestanas}">
+    <ListBox ItemsSource="{Binding Pestanas}" SelectedItem="{Binding Seleccionada, Mode=TwoWay}" Style="{StaticResource Pestana.Lista}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Icono}" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />
+            <TextBlock Text="{Binding Titulo}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DataTemplate>
+
+  <!-- Rango "Mes desde … hasta …" de los listados históricos -->
+  <DataTemplate DataType="{x:Type infra:FiltroMensual}">
+    <StackPanel Orientation="Horizontal">
+      <TextBlock Text="Mes   Desde" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+      <ComboBox Width="125" ItemsSource="{x:Static infra:FiltroMensual.Meses}" SelectedItem="{Binding MesDesde}" DisplayMemberPath="Nombre" />
+      <ComboBox Width="76" Margin="6,0,0,0" ItemsSource="{Binding Anios}" SelectedItem="{Binding AnioDesde}" />
+      <TextBlock Text="Hasta" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="22,0,10,0" />
+      <ComboBox Width="125" ItemsSource="{x:Static infra:FiltroMensual.Meses}" SelectedItem="{Binding MesHasta}" DisplayMemberPath="Nombre" />
+      <ComboBox Width="76" Margin="6,0,0,0" ItemsSource="{Binding Anios}" SelectedItem="{Binding AnioHasta}" />
+    </StackPanel>
+  </DataTemplate>
+
+  <!-- Secciones del menú -->
+  <DataTemplate DataType="{x:Type vm:InicioViewModel}">
+    <vistas:InicioView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:BovinosViewModel}">
+    <vistas:BovinosView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:ComprasViewModel}">
+    <vistas:ComprasView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:SalidasViewModel}">
+    <vistas:SalidasView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:TrasladosViewModel}">
+    <vistas:TrasladosView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:InformesViewModel}">
+    <vistas:InformesView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:ConfiguracionViewModel}">
+    <vc:ConfiguracionView />
+  </DataTemplate>
+
+  <!-- Pestañas de Configuración -->
+  <DataTemplate DataType="{x:Type vmc:TarifasViewModel}">
+    <vc:TarifasView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:FirmasViewModel}">
+    <vc:FirmasView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:GranjasProgramasViewModel}">
+    <vc:GranjasProgramasView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:RespaldosViewModel}">
+    <vc:RespaldosView />
+  </DataTemplate>
+
+  <!-- Ventanas modales -->
+  <DataTemplate DataType="{x:Type infra:DialogoEntradaViewModel}">
+    <vistas:DialogoEntradaView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:NacimientoViewModel}">
+    <vistas:NacimientoView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:FichaViewModel}">
+    <vistas:FichaView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:SelectorAnimalesViewModel}">
+    <vistas:SelectorAnimalesView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:CompraEditorViewModel}">
+    <vistas:CompraEditorView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:SalidaEditorViewModel}">
+    <vistas:SalidaEditorView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:SalidaAnimalViewModel}">
+    <vistas:SalidaAnimalView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vm:TrasladoEditorViewModel}">
+    <vistas:TrasladoEditorView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:GranjaEditorViewModel}">
+    <vc:GranjaEditorView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:ProgramaEditorViewModel}">
+    <vc:ProgramaEditorView />
+  </DataTemplate>
+
+</ResourceDictionary>

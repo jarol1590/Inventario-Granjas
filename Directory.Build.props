@@ -1,0 +1,23 @@
+<Project>
+
+  <!-- Configuración común a todos los proyectos de la solución. -->
+  <PropertyGroup>
+    <!-- .NET 10 LTS (soporte hasta nov-2028). Para volver a .NET 8, cambiar solo esta línea
+         (y 'net10.0-windows' por 'net8.0-windows' en los proyectos WPF/pruebas). -->
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+    <Authors>Facultad de Ciencias Agropecuarias - Universidad de Caldas</Authors>
+    <Product>Sistema Unificado de Gestión de Granjas</Product>
+  </PropertyGroup>
+
+  <!-- Si el repositorio está dentro de OneDrive, bin/obj se redirigen a %LOCALAPPDATA% para
+       evitar bloqueos de sincronización durante la compilación. Fuera de OneDrive se usa bin/obj normal. -->
+  <PropertyGroup Condition="$(MSBuildThisFileDirectory.Contains('OneDrive'))">
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(LocalAppData)\SistemaGranjas\artifacts</ArtifactsPath>
+  </PropertyGroup>
+
+</Project>

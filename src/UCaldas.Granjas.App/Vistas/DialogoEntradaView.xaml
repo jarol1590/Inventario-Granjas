@@ -1,0 +1,13 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.DialogoEntradaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FocusManager.FocusedElement="{Binding ElementName=CampoValor}">
+  <StackPanel Margin="24,20,24,20">
+    <TextBlock Text="{Binding Pregunta}" TextWrapping="Wrap" Margin="0,0,0,10" />
+    <TextBox x:Name="CampoValor" Text="{Binding Valor, UpdateSourceTrigger=PropertyChanged}" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+      <Button Content="ACEPTAR" Command="{Binding AceptarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" MinWidth="100" />
+      <Button Margin="10,0,0,0" Content="Cancelar" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="90" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

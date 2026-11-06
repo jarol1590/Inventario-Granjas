@@ -1,0 +1,87 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.SalidasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Orientation="Horizontal">
+      <TextBlock Text="Histórico de Salidas" Style="{StaticResource Texto.Titulo}" VerticalAlignment="Center" Margin="0,0,28,0" />
+      <ContentControl Content="{Binding Rango}" VerticalAlignment="Center" IsTabStop="False" />
+    </StackPanel>
+
+    <UniformGrid Grid.Row="1" Rows="1" Columns="3" Margin="0,16,0,0" HorizontalAlignment="Left" Width="780">
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0" Padding="12,10">
+        <StackPanel>
+          <TextBlock Text="Recaudo Ventas" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding RecaudoTexto}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0" Padding="12,10">
+        <StackPanel>
+          <TextBlock Text="Animales Retirados" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding AnimalesRetirados}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Padding="12,10">
+        <StackPanel>
+          <TextBlock Text="Bajas por Muerte / Hurto" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding BajasPorMuerteHurto}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,12">
+      <TextBlock Text="Buscar por Chapeta Amarilla" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+      <Grid Width="220">
+        <TextBox Text="{Binding TextoChapeta, UpdateSourceTrigger=PropertyChanged}">
+          <TextBox.InputBindings>
+            <KeyBinding Key="Enter" Command="{Binding BuscarCommand}" />
+          </TextBox.InputBindings>
+        </TextBox>
+        <TextBlock Text="🔍 Número Chapeta" IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
+                   Foreground="{StaticResource Brush.TextoSuave}"
+                   Visibility="{Binding TextoChapeta, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
+      </Grid>
+      <Button Margin="10,0,0,0" Content="Buscar" Command="{Binding BuscarCommand}" MinWidth="90" />
+      <CheckBox Margin="22,0,0,0" Content="Incluir anuladas" IsChecked="{Binding IncluirAnuladas}" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <DataGrid Grid.Row="3" ItemsSource="{Binding Salidas}" SelectedItem="{Binding Seleccionada}">
+      <DataGrid.InputBindings>
+        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding VerDetalleCommand}" CommandParameter="{Binding Seleccionada}" />
+      </DataGrid.InputBindings>
+      <DataGrid.RowStyle>
+        <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Anulada}" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Brush.Peligro}" />
+              <Setter Property="ToolTip" Value="Documento anulado" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </DataGrid.RowStyle>
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Fecha Salida" Binding="{Binding Fecha, StringFormat='dd/MM/yyyy'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Clase Salida" Binding="{Binding ClaseTexto}" Width="1.3*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Remisión" Binding="{Binding NumeroRemision}" Width="1.1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="N° Oficio" Binding="{Binding NumeroOficio, TargetNullValue='-'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Recibo Caja" Binding="{Binding ReciboCaja, TargetNullValue='-'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Destino" Binding="{Binding Destino}" Width="2*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Cant" Binding="{Binding Cantidad}" Width="0.6*" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat='$#,##0'}" Width="1.1*" ElementStyle="{StaticResource Celda.Derecha}" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <UniformGrid Grid.Row="4" Rows="1" Margin="0,14,0,0">
+      <Button Margin="0,0,-1,0" Padding="10,11" Content="👁 VER DETALLE SALIDA" Command="{Binding VerDetalleCommand}" CommandParameter="{Binding Seleccionada}" />
+      <Button Margin="0,0,-1,0" Padding="10,11" Content="+ NUEVA SALIDA" Command="{Binding NuevaSalidaCommand}" />
+      <Button Padding="10,11" Content="📊 GENERAR INFORME" Command="{Binding GenerarInformeCommand}" />
+    </UniformGrid>
+  </Grid>
+</UserControl>

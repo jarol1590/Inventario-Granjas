@@ -1,0 +1,52 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.SelectorAnimalesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FocusManager.FocusedElement="{Binding ElementName=CampoBuscar}">
+  <Grid Margin="24,20,24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+      <TextBlock Text="Buscar:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+      <Grid Width="260">
+        <TextBox x:Name="CampoBuscar" Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}" ToolTip="Chapeta amarilla, chapeta roja o nombre" />
+        <TextBlock Text="🔍 Chapeta del animal" IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
+                   Foreground="{StaticResource Brush.TextoSuave}"
+                   Visibility="{Binding Texto, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
+      </Grid>
+      <Button Margin="14,0,0,0" Content="Marcar todos" Command="{Binding MarcarTodosCommand}" Style="{StaticResource Boton.Enlace}" />
+      <Button Content="Quitar marcas" Command="{Binding QuitarMarcasCommand}" Style="{StaticResource Boton.Enlace}" />
+    </StackPanel>
+
+    <DataGrid Grid.Row="1" ItemsSource="{Binding Animales}" IsReadOnly="False" SelectionUnit="FullRow">
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Header="" Width="Auto">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <CheckBox IsChecked="{Binding Marcado, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Chapeta Roja" Binding="{Binding Animal.ChapetaRoja, TargetNullValue='-'}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Sexo" Binding="{Binding Animal.Sexo}" Width="0.8*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Raza" Binding="{Binding Animal.Raza}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Orientación" Binding="{Binding Animal.Orientacion}" Width="1.1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Valor" Binding="{Binding Animal.ValorContable, StringFormat='$#,##0'}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Derecha}" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <TextBlock Grid.Row="2" Margin="0,10,0,0" Text="{Binding Resumen}" Style="{StaticResource Texto.Suave}" />
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+      <TextBlock Text="{Binding CantidadMarcada, StringFormat='{}{0} marcados'}" VerticalAlignment="Center" Margin="0,0,16,0" Style="{StaticResource Texto.Etiqueta}" />
+      <Button Content="+ AGREGAR A LA LISTA" Command="{Binding AgregarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" />
+      <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100" />
+    </StackPanel>
+  </Grid>
+</UserControl>

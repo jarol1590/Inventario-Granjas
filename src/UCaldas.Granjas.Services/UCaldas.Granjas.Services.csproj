@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Capa de lógica de negocio: AgingEngine, Kardex, validaciones, reportes Excel, respaldos, autenticación. -->
+  <PropertyGroup>
+    <RootNamespace>UCaldas.Granjas.Services</RootNamespace>
+    <AssemblyName>UCaldas.Granjas.Services</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UCaldas.Granjas.Domain\UCaldas.Granjas.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Capa de dominio: entidades, constantes, DTOs, excepciones e interfaces. Sin dependencias externas. -->
+  <PropertyGroup>
+    <RootNamespace>UCaldas.Granjas.Domain</RootNamespace>
+    <AssemblyName>UCaldas.Granjas.Domain</AssemblyName>
+  </PropertyGroup>
+
+</Project>

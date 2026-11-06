@@ -1,0 +1,73 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.Configuracion.RespaldosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura">
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="0,0,12,0" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="COPIAS DE SEGURIDAD MANUALES Y AUTOMÁTICAS" Style="{StaticResource Texto.Titulo}" />
+
+      <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+        <TextBlock Text="Último Respaldo Exitoso:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+        <Border Style="{StaticResource Tarjeta}" Padding="12,5">
+          <TextBlock Text="{Binding UltimoRespaldoTexto}" FontWeight="SemiBold" />
+        </Border>
+      </StackPanel>
+      <TextBlock Margin="0,8,0,0" Text="{Binding UbicacionTexto}" Style="{StaticResource Texto.Suave}" />
+
+      <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+        <Button Content="📦 CREAR RESPALDO COMPLETO AHORA (.ZIP)" Command="{Binding CrearRespaldoCommand}" Style="{StaticResource Boton.Primario}" />
+        <Button Margin="10,0,0,0" Content="📂 RESTAURAR BASE DE DATOS DESDE ARCHIVO" Command="{Binding RestaurarCommand}" />
+      </StackPanel>
+
+      <Line Margin="0,26,0,22" X1="0" X2="1" Stretch="Fill" Stroke="{StaticResource Brush.Borde}" StrokeDashArray="4 3" StrokeThickness="1.5" />
+
+      <TextBlock Text="CONFIGURACIÓN DE RESPALDO AUTOMÁTICO AL CERRAR EL SISTEMA" Style="{StaticResource Texto.Titulo}" />
+      <CheckBox Margin="0,16,0,0" Content="Generar copia de seguridad automática al salir de la aplicación"
+                IsChecked="{Binding RespaldoAutomatico}" />
+      <Grid Margin="0,14,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Ruta predeterminada de guardado:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
+        <TextBox Grid.Column="1" Text="{Binding CarpetaRespaldos, Mode=OneWay}" IsReadOnly="True" />
+        <Button Grid.Column="2" Margin="10,0,0,0" Content="📂 Cambiar" Command="{Binding CambiarCarpetaCommand}" />
+      </Grid>
+
+      <Line Margin="0,26,0,22" X1="0" X2="1" Stretch="Fill" Stroke="{StaticResource Brush.Borde}" StrokeDashArray="4 3" StrokeThickness="1.5" />
+
+      <TextBlock Text="MANTENIMIENTO" Style="{StaticResource Texto.Titulo}" />
+      <TextBlock Margin="0,8,0,0" Style="{StaticResource Texto.Suave}"
+                 Text="Compactar la base de datos recupera el espacio de los registros eliminados y mantiene el sistema ágil." />
+      <Button Margin="0,12,0,0" Content="🧹 COMPACTAR BASE DE DATOS" Command="{Binding CompactarCommand}" HorizontalAlignment="Left" />
+
+      <Line Margin="0,26,0,22" X1="0" X2="1" Stretch="Fill" Stroke="{StaticResource Brush.Borde}" StrokeDashArray="4 3" StrokeThickness="1.5" />
+
+      <TextBlock Text="SEGURIDAD: CAMBIAR LA CONTRASEÑA DE ACCESO" Style="{StaticResource Texto.Titulo}" />
+      <Grid Margin="0,14,0,0" Width="520" HorizontalAlignment="Left">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="190" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Contraseña actual:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
+        <PasswordBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,10"
+                     infra:ContrasenaAsistente.Contrasena="{Binding ContrasenaActual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Grid.Row="1" Text="Contraseña nueva:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
+        <PasswordBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10"
+                     infra:ContrasenaAsistente.Contrasena="{Binding ContrasenaNueva, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Grid.Row="2" Text="Confirmar contraseña nueva:" Style="{StaticResource Texto.Etiqueta}" />
+        <PasswordBox Grid.Row="2" Grid.Column="1"
+                     infra:ContrasenaAsistente.Contrasena="{Binding ContrasenaConfirmacion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+      </Grid>
+      <TextBlock Margin="0,8,0,0" Style="{StaticResource Texto.Suave}"
+                 Text="{Binding LongitudMinimaContrasena, StringFormat='Mínimo {0} caracteres.'}" />
+      <Button Margin="0,12,0,24" Content="🔑 CAMBIAR CONTRASEÑA" Command="{Binding CambiarContrasenaCommand}" HorizontalAlignment="Left" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

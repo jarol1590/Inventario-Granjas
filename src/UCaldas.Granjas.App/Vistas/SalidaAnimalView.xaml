@@ -1,0 +1,75 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.SalidaAnimalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}">
+      <Setter Property="Margin" Value="0,0,10,10" />
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style x:Key="Dato" TargetType="TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,0,10" />
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+  </UserControl.Resources>
+
+  <StackPanel Margin="28,20,28,22">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Clase Salida:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClaseSalida}" Style="{StaticResource Dato}" FontWeight="SemiBold" />
+      <TextBlock Grid.Row="0" Grid.Column="2" Text="Número Oficio:" Style="{StaticResource Etiq}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding NumeroOficio}" Style="{StaticResource Dato}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
+
+      <TextBlock Grid.Row="1" Text="Fecha Salida:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FechaSalida, StringFormat='dd/MM/yyyy'}" Style="{StaticResource Dato}" />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Recibo de Caja:" Style="{StaticResource Etiq}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding ReciboCaja}" Style="{StaticResource Dato}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
+
+      <TextBlock Grid.Row="2" Text="Chapeta Amarilla:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Animal.ChapetaAmarilla}" Style="{StaticResource Dato}" FontWeight="SemiBold" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="Chapeta Roja:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding Animal.ChapetaRoja, TargetNullValue='-'}" Style="{StaticResource Dato}" />
+
+      <TextBlock Grid.Row="3" Text="Destino:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Destino}" Style="{StaticResource Dato}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="3" Grid.Column="2" Text="Raza:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding Animal.Raza}" Style="{StaticResource Dato}" />
+
+      <TextBlock Grid.Row="4" Text="Sexo:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Animal.Sexo}" Style="{StaticResource Dato}" />
+      <TextBlock Grid.Row="4" Grid.Column="2" Text="Precio Animal:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding PrecioAnimalTexto}" Style="{StaticResource Dato}" ToolTip="Valor contable (en libros) del animal." />
+
+      <TextBlock Grid.Row="5" Text="Precio Venta:" Style="{StaticResource Etiq}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,24,10" Text="{Binding PrecioVenta, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Right"
+               IsReadOnly="{Binding EsEditable, Converter={StaticResource InvertirBooleano}}"
+               Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
+    </Grid>
+
+    <TextBlock Text="Observaciones específicas del animal:" Style="{StaticResource Etiq}" Margin="0,4,0,6" />
+    <TextBox Height="90" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top" MaxLength="300"
+             Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}"
+             IsReadOnly="{Binding EsEditable, Converter={StaticResource InvertirBooleano}}" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="💾 GUARDAR" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True"
+              Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Margin="10,0,0,0" Content="CERRAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

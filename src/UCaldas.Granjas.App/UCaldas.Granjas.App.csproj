@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Capa de presentación WPF (MVVM). Las vistas no tienen lógica en el code-behind. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Windows 10 2004 (10.0.19041) o superior: SkiaSharp.Views.WPF (usado por LiveCharts2) solo publica ese destino. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>SistemaGranjas</AssemblyName>
+    <RootNamespace>UCaldas.Granjas.App</RootNamespace>
+    <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
+    <!-- Punto de entrada propio (Program.cs): App.xaml.cs queda sin lógica. -->
+    <StartupObject>UCaldas.Granjas.App.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UCaldas.Granjas.Domain\UCaldas.Granjas.Domain.csproj" />
+    <ProjectReference Include="..\UCaldas.Granjas.Data\UCaldas.Granjas.Data.csproj" />
+    <ProjectReference Include="..\UCaldas.Granjas.Services\UCaldas.Granjas.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" />
+  </ItemGroup>
+
+</Project>

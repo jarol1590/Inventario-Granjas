@@ -1,0 +1,43 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.Configuracion.ProgramaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel Margin="26,22,26,22">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="*Código:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
+      <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" />
+      <TextBlock Grid.Row="1" Text="*Nombre:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
+      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="80" />
+      <TextBlock Grid.Row="2" Text="Tipo de inventario:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
+      <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding Tipos}" SelectedItem="{Binding TipoSeleccionado}"
+                DisplayMemberPath="Nombre" />
+      <TextBlock Grid.Row="3" Text="Observaciones:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Top" Margin="0,6,0,0" />
+      <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}"
+               AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56" VerticalContentAlignment="Top" MaxLength="300" />
+      <TextBlock Grid.Row="4" Text="Se ejecuta en:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Top" Margin="0,2,0,0" />
+      <ItemsControl Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Granjas}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <CheckBox Margin="0,0,0,6" IsChecked="{Binding Seleccionada}" Content="{Binding Granja.Nombre}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Grid>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="GUARDAR" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" MinWidth="110" />
+      <Button Margin="10,0,0,0" Content="Cancelar" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="90" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

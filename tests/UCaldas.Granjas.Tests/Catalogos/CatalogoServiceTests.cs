@@ -27,6 +27,40 @@ public class CatalogoServiceTests
     }
 
     [Fact]
+    public async Task Los_programas_se_pueden_consultar_por_tipo_de_inventario()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync(
+            "INSERT INTO PROGRAMA (codigo, nombre, tipo_inventario) VALUES ('PRG-EQU', 'Equinos', 'INDIVIDUAL'), ('PRG-PEC', 'Peces', 'LOTE')");
+        var servicio = Crear(db);
+
+        (await servicio.GetProgramasPorTipoAsync(TipoInventario.Individual)).Select(p => p.Codigo).Should().Equal("PRG-EQU", "PRG-GAN");
+        (await servicio.GetProgramasPorTipoAsync(TipoInventario.Lote)).Select(p => p.Codigo).Should().Equal("PRG-AVE", "PRG-PEC");
+        (await servicio.GetProgramasPorTipoAsync("OTRO")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Las_categorias_se_pueden_consultar_por_programa()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var ids = await Datos.IdsBaseAsync(uow);
+        await db.EjecutarAsync(
+            "INSERT INTO CATEGORIA_ETAPA (nombre, sexo, programa_id) SELECT 'Potro', 'Macho', id FROM PROGRAMA WHERE codigo = 'PRG-AVE'");
+        var servicio = Crear(db);
+
+        var ganaderia = await servicio.GetCategoriasDeProgramaAsync(ids.ProgramaGanaderia);
+        ganaderia.Select(c => c.Nombre).Should().BeEquivalentTo(
+            NombresBase.CategoriaTerneros, NombresBase.CategoriaLevante, NombresBase.CategoriaNovillaVientre,
+            NombresBase.CategoriaVacasGeneral, NombresBase.CategoriaReproductor, NombresBase.CategoriaSinClasificar);
+        ganaderia.Should().OnlyContain(c => c.ProgramaId == ids.ProgramaGanaderia);
+
+        var aves = (await servicio.GetProgramasAsync()).Single(p => p.Codigo == "PRG-AVE");
+        (await servicio.GetCategoriasDeProgramaAsync(aves.Id)).Select(c => c.Nombre).Should().Equal("Potro");
+        (await servicio.GetCategoriasDeProgramaAsync(99999)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Las_granjas_inactivas_se_pueden_ocultar_de_los_selectores()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();

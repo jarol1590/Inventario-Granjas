@@ -6,7 +6,7 @@ using UCaldas.Granjas.Domain.Abstractions;
 namespace UCaldas.Granjas.Tests.Infraestructura;
 
 /// <summary>
-/// Base de datos SQLite real (esquema v2.1 + semillas) en un archivo temporal, exclusiva de cada prueba.
+/// Base de datos SQLite real (esquema v2.2 + semillas) en un archivo temporal, exclusiva de cada prueba.
 /// Se elimina al liberarla. Uso: <c>await using var db = await BaseDeDatosDePrueba.CrearAsync();</c>
 /// </summary>
 public sealed class BaseDeDatosDePrueba : IAsyncDisposable
@@ -46,6 +46,13 @@ public sealed class BaseDeDatosDePrueba : IAsyncDisposable
         await using var conexion = await Conexiones.OpenAsync();
         return await conexion.ExecuteAsync(sql, parametros);
     }
+
+    /// <summary>
+    /// Quita de la matriz 2026 la fila de Levante para machos de 12 a 17 meses. Deja el hueco que tenía la tabla original:
+    /// sirve para probar el camino "sin tarifa", que sigue existiendo cuando el usuario edita su matriz y deja un hueco.
+    /// </summary>
+    public Task<int> QuitarFilaDeLevanteParaMachosAsync()
+        => EjecutarAsync("DELETE FROM TABLA_VALORIZACION_BASE WHERE sexo = 'Macho' AND edad_minima_meses = 12 AND edad_maxima_meses = 17");
 
     public async Task<IReadOnlyList<T>> ConsultarAsync<T>(string sql, object? parametros = null)
     {

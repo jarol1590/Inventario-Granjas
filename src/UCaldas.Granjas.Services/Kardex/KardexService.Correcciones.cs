@@ -37,11 +37,8 @@ public sealed partial class KardexService
             case TipoRemision.Traslado:
                 foreach (var detalle in doc.Detalles)
                 {
-                    var animal = doc.Animales[detalle.AnimalId!.Value];
-                    await ExigirSinMovimientosPosterioresAsync(uow, animal, remision.Id, "anular el traslado", ct);
-                    animal.GranjaId = remision.GranjaOrigenId!.Value;
-                    animal.OrientacionId = detalle.OrientacionOrigenId ?? animal.OrientacionId;
-                    await uow.Animales.UpdateAsync(animal, ct);
+                    await RestaurarAnimalDeTrasladoAsync(
+                        uow, doc.Animales[detalle.AnimalId!.Value], detalle, remision, "anular el traslado", ct);
                 }
 
                 await uow.Movimientos.EliminarPorRemisionAsync(remision.Id, ct);
@@ -356,7 +353,131 @@ public sealed partial class KardexService
         return resultado;
     }
 
+    // ---- Editar traslado --------------------------------------------------------------------------------------
+
+    public async Task<TrasladoResultado> EditarTrasladoAsync(TrasladoDto dto, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        Regla.Exigir(dto.RemisionId is not null, "Falta indicar el traslado que se va a editar.");
+        validador.ValidarTraslado(dto, reloj.Hoy);
+        var finales = IndexarPorId(dto.Animales, a => a.AnimalId);
+
+        await using var uow = await fabrica.BeginAsync(ct);
+
+        var doc = await CargarDocumentoAsync(uow, dto.RemisionId!.Value, TipoRemision.Traslado, ct);
+        var remision = doc.Remision;
+        ExigirMismaGranjaDeOrigen(dto.GranjaOrigenId, remision);
+
+        var numero = Limpiar(dto.NumeroRemision);
+        await ExigirNumeroLibreAsync(uow, numero, remision.Id, ct);
+
+        var cambioDestino = dto.GranjaDestinoId != remision.GranjaDestinoId;
+        var origen = await uow.Granjas.GetByIdAsync(remision.GranjaOrigenId!.Value, ct)
+            ?? throw Regla.Violada("La granja de origen no existe.");
+        var destino = cambioDestino
+            ? await ObtenerGranjaActivaAsync(uow, dto.GranjaDestinoId, "La granja de destino", ct)
+            : await uow.Granjas.GetByIdAsync(dto.GranjaDestinoId, ct) ?? throw Regla.Violada("La granja de destino no existe.");
+
+        var nuevosIds = finales.Keys.Except(doc.Animales.Keys).ToList();
+        if (nuevosIds.Count > 0)
+        {
+            Regla.Exigir(origen.Activa, $"La granja de origen ({origen.Nombre}) está inactiva.");
+        }
+
+        var animalesNuevos = nuevosIds.Count == 0
+            ? []
+            : await CargarAnimalesDisponiblesAsync(uow, nuevosIds, origen.Id, "trasladar", ct);
+        foreach (var item in dto.Animales.Where(a => a.OrientacionDestinoId is not null))
+        {
+            await ExigirOrientacionAsync(uow, item.OrientacionDestinoId!.Value, ct);
+        }
+
+        var fecha = dto.FechaTraslado.Date;
+        var detalles = doc.Detalles.Where(d => d.AnimalId is not null).ToDictionary(d => d.AnimalId!.Value);
+        var asientos = (await uow.Movimientos.GetByRemisionAsync(remision.Id, ct))
+            .Where(m => m.AnimalId is not null)
+            .ToLookup(m => m.AnimalId!.Value);
+
+        // 1) Animales quitados del traslado: regresan a la sede y a la orientación de origen, y desaparecen sus asientos.
+        foreach (var id in doc.Animales.Keys.Except(finales.Keys).ToList())
+        {
+            await RestaurarAnimalDeTrasladoAsync(uow, doc.Animales[id], detalles[id], remision, "quitarlo del traslado", ct);
+            foreach (var asiento in asientos[id])
+            {
+                await uow.Movimientos.DeleteAsync(asiento.Id, ct);
+            }
+
+            await uow.RemisionDetalles.DeleteAsync(detalles[id].Id, ct);
+        }
+
+        // 2) Animales que se conservan.
+        foreach (var (id, item) in finales.Where(f => doc.Animales.ContainsKey(f.Key)))
+        {
+            var animal = doc.Animales[id];
+            var detalle = detalles[id];
+            var orientacionDestino = item.OrientacionDestinoId ?? detalle.OrientacionDestinoId ?? animal.OrientacionId;
+
+            // Cambiar la sede destino o la orientación toca lo que quedó asentado: solo si nada ocurrió después.
+            if (cambioDestino || orientacionDestino != detalle.OrientacionDestinoId)
+            {
+                await ExigirSinMovimientosPosterioresAsync(
+                    uow, animal, remision.Id, "cambiar el destino o la orientación de este animal en el traslado", ct);
+                animal.GranjaId = destino.Id;
+                animal.OrientacionId = orientacionDestino;
+                await uow.Animales.UpdateAsync(animal, ct);
+                detalle.OrientacionDestinoId = orientacionDestino;
+            }
+
+            detalle.ObservacionesEspecificas = LimpiarONulo(item.ObservacionesEspecificas);
+            await uow.RemisionDetalles.UpdateAsync(detalle, ct);
+
+            foreach (var asiento in asientos[id])
+            {
+                var destinoDelAsiento = asiento.GranjaDestinoId is not null ? destino.Id : asiento.GranjaDestinoId;
+                if (asiento.FechaMovimiento.Date != fecha || asiento.GranjaDestinoId != destinoDelAsiento)
+                {
+                    asiento.FechaMovimiento = fecha;
+                    asiento.GranjaDestinoId = destinoDelAsiento;
+                    await uow.Movimientos.UpdateAsync(asiento, ct);
+                }
+            }
+        }
+
+        // 3) Encabezado.
+        remision.NumeroRemision = numero;
+        remision.GranjaDestinoId = destino.Id;
+        remision.FechaRemision = fecha;
+        remision.Observaciones = LimpiarONulo(dto.Observaciones);
+        validador.ValidarJerarquiaDocumental(remision);
+        await uow.Remisiones.UpdateAsync(remision, ct);
+
+        // 4) Animales agregados al editar.
+        foreach (var animal in animalesNuevos)
+        {
+            await AplicarTrasladoAsync(uow, remision, animal, origen, destino, finales[animal.Id], ct);
+        }
+
+        var lineas = await uow.RemisionDetalles.GetByRemisionAsync(remision.Id, ct);
+        var resultado = new TrasladoResultado(remision.Id, lineas.Count, lineas.Sum(d => d.CostoSistemaLibros));
+        await uow.CommitAsync(ct);
+        return resultado;
+    }
+
     // ---- Comunes de las correcciones -----------------------------------------------------------------------------
+
+    /// <summary>
+    /// Deshace el traslado de un animal: regresa a la sede y a la orientación de origen. Exige que no tenga movimientos
+    /// posteriores; sus asientos y su línea de la remisión los borra quien llama.
+    /// </summary>
+    private static async Task RestaurarAnimalDeTrasladoAsync(
+        IUnitOfWork uow, Animal animal, RemisionDetalle detalle, Remision remision, string accion, CancellationToken ct)
+    {
+        await ExigirSinMovimientosPosterioresAsync(uow, animal, remision.Id, accion, ct);
+
+        animal.GranjaId = remision.GranjaOrigenId!.Value;
+        animal.OrientacionId = detalle.OrientacionOrigenId ?? animal.OrientacionId;
+        await uow.Animales.UpdateAsync(animal, ct);
+    }
 
     private static async Task<Documento> CargarDocumentoAsync(IUnitOfWork uow, int remisionId, string? tipoEsperado, CancellationToken ct)
     {
@@ -437,7 +558,7 @@ public sealed partial class KardexService
     private static void ExigirMismaGranjaDeOrigen(int granjaOrigenId, Remision remision)
         => Regla.Exigir(
             granjaOrigenId == remision.GranjaOrigenId,
-            "No se puede cambiar la granja de origen de una salida registrada; anule el documento y regístrelo de nuevo.");
+            "No se puede cambiar la granja de origen de un documento registrado; anule el documento y regístrelo de nuevo.");
 
     private static async Task SincronizarFechaDelAsientoAsync(IUnitOfWork uow, MovimientoInventario asiento, DateTime fecha, CancellationToken ct)
     {

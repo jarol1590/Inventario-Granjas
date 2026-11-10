@@ -4,8 +4,11 @@ using System.Windows.Markup;
 using Microsoft.Extensions.DependencyInjection;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels;
+using UCaldas.Granjas.App.ViewModels.Configuracion;
 using UCaldas.Granjas.App.Vistas;
 using UCaldas.Granjas.Data;
+using UCaldas.Granjas.Domain.Abstractions;
+using UCaldas.Granjas.Services.Seguridad;
 using UCaldas.Granjas.Services.Valorizacion;
 
 namespace UCaldas.Granjas.App.Composicion;
@@ -74,13 +77,52 @@ public static class Arranque
 
     private static async Task<bool> IniciarSesionAsync(Application aplicacion, ServiceProvider proveedor)
     {
-        var viewModel = proveedor.GetRequiredService<LoginViewModel>();
-        await viewModel.InicializarAsync();
+        if (!await proveedor.GetRequiredService<IAuthService>().EstaConfiguradoAsync())
+        {
+            // Primer inicio: contraseña, pregunta secreta y clave de recuperación.
+            var inicio = proveedor.GetRequiredService<InicializacionPasswordViewModel>();
+            var ventanaInicial = new InicializacionPasswordWindow { DataContext = inicio };
+            inicio.Terminado += () => ventanaInicial.DialogResult = true;
+            aplicacion.MainWindow = ventanaInicial;
+            return ventanaInicial.ShowDialog() == true;
+        }
 
+        var viewModel = proveedor.GetRequiredService<LoginViewModel>();
         var ventana = new LoginWindow { DataContext = viewModel };
         viewModel.IngresoExitoso += () => ventana.DialogResult = true;
         aplicacion.MainWindow = ventana;
         return ventana.ShowDialog() == true;
+    }
+
+    /// <summary>
+    /// Las instalaciones creadas antes de que existiera la recuperación de contraseña no tienen pregunta secreta ni clave:
+    /// se ofrece configurarlas (sin obligar) una vez abierta la ventana principal. Un fallo aquí nunca impide usar el sistema.
+    /// </summary>
+    private static async Task OfrecerConfigurarRecuperacionAsync(ServiceProvider proveedor)
+    {
+        try
+        {
+            var autenticacion = proveedor.GetRequiredService<IAuthService>();
+            if ((await autenticacion.ObtenerEstadoDeRecuperacionAsync()).Configurada)
+            {
+                return;
+            }
+
+            var dialogos = proveedor.GetRequiredService<IDialogService>();
+            if (dialogos.Confirmar(
+                    "Esta instalación todavía no tiene recuperación de contraseña: si la olvida no podrá restablecerla.\n\n" +
+                    "¿Desea configurar ahora su pregunta secreta y obtener su clave de recuperación?\n" +
+                    "(También puede hacerlo después en Configuración › Respaldos / Backup).",
+                    "Recuperación de contraseña"))
+            {
+                dialogos.Mostrar(new ConfigurarRecuperacionViewModel(
+                    autenticacion, proveedor.GetRequiredService<IReloj>(), dialogos));
+            }
+        }
+        catch (Exception ex)
+        {
+            Registro.Error(ex, "No se pudo ofrecer la configuración de la recuperación de contraseña.");
+        }
     }
 
     /// <summary>
@@ -130,6 +172,7 @@ public static class Arranque
         }
 
         await shell.IniciarAsync();
+        await OfrecerConfigurarRecuperacionAsync(proveedor);
     }
 
     private static void ConfigurarManejoDeErrores(Application aplicacion)

@@ -2,14 +2,32 @@ using ClosedXML.Excel;
 
 namespace UCaldas.Granjas.Services.Reportes;
 
-/// <summary>Estilos institucionales compartidos por los informes de Excel (azul institucional #1B365D).</summary>
+/// <summary>
+/// Estilos institucionales compartidos por los informes de Excel: colores de la Facultad de Ciencias Agropecuarias
+/// (azul #003E70 y verde #66A382) y tipografía de documentos de la Universidad de Caldas (Times New Roman).
+/// </summary>
 internal static class ExcelEstilos
 {
-    public static readonly XLColor AzulInstitucional = XLColor.FromHtml("#1B365D");
-    public static readonly XLColor AzulClaro = XLColor.FromHtml("#DCE6F2");
-    public static readonly XLColor GrisSuave = XLColor.FromHtml("#F4F6F9");
+    /// <summary>
+    /// La guía de tipografía de la Universidad reserva Times New Roman para el logotipo y los documentos; los informes
+    /// son documentos institucionales con bloque de firma. (Roboto, la del sistema, no viene instalada en Excel.)
+    /// </summary>
+    public const string Fuente = "Times New Roman";
+
+    public static readonly XLColor AzulInstitucional = XLColor.FromHtml("#003E70");
+    public static readonly XLColor Verde = XLColor.FromHtml("#66A382");
+    public static readonly XLColor VerdeClaro = XLColor.FromHtml("#E3EFE8");
+    public static readonly XLColor GrisSuave = XLColor.FromHtml("#F4F7F5");
     public static readonly XLColor GrisTexto = XLColor.FromHtml("#5B6573");
-    public static readonly XLColor Borde = XLColor.FromHtml("#8A97A8");
+    public static readonly XLColor Borde = XLColor.FromHtml("#8FA399");
+
+    /// <summary>Libro nuevo cuya fuente predeterminada es la institucional (todas las celdas la heredan).</summary>
+    public static XLWorkbook NuevoLibro()
+    {
+        var libro = new XLWorkbook();
+        libro.Style.Font.FontName = Fuente;
+        return libro;
+    }
 
     /// <summary>
     /// Pesos sin decimales (el peso colombiano no se maneja en centavos; el valor exacto queda en la celda) y el cero
@@ -51,9 +69,9 @@ internal static class ExcelEstilos
     public static void Totales(IXLRange rango)
     {
         rango.Style.Font.Bold = true;
-        rango.Style.Fill.BackgroundColor = AzulClaro;
+        rango.Style.Fill.BackgroundColor = VerdeClaro;
         rango.Style.Border.TopBorder = XLBorderStyleValues.Double;
-        rango.Style.Border.TopBorderColor = AzulInstitucional;
+        rango.Style.Border.TopBorderColor = Verde;
     }
 
     /// <summary>Escribe un título centrado sobre un rango combinado.</summary>

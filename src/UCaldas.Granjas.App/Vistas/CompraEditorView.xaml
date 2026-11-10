@@ -61,7 +61,7 @@
       </Grid>
       <Border Margin="0,10,0,0" Background="#FDECEA" BorderBrush="{StaticResource Brush.Peligro}" BorderThickness="1" CornerRadius="4" Padding="10,6"
               Visibility="{Binding Anulada, Converter={StaticResource BoolAVisibilidad}}">
-        <TextBlock Text="COMPRA ANULADA: los animales ya no cuentan en el inventario ni en el Kardex." Foreground="{StaticResource Brush.Peligro}" FontWeight="SemiBold" />
+        <TextBlock Text="COMPRA ANULADA: los animales ya no cuentan en el inventario ni en el Kardex." Foreground="{StaticResource Brush.Peligro}" FontWeight="Medium" />
       </Border>
     </StackPanel>
 
@@ -70,10 +70,10 @@
       <!-- Consulta (solo lectura) -->
       <DataGrid ItemsSource="{Binding Animales}" Margin="0,0,0,0" Visibility="{Binding EsEditable, Converter={StaticResource InvertirVisibilidad}}">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding ChapetaAmarilla}" Width="1.2*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding ChapetaAmarilla}" Width="1.2*" MinWidth="132" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Chapeta Roja" Binding="{Binding ChapetaRoja, TargetNullValue='-'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Sexo" Binding="{Binding Sexo}" Width="0.8*" ElementStyle="{StaticResource Celda.Centro}" />
-          <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" MinWidth="140" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Raza" Binding="{Binding Raza}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Partos" Binding="{Binding NumeroPartos}" Width="0.6*" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Peso (kg)" Binding="{Binding PesoKg, StringFormat='0.##'}" Width="0.8*" ElementStyle="{StaticResource Celda.Derecha}" />
@@ -179,7 +179,7 @@
         <TextBlock Text="{Binding CantidadTexto}" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,30,0" />
         <TextBlock Text="Total" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
         <Border Style="{StaticResource Tarjeta}" Padding="14,5" MinWidth="150">
-          <TextBlock Text="{Binding TotalTexto}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
+          <TextBlock Text="{Binding TotalTexto}" FontSize="16" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
         </Border>
       </StackPanel>
 

@@ -34,12 +34,6 @@ public sealed partial class InicioViewModel(
     private string _tituloMovimientos = "Movimientos del Mes (Entradas/Salidas)";
 
     [ObservableProperty]
-    private bool _hayDatos;
-
-    [ObservableProperty]
-    private bool _hayMovimientos;
-
-    [ObservableProperty]
     private ISeries[] _seriesAnimales = [];
 
     [ObservableProperty]
@@ -73,15 +67,14 @@ public sealed partial class InicioViewModel(
             SaldoTotalTexto = Formato.Dinero(datos.SaldoTotal);
             NacimientosMes = datos.NacimientosMes;
             SalidasMes = datos.SalidasMes;
-            HayDatos = datos.TotalAnimales > 0;
 
+            // Las gráficas se dibujan siempre: sin animales o sin movimientos salen con todas las barras en cero.
             var barras = granjaId is null ? datos.PorGranja : datos.PorCategoria;
             TituloAnimales = granjaId is null ? "Animales por Granja" : "Animales por Categoría";
             (SeriesAnimales, EjesAnimalesX, EjesAnimalesY) = Graficas.BarrasHorizontales(barras);
 
             var mes = reloj.Hoy.ToString("MMMM 'de' yyyy", Formato.Cultura);
             TituloMovimientos = $"Movimientos del Mes — {char.ToUpper(mes[0], Formato.Cultura)}{mes[1..]}";
-            HayMovimientos = datos.MovimientosMes.Any(p => p.Valor > 0);
             (SeriesMovimientos, EjesMovimientosX, EjesMovimientosY) = Graficas.ColumnasDeMovimientos(datos.MovimientosMes);
         }, "cargar el tablero de inicio");
     }

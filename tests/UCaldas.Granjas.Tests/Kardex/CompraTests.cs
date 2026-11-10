@@ -10,6 +10,7 @@ public class CompraTests
     public async Task Registra_una_compra_masiva_con_factura_inmutable_y_costo_sistema_de_la_matriz()
     {
         await using var e = await EscenarioKardex.CrearAsync();
+        await e.Db.QuitarFilaDeLevanteParaMachosAsync(); // una matriz editada con un hueco: el macho de 14 meses queda sin tarifa
         var dto = e.Compra(
             "FAC-99420",
             e.AnimalComprado("0940-26", Sexo.Hembra, "2022-03-01", 3_225_970m, partos: 1), // 56 meses con parto: Vacas Lácteo
@@ -63,6 +64,29 @@ public class CompraTests
         asiento.GranjaDestinoId.Should().Be(e.Ids.Tesorito);
         asiento.RemisionId.Should().Be(remision.Id);
 
+        await e.AsegurarInvarianteAsync();
+    }
+
+    [Fact]
+    public async Task Un_macho_comprado_de_14_meses_y_una_novilla_de_30_meses_sin_partos_se_valoran_con_la_matriz()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        var dto = e.Compra(
+            "FAC-1",
+            e.AnimalComprado("M-14", Sexo.Macho, "2025-09-01", 500_000m),                 // 14 meses: Levante (mantiene la clasificación)
+            e.AnimalComprado("N-30", Sexo.Hembra, "2024-05-01", 2_800_000m, partos: 0));  // 30 meses sin parto: sigue siendo Novilla
+
+        var resultado = await e.Kardex.RegistrarCompraAsync(dto);
+
+        resultado.SinTarifa.Should().BeEmpty("ya no hay huecos en la matriz 2026");
+        resultado.TotalCostoSistema.Should().Be(1_200_000m + 3_200_000m);
+        var macho = await e.AnimalAsync("M-14");
+        macho.CategoriaId.Should().Be(e.Ids.Categoria(NombresBase.CategoriaLevante));
+        macho.ValorContableActual.Should().Be(1_200_000m);
+        macho.ValorCompraOrigen.Should().Be(500_000m, "la factura sigue siendo el costo de origen");
+        var novilla = await e.AnimalAsync("N-30");
+        novilla.CategoriaId.Should().Be(e.Ids.Categoria(NombresBase.CategoriaNovillaVientre));
+        novilla.ValorContableActual.Should().Be(3_200_000m);
         await e.AsegurarInvarianteAsync();
     }
 

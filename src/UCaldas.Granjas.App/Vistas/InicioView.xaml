@@ -46,26 +46,16 @@
       <Border Grid.Column="0" Style="{StaticResource Tarjeta}" Margin="0,0,8,0">
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Text="{Binding TituloAnimales}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
-          <Grid>
-            <lvc:CartesianChart Series="{Binding SeriesAnimales}" XAxes="{Binding EjesAnimalesX}" YAxes="{Binding EjesAnimalesY}"
-                                LegendPosition="Hidden" TooltipPosition="Hidden" />
-            <TextBlock Text="No hay animales para el filtro elegido." Style="{StaticResource Texto.Suave}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Visibility="{Binding HayDatos, Converter={StaticResource InvertirVisibilidad}}" />
-          </Grid>
+          <lvc:CartesianChart Series="{Binding SeriesAnimales}" XAxes="{Binding EjesAnimalesX}" YAxes="{Binding EjesAnimalesY}"
+                              LegendPosition="Hidden" TooltipPosition="Hidden" />
         </DockPanel>
       </Border>
 
       <Border Grid.Column="1" Style="{StaticResource Tarjeta}" Margin="8,0,0,0">
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Text="{Binding TituloMovimientos}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,8" />
-          <Grid>
-            <lvc:CartesianChart Series="{Binding SeriesMovimientos}" XAxes="{Binding EjesMovimientosX}" YAxes="{Binding EjesMovimientosY}"
-                                LegendPosition="Bottom" TooltipPosition="Hidden" />
-            <TextBlock Text="Aún no hay movimientos registrados en este mes." Style="{StaticResource Texto.Suave}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,40"
-                       Visibility="{Binding HayMovimientos, Converter={StaticResource InvertirVisibilidad}}" />
-          </Grid>
+          <lvc:CartesianChart Series="{Binding SeriesMovimientos}" XAxes="{Binding EjesMovimientosX}" YAxes="{Binding EjesMovimientosY}"
+                              LegendPosition="Bottom" TooltipPosition="Hidden" />
         </DockPanel>
       </Border>
     </Grid>

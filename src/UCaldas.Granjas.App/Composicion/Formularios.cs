@@ -57,6 +57,12 @@ public sealed class Formularios(IServiceProvider servicios, IDialogService dialo
         return await viewModel.InicializarAsync() && dialogos.Mostrar(viewModel);
     }
 
+    public async Task<bool> AbrirTrasladoAsync(int remisionId)
+    {
+        var viewModel = servicios.GetRequiredService<TrasladoEditorViewModel>();
+        return await viewModel.InicializarExistenteAsync(remisionId) && dialogos.Mostrar(viewModel);
+    }
+
     public async Task<IReadOnlyList<AnimalSeleccionable>?> SeleccionarAnimalesAsync(
         int granjaId, IReadOnlyCollection<int> excluidos, string? textoInicial = null)
     {

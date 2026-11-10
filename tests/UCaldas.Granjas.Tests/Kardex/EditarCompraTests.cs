@@ -83,6 +83,7 @@ public class EditarCompraTests
     public async Task Agrega_y_quita_animales_reajustando_el_libro()
     {
         await using var e = await EscenarioKardex.CrearAsync();
+        await e.Db.QuitarFilaDeLevanteParaMachosAsync(); // una matriz editada con un hueco: A-3 (macho de 14 meses) queda sin tarifa
         var dto = await CompraBaseAsync(e);
         dto.Animales.RemoveAt(1); // se quita A-2
         dto.Animales.Add(e.AnimalComprado("A-3", Sexo.Macho, "2025-09-01", 500_000m)); // se agrega A-3 (sin tarifa)

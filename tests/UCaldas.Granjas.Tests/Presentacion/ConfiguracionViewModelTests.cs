@@ -63,7 +63,7 @@ public class ConfiguracionViewModelTests
             Navegador = navegador,
             Auth = auth,
             Catalogo = catalogo,
-            Vm = new RespaldosViewModel(respaldos, catalogo, auth, navegador, dialogos),
+            Vm = new RespaldosViewModel(respaldos, catalogo, auth, navegador, new RelojFijo(Datos.F("2026-11-06")), dialogos),
         };
     }
 
@@ -214,6 +214,31 @@ public class ConfiguracionViewModelTests
         (await entorno.Auth.VerificarAsync("nueva-clave")).Should().BeTrue();
         (await entorno.Auth.VerificarAsync("granjas2026")).Should().BeFalse();
         entorno.Dialogos.Informaciones.Should().ContainSingle().Which.Should().Contain("se cambió correctamente");
+    }
+
+    [Fact]
+    public async Task La_pestana_informa_si_la_recuperacion_esta_configurada_y_la_abre_en_una_ventana()
+    {
+        await using var entorno = await CrearRespaldosAsync();   // el acceso se crea sin recuperación (instalación antigua)
+        await entorno.Vm.CargarAsync();
+        entorno.Vm.RecuperacionConfigurada.Should().BeFalse();
+        entorno.Vm.RecuperacionTexto.Should().Contain("Sin configurar");
+
+        entorno.Dialogos.AlMostrar = dialogo =>
+        {
+            var configurar = (ConfigurarRecuperacionViewModel)dialogo;
+            configurar.ContrasenaActual = "granjas2026";
+            configurar.Respuesta = "Peña Roja";
+            configurar.GenerarCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+            return true;
+        };
+
+        await entorno.Vm.ConfigurarRecuperacionCommand.ExecuteAsync(null);
+
+        entorno.Dialogos.Mostrados.Should().ContainSingle().Which.Should().BeOfType<ConfigurarRecuperacionViewModel>();
+        entorno.Vm.RecuperacionConfigurada.Should().BeTrue();
+        entorno.Vm.RecuperacionTexto.Should().Contain("Recuperación configurada").And.Contain(AuthService.PreguntasSecretas[0]);
+        (await entorno.Auth.VerificarAsync("granjas2026")).Should().BeTrue("configurar la recuperación no cambia la contraseña");
     }
 
     // ---- Granjas y programas -----------------------------------------------------------------------------------------

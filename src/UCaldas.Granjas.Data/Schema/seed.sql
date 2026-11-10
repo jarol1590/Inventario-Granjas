@@ -58,8 +58,11 @@ JOIN (
     UNION ALL SELECT 'Terneros',        NULL,            0,   2, 'Macho',  0,  160000
     UNION ALL SELECT 'Terneros',        NULL,            3,   7, 'Ambos',  0,  800000
     UNION ALL SELECT 'Levante',         NULL,            8,  11, 'Ambos',  0, 1200000
-    UNION ALL SELECT 'Novilla Vientre', 'Lácteo',        12,  24, 'Hembra', 0, 3200000
-    UNION ALL SELECT 'Novilla Vientre', 'Carne/Levante', 12,  24, 'Hembra', 0, 3200000
+    -- Machos de 12 a 17 meses (hasta que son Reproductor): siguen clasificados como Levante, con su mismo valor.
+    UNION ALL SELECT 'Levante',         NULL,           12,  17, 'Macho',  0, 1200000
+    -- Novillas: siguen siendo Novilla Vientre mientras no tengan partos (con parto, desde los 24 meses, pasan a Vacas).
+    UNION ALL SELECT 'Novilla Vientre', 'Lácteo',        12, 999, 'Hembra', 0, 3200000
+    UNION ALL SELECT 'Novilla Vientre', 'Carne/Levante', 12, 999, 'Hembra', 0, 3200000
     UNION ALL SELECT 'Vacas General',   'Lácteo',        24, 999, 'Hembra', 1, 6000000
     UNION ALL SELECT 'Vacas General',   'Carne/Levante', 24, 999, 'Hembra', 1, 4000000
     UNION ALL SELECT 'Reproductor',     NULL,            18, 999, 'Macho',  0, 7000000

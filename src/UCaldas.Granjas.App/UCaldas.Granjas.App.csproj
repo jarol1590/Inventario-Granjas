@@ -11,11 +11,20 @@
     <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
     <!-- Punto de entrada propio (Program.cs): App.xaml.cs queda sin lógica. -->
     <StartupObject>UCaldas.Granjas.App.Program</StartupObject>
+    <!-- Emblema de la Universidad de Caldas como ícono del ejecutable. -->
+    <ApplicationIcon>Recursos\Imagenes\SistemaGranjas.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <ApplicationDefinition Remove="App.xaml" />
     <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <!-- Recursos incrustados: logo e ícono institucionales y la tipografía oficial (Roboto, licencia Apache 2.0). -->
+  <ItemGroup>
+    <Resource Include="Recursos\Imagenes\*.png" />
+    <Resource Include="Recursos\Imagenes\*.ico" />
+    <Resource Include="Recursos\Fuentes\*.ttf" />
   </ItemGroup>
 
   <ItemGroup>

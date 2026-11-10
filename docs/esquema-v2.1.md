@@ -1,8 +1,9 @@
-# Esquema de base de datos v2.1
+# Esquema de base de datos v2.1 (con la ampliación v2.2)
 
 Base: el esquema "definitivo" v2.0 de `contexto_y_plan_de_desarrollo_ia.md` (§4). La versión implementada
-(`PRAGMA user_version = 1`, script `src/UCaldas.Granjas.Data/Schema/schema.sql`) agrega las extensiones de abajo.
-Todas se necesitan para cumplir los mockups o las historias de usuario v2.0 y están marcadas `[v2.1]` en el script.
+(`PRAGMA user_version = 2`, script `src/UCaldas.Granjas.Data/Schema/schema.sql`) agrega las extensiones de abajo.
+Todas se necesitan para cumplir los mockups o las historias de usuario v2.0 y están marcadas `[v2.1]` en el script;
+las de la recuperación de contraseña, `[v2.2]`. El nombre del archivo se conserva por las referencias existentes.
 
 ## Columnas nuevas
 
@@ -18,6 +19,11 @@ Todas se necesitan para cumplir los mockups o las historias de usuario v2.0 y es
 | REMISION | `anulada BOOLEAN NOT NULL DEFAULT 0` | Anular documentos conservando su número. |
 | REMISION_DETALLE | `orientacion_origen_id`, `orientacion_destino_id` | Historial del cambio de orientación al trasladar. |
 | CONFIGURACION_SISTEMA | `ultimo_cierre_valorizacion DATE NULL` | Último fin de mes valorizado. |
+| CONFIGURACION_SISTEMA | `pregunta_secreta TEXT NULL` `[v2.2]` | Pregunta elegida para recuperar la contraseña (en claro: hay que mostrarla en la pantalla de acceso). |
+| CONFIGURACION_SISTEMA | `respuesta_hash TEXT NULL` `[v2.2]` | Hash PBKDF2-SHA256 de la respuesta normalizada (sin mayúsculas, tildes ni espacios de más). |
+| CONFIGURACION_SISTEMA | `recovery_key_hash TEXT NULL` `[v2.2]` | Hash PBKDF2-SHA256 de la clave de recuperación (16 caracteres sin guiones). La clave en claro nunca se guarda y se renueva en cada restablecimiento. |
+
+Las tres columnas de recuperación quedan en `NULL` en las bases creadas antes de la v2.2: esa instalación no puede restablecer su contraseña hasta que el usuario configure la recuperación (Configuración › Respaldos / Backup).
 
 ## Restricciones agregadas
 
@@ -38,7 +44,15 @@ No cambian los datos; hacen que la base misma haga cumplir las reglas del negoci
 - **Dinero:** `DECIMAL(12,2)` en SQLite, `decimal` en C#. Los totales se suman en C#, nunca con `SUM()` de SQL (coma flotante).
 - **Signo del libro:** `costo_asociado` es positivo en compras, nacimientos y entradas por traslado; negativo en ventas, bajas y salidas por traslado; ± en valorizaciones. Las entradas y valorizaciones usan `granja_destino_id`; las salidas, `granja_origen_id`. Un traslado genera dos filas por animal (−valor en origen, +valor en destino).
 - **Inmutabilidad:** `AnimalRepository.UpdateAsync` nunca toca `valor_compra_origen`, `fecha_registro` ni `clase_entrada`; el valor de compra solo cambia con `ActualizarValorCompraOrigenAsync` (corrección de factura al editar una compra).
-- **Versionado:** `PRAGMA user_version`. `DatabaseInitializer` crea el esquema y las semillas en una sola transacción y rechaza versiones desconocidas sin tocar datos.
+- **Versionado:** `PRAGMA user_version`. `DatabaseInitializer` (`VersionEsquemaActual = 2`): versión 0 (base vacía) → crea el esquema y las semillas en una sola transacción; versión 1 → aplica `Schema/migracion_v2.sql` (también en una transacción) y sube a 2; cualquier otra versión se rechaza sin tocar datos. Al restaurar un respaldo `SqliteDatabaseMaintenance.ReemplazarBaseAsync` vuelve a pasar por el inicializador, así que un respaldo de una versión anterior se migra solo.
+- **Hashes de contraseña:** `PBKDF2-SHA256$<iteraciones>$<sal Base64>$<hash Base64>` (200.000 iteraciones, sal propia de 16 bytes, hash de 32 bytes, comparación en tiempo constante). Lo usan `password_hash`, `respuesta_hash` y `recovery_key_hash`.
+
+## Migración v1 → v2 (`Schema/migracion_v2.sql`)
+
+Nunca borra datos y no pisa lo que el usuario haya editado:
+
+1. Agrega las tres columnas de recuperación a `CONFIGURACION_SISTEMA` (vacías).
+2. Completa los huecos de la matriz 2026, cada cambio solo si la fila sigue como la sembró el sistema: la fila de Novilla Vientre pasa de 12–24 a 12–999 meses (hembras sin partos, ambas orientaciones) y se agrega "Levante, Macho, 12–17 meses" con el valor de Levante, salvo que ya exista una fila de machos (o de ambos sexos) que cubra esas edades.
 
 ## Datos semilla (`seed.sql`)
 
@@ -49,6 +63,6 @@ No cambian los datos; hacen que la base misma haga cumplir las reglas del negoci
 | GRANJA | G-01 Tesorito (sugiere Lácteo), G-02 La Cruz (sin sugerencia), G-03 Montelindo (sugiere Carne/Levante) |
 | GRANJA_PROGRAMA | PRG-GAN en las tres; PRG-AVE en Montelindo |
 | CATEGORIA_ETAPA | Terneros, Levante, Novilla Vientre, Vacas General, Reproductor, Sin clasificar |
-| VIGENCIA 2026 (activa) | 9 tarifas de la tabla de precios oficial 2026 (suman $25.710.000) |
+| VIGENCIA 2026 (activa) | 10 tarifas: las 9 de la tabla de precios oficial 2026 (suman $25.710.000) más "Levante, Macho, 12–17 meses" ($1.200.000); la fila de Novilla Vientre (ambas orientaciones) cubre de 12 a 999 meses. Así no quedan edades sin tarifa. |
 | CONFIGURACION_FIRMA | Valores de relleno; el nombre real se configura en la aplicación |
 | CONFIGURACION_SISTEMA | Sin fila: su ausencia es el primer arranque (crear contraseña) |

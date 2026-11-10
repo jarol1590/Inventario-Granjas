@@ -20,7 +20,7 @@ public sealed record OpcionFiltro(int? Id, string Nombre);
 public sealed partial class ShellViewModel : ViewModelBase, INavegador
 {
     public const string ClaveInicio = "inicio";
-    public const string ClaveBovinos = "bovinos";
+    public const string ClaveAnimales = "animales";
     public const string ClaveLotes = "lotes";
     public const string ClaveCompras = "compras";
     public const string ClaveSalidas = "salidas";
@@ -55,7 +55,7 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
         var opciones = new List<Pestana>
         {
             new("🏠", "Inicio", ClaveInicio),
-            new("🐄", "Bovinos", ClaveBovinos),
+            new("🏷", "Animales", ClaveAnimales),
             new("📦", "Lotes", ClaveLotes, Habilitada: false, Ayuda: "Inventario por lotes (aves, peces): no disponible en esta versión."),
             new("🛒", "Compras", ClaveCompras),
             new("📤", "Salidas/Bajas", ClaveSalidas),
@@ -93,10 +93,14 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MostrarFiltros))]
+    [NotifyPropertyChangedFor(nameof(MostrarFiltroDePrograma))]
     [NotifyPropertyChangedFor(nameof(MostrarAccionesRapidas))]
     private ISeccion? _contenido;
 
     public bool MostrarFiltros => Contenido is IUsaFiltroGlobal;
+
+    /// <summary>Animales elige el programa con sus pestañas: ahí el combo global de Programa se oculta.</summary>
+    public bool MostrarFiltroDePrograma => Contenido is IUsaFiltroGlobal { MostrarFiltroDePrograma: true };
 
     public bool MostrarAccionesRapidas => Contenido is IConAccionesRapidas;
 
@@ -243,7 +247,7 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     private ISeccion CrearSeccion(string clave) => clave switch
     {
         ClaveInicio => _servicios.GetRequiredService<InicioViewModel>(),
-        ClaveBovinos => _servicios.GetRequiredService<BovinosViewModel>(),
+        ClaveAnimales => _servicios.GetRequiredService<AnimalesViewModel>(),
         ClaveCompras => _servicios.GetRequiredService<ComprasViewModel>(),
         ClaveSalidas => _servicios.GetRequiredService<SalidasViewModel>(),
         ClaveTraslados => _servicios.GetRequiredService<TrasladosViewModel>(),

@@ -75,7 +75,7 @@ public sealed class SqliteDatabaseMaintenance(IDbConnectionFactory conexiones) :
         }
     }
 
-    public Task ReemplazarBaseAsync(string origen, CancellationToken ct = default)
+    public async Task ReemplazarBaseAsync(string origen, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -91,6 +91,8 @@ public sealed class SqliteDatabaseMaintenance(IDbConnectionFactory conexiones) :
             }
         }
 
-        return Task.CompletedTask;
+        // Un respaldo hecho con una versión anterior del sistema se actualiza de inmediato, para que la aplicación
+        // (que ya espera el esquema vigente) pueda seguir usándolo sin reiniciar.
+        await new DatabaseInitializer(conexiones).InitializeAsync(ct);
     }
 }

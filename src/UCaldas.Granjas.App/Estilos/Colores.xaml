@@ -1,30 +1,51 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Paleta institucional. Azul Universidad de Caldas: #1B365D (el mismo de los informes de Excel). -->
-  <Color x:Key="Color.Primario">#1B365D</Color>
-  <Color x:Key="Color.Acento">#86AEE8</Color>
-  <Color x:Key="Color.Fondo">#F3F5F9</Color>
-  <Color x:Key="Color.Borde">#C6CEDB</Color>
+  <!-- Paleta de la Facultad de Ciencias Agropecuarias (Universidad de Caldas), tomada de la guía de colores de la Facultad:
+       verde #66A382, azul #003E70 (extremo oscuro de su degradado, el mismo azul del logo de la Universidad) y arena #D5BB87.
+       El azul es el color principal; el verde, el de acento; la arena se usa con el verde en detalles. -->
+  <Color x:Key="Color.Primario">#003E70</Color>
+  <Color x:Key="Color.PrimarioClaro">#2E6A99</Color>
+  <Color x:Key="Color.Secundario">#66A382</Color>
+  <Color x:Key="Color.SecundarioOscuro">#3F7A5A</Color>
+  <Color x:Key="Color.Arena">#D5BB87</Color>
+  <Color x:Key="Color.Fondo">#F4F7F5</Color>
+  <Color x:Key="Color.Borde">#C5D2CA</Color>
   <Color x:Key="Color.Texto">#1F2937</Color>
   <Color x:Key="Color.Peligro">#B3261E</Color>
 
   <SolidColorBrush x:Key="Brush.Primario" Color="{StaticResource Color.Primario}" />
-  <SolidColorBrush x:Key="Brush.Acento" Color="{StaticResource Color.Acento}" />
+  <SolidColorBrush x:Key="Brush.PrimarioClaro" Color="{StaticResource Color.PrimarioClaro}" />
+  <SolidColorBrush x:Key="Brush.Secundario" Color="{StaticResource Color.Secundario}" />
+  <SolidColorBrush x:Key="Brush.SecundarioOscuro" Color="{StaticResource Color.SecundarioOscuro}" />
+  <SolidColorBrush x:Key="Brush.Arena" Color="{StaticResource Color.Arena}" />
   <SolidColorBrush x:Key="Brush.Fondo" Color="{StaticResource Color.Fondo}" />
   <SolidColorBrush x:Key="Brush.Superficie" Color="White" />
   <SolidColorBrush x:Key="Brush.Borde" Color="{StaticResource Color.Borde}" />
-  <SolidColorBrush x:Key="Brush.BordeSuave" Color="#E1E6EE" />
+  <SolidColorBrush x:Key="Brush.BordeSuave" Color="#E0E8E3" />
   <SolidColorBrush x:Key="Brush.Texto" Color="{StaticResource Color.Texto}" />
   <SolidColorBrush x:Key="Brush.TextoSuave" Color="#5B6577" />
   <SolidColorBrush x:Key="Brush.Peligro" Color="{StaticResource Color.Peligro}" />
-  <SolidColorBrush x:Key="Brush.Exito" Color="#2E7D32" />
+  <SolidColorBrush x:Key="Brush.Exito" Color="#2F7A4F" />
   <SolidColorBrush x:Key="Brush.Advertencia" Color="#B26A00" />
-  <SolidColorBrush x:Key="Brush.FilaAlterna" Color="#EEF2F8" />
-  <SolidColorBrush x:Key="Brush.Seleccion" Color="#D5E3F8" />
-  <SolidColorBrush x:Key="Brush.Resaltado" Color="#E6EEFA" />
-  <SolidColorBrush x:Key="Brush.Deshabilitado" Color="#F1F3F7" />
+  <SolidColorBrush x:Key="Brush.FilaAlterna" Color="#F0F5F2" />
+  <SolidColorBrush x:Key="Brush.Seleccion" Color="#D3E6DA" />
+  <SolidColorBrush x:Key="Brush.Resaltado" Color="#E5F0E9" />
+  <SolidColorBrush x:Key="Brush.Deshabilitado" Color="#EEF1EF" />
 
+  <!-- Degradado de la Facultad: del verde al azul (franja de la cabecera y de la pantalla de acceso). -->
+  <LinearGradientBrush x:Key="Brush.DegradadoFacultad" StartPoint="0,0" EndPoint="1,0">
+    <GradientStop Color="#66A382" Offset="0" />
+    <GradientStop Color="#003E70" Offset="1" />
+  </LinearGradientBrush>
+
+  <!-- Tipografía institucional: Roboto (Regular, Medium e Italic) para todo el sistema; Roboto Condensed (Bold) para los
+       identificadores institucionales. Los archivos van incrustados en Recursos/Fuentes (no dependen de lo instalado en el equipo).
+       OJO (WPF): las caras de Roboto Condensed quedan dentro de la familia "Roboto" con ancho Condensed, así que se piden con
+       FontStretch="Condensed" (ver el estilo Texto.Identificador). El énfasis se pide con FontWeight="Medium": con SemiBold o
+       Bold, WPF simula la negrita sobre Regular en lugar de usar Roboto Medium. -->
+  <!-- Roboto no trae emojis ni símbolos: se listan Segoe UI Emoji / Symbol como respaldo para los íconos que van dentro del texto. -->
+  <FontFamily x:Key="Fuente.Base">/Recursos/Fuentes/#Roboto, Segoe UI Emoji, Segoe UI Symbol</FontFamily>
   <FontFamily x:Key="Fuente.Iconos">Segoe UI Emoji, Segoe UI Symbol</FontFamily>
 
 </ResourceDictionary>

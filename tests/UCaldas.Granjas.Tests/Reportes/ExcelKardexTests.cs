@@ -154,7 +154,7 @@ public class ExcelKardexTests
 
         foreach (var celda in new[] { "A5", "C5", "D6", "S6" })
         {
-            h.Cell(celda).Style.Fill.BackgroundColor.Should().Be(XLColor.FromHtml("#1B365D"), celda);
+            h.Cell(celda).Style.Fill.BackgroundColor.Should().Be(XLColor.FromHtml("#003E70"), celda);
             h.Cell(celda).Style.Font.FontColor.Should().Be(XLColor.White, celda);
             h.Cell(celda).Style.Font.Bold.Should().BeTrue(celda);
         }
@@ -165,6 +165,25 @@ public class ExcelKardexTests
         h.Cell("J7").Style.Border.BottomBorder.Should().Be(XLBorderStyleValues.Thin);
         h.Cell("A16").Style.Font.Bold.Should().BeTrue("la fila de totales va en negrilla");
         h.PageSetup.PageOrientation.Should().Be(XLPageOrientation.Landscape);
+    }
+
+    [Fact]
+    public async Task El_informe_usa_la_tipografia_de_documentos_de_la_universidad_y_el_verde_de_la_facultad_en_los_totales()
+    {
+        await using var e = await EscenariosDeReporte.CrearSeptiembreDeLaCruzAsync();
+        var ruta = await Motor(e).GenerarKardexFinancieroAsync(new KardexReporteRequest(2026, 9, e.Ids.LaCruz, Ruta(e)));
+
+        using var libro = new XLWorkbook(ruta);
+        var h = libro.Worksheet("La Cruz");
+
+        // Times New Roman es la fuente que la guía de la Universidad fija para los documentos.
+        foreach (var celda in new[] { "A1", "A2", "A5", "D6", "B7", "A16" })
+        {
+            h.Cell(celda).Style.Font.FontName.Should().Be("Times New Roman", celda);
+        }
+
+        h.Cell("A16").Style.Fill.BackgroundColor.Should().Be(XLColor.FromHtml("#E3EFE8"), "la fila de totales va en verde claro");
+        h.Cell("A16").Style.Border.TopBorderColor.Should().Be(XLColor.FromHtml("#66A382"));
     }
 
     [Fact]

@@ -35,7 +35,7 @@ public class TarifasViewModelTests
 
         vm.VigenciaSeleccionada.Should().NotBeNull();
         vm.VigenciaSeleccionada!.Texto.Should().Be("Año 2026 (Activa)");
-        vm.Filas.Should().HaveCount(9);
+        vm.Filas.Should().HaveCount(10);
         vm.HayCambios.Should().BeFalse();
         vm.TituloTabla.Should().Be("TABLA DE TARIFAS VIGENTES (AÑO 2026)");
         vm.Categorias.Select(c => c.Nombre).Should().NotContain(NombresBase.CategoriaSinClasificar);
@@ -79,7 +79,7 @@ public class TarifasViewModelTests
         dialogos.Informaciones.Should().BeEmpty("no se mostró el aviso de éxito");
         vm.HayCambios.Should().BeTrue("los cambios siguen en pantalla para corregirlos");
         (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE WHERE vigencia_id = @id", new { id = await IdVigenciaAsync(db, 2026) }))
-            .Should().Be(9, "la matriz guardada quedó intacta");
+            .Should().Be(10, "la matriz guardada quedó intacta");
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class TarifasViewModelTests
         dialogos.Advertencias.Should().HaveCount(1, "no hubo nuevos errores");
         dialogos.Informaciones.Should().ContainSingle().Which.Should().Contain("se guardaron correctamente");
         vm.HayCambios.Should().BeFalse();
-        vm.Filas.Should().HaveCount(10);
+        vm.Filas.Should().HaveCount(11);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class TarifasViewModelTests
 
         vm.VigenciaSeleccionada!.Anio.Should().Be(2027);
         vm.VigenciaSeleccionada.Activa.Should().BeFalse();
-        vm.Filas.Should().HaveCount(9);
+        vm.Filas.Should().HaveCount(10);
         vm.TituloTabla.Should().Be("TABLA DE TARIFAS (BORRADOR) (AÑO 2027)");
         vm.ActivarCommand.CanExecute(null).Should().BeTrue();
 
@@ -233,7 +233,7 @@ public class TarifasViewModelTests
 
         vm.QuitarFilaCommand.Execute(vm.Filas[^1]);
 
-        vm.Filas.Should().HaveCount(8);
+        vm.Filas.Should().HaveCount(9);
         vm.HayCambios.Should().BeTrue();
     }
 

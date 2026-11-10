@@ -1,7 +1,9 @@
 <UserControl x:Class="UCaldas.Granjas.App.Vistas.TrasladoEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura">
   <UserControl.Resources>
+    <infra:BindingProxy x:Key="Proxy" Data="{Binding}" />
     <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}">
       <Setter Property="Margin" Value="0,0,10,10" />
       <Setter Property="FontSize" Value="14" />
@@ -32,34 +34,44 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="*Granja Origen:" Style="{StaticResource Etiq}" />
-        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaOrigen}" DisplayMemberPath="Nombre" />
+        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaOrigen}" DisplayMemberPath="Nombre"
+                  IsEnabled="{Binding PuedeCambiarOrigen}"
+                  ToolTip="La granja de origen no se puede cambiar en un traslado ya registrado: anúlelo y regístrelo de nuevo." />
         <TextBlock Grid.Row="0" Grid.Column="2" Text="*Granja Destino:" Style="{StaticResource Etiq}" />
-        <ComboBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaDestino}" DisplayMemberPath="Nombre" />
+        <ComboBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaDestino}" DisplayMemberPath="Nombre"
+                  IsEnabled="{Binding EsEditable}" />
 
         <TextBlock Grid.Row="1" Text="*Fecha Traslado:" Style="{StaticResource Etiq}" />
-        <DatePicker Grid.Row="1" Grid.Column="1" Margin="0,0,28,10" SelectedDate="{Binding FechaTraslado, UpdateSourceTrigger=PropertyChanged}" />
+        <DatePicker Grid.Row="1" Grid.Column="1" Margin="0,0,28,10" SelectedDate="{Binding FechaTraslado, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsEditable}" />
         <TextBlock Grid.Row="1" Grid.Column="2" Text="*N° Remisión:" Style="{StaticResource Etiq}" />
-        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding NumeroRemision, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" />
+        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding NumeroRemision, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" />
 
         <TextBlock Grid.Row="2" Text="Observaciones:" Style="{StaticResource Etiq}" VerticalAlignment="Top" Margin="0,6,10,0" />
         <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Height="48" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top"
-                 Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" MaxLength="400" />
+                 Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="400" />
       </Grid>
 
-      <TextBlock Text="Selección de Animales a Trasladar" Style="{StaticResource Texto.Seccion}" Margin="0,18,0,10" />
-      <StackPanel Orientation="Horizontal">
-        <TextBlock Text="Buscar:" Style="{StaticResource Etiq}" />
-        <Grid Width="280" Margin="0,0,12,0">
-          <TextBox Text="{Binding TextoBusqueda, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10">
-            <TextBox.InputBindings>
-              <KeyBinding Key="Enter" Command="{Binding AgregarALaListaCommand}" />
-            </TextBox.InputBindings>
-          </TextBox>
-          <TextBlock Text="🔍 Animal en Granja Origen" IsHitTestVisible="False" Margin="9,0,0,10" VerticalAlignment="Center"
-                     Foreground="{StaticResource Brush.TextoSuave}"
-                     Visibility="{Binding TextoBusqueda, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
-        </Grid>
-        <Button Content="+ Agregar a la Lista" Command="{Binding AgregarALaListaCommand}" VerticalAlignment="Top" />
+      <Border Margin="0,10,0,0" Background="#FDECEA" BorderBrush="{StaticResource Brush.Peligro}" BorderThickness="1" CornerRadius="4" Padding="10,6"
+              Visibility="{Binding Anulado, Converter={StaticResource BoolAVisibilidad}}">
+        <TextBlock Text="TRASLADO ANULADO: los animales regresaron a la granja de origen." Foreground="{StaticResource Brush.Peligro}" FontWeight="Medium" />
+      </Border>
+
+      <!-- Solo al crear o editar: búsqueda y selección de animales -->
+      <StackPanel Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}">
+        <TextBlock Text="Selección de Animales a Trasladar" Style="{StaticResource Texto.Seccion}" Margin="0,18,0,10" />
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="Buscar:" Style="{StaticResource Etiq}" />
+          <Grid Width="280" Margin="0,0,12,0">
+            <TextBox Text="{Binding TextoBusqueda, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10">
+              <TextBox.InputBindings>
+                <KeyBinding Key="Enter" Command="{Binding AgregarALaListaCommand}" />
+              </TextBox.InputBindings>
+            </TextBox>
+            <TextBlock Text="🔍 Animal en Granja Origen" Style="{StaticResource Texto.Marcador}" Margin="9,0,0,10"
+                       Visibility="{Binding TextoBusqueda, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
+          </Grid>
+          <Button Content="+ Agregar a la Lista" Command="{Binding AgregarALaListaCommand}" VerticalAlignment="Top" />
+        </StackPanel>
       </StackPanel>
     </StackPanel>
 
@@ -67,24 +79,26 @@
 
     <DataGrid Grid.Row="2" ItemsSource="{Binding Animales}" SelectedItem="{Binding FilaSeleccionada}" IsReadOnly="False" SelectionUnit="FullRow">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" MinWidth="132" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Orientación Origen" Binding="{Binding Animal.Orientacion}" Width="1.2*" MinWidth="150" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTemplateColumn Header="Orientación Destino" Width="1.4*" MinWidth="140">
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate>
               <ComboBox ItemsSource="{Binding DataContext.Orientaciones, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                        DisplayMemberPath="Nombre" SelectedValuePath="Id" SelectedValue="{Binding OrientacionDestinoId, UpdateSourceTrigger=PropertyChanged}" />
+                        DisplayMemberPath="Nombre" SelectedValuePath="Id" SelectedValue="{Binding OrientacionDestinoId, UpdateSourceTrigger=PropertyChanged}"
+                        IsEnabled="{Binding Data.EsEditable, Source={StaticResource Proxy}}" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
         <DataGridTextColumn Header="Sexo" Binding="{Binding Animal.Sexo}" Width="0.8*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" MinWidth="140" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Raza" Binding="{Binding Animal.Raza}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Precio" Binding="{Binding Animal.ValorContable, StringFormat='$#,##0'}" Width="1.1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Derecha}" />
         <DataGridTemplateColumn Header="Observaciones" Width="1.4*" MinWidth="120">
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate>
-              <TextBox Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" />
+              <TextBox Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                       IsReadOnly="{Binding Data.EsLectura, Source={StaticResource Proxy}}" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
@@ -92,6 +106,7 @@
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate>
               <Button Content="🗑 Quitar" Style="{StaticResource Boton.Enlace}" Foreground="{StaticResource Brush.Peligro}"
+                      Visibility="{Binding Data.EsEditable, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}"
                       Command="{Binding DataContext.QuitarAnimalCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                       CommandParameter="{Binding}" />
             </DataTemplate>
@@ -109,12 +124,20 @@
         <TextBlock Text="{Binding CantidadTexto}" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,26,0" />
         <TextBlock Text="Valor a trasladar" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
         <Border Style="{StaticResource Tarjeta}" Padding="14,5" MinWidth="150">
-          <TextBlock Text="{Binding ValorTexto}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
+          <TextBlock Text="{Binding ValorTexto}" FontSize="16" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
         </Border>
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal">
-        <Button Content="💾 CONFIRMAR TRASLADO" Command="{Binding ConfirmarCommand}" Style="{StaticResource Boton.Primario}" />
-        <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100" />
+        <Button Content="✎ EDITAR TRASLADO" Command="{Binding EditarTrasladoCommand}"
+                Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="⊘ ANULAR TRASLADO" Command="{Binding AnularCommand}" Style="{StaticResource Boton.Peligro}"
+                Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="{Binding TextoConfirmar}" Command="{Binding ConfirmarCommand}" Style="{StaticResource Boton.Primario}"
+                Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100"
+                Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+        <Button Margin="10,0,0,0" Content="CERRAR" Command="{Binding CancelarCommand}" MinWidth="100"
+                Visibility="{Binding EsEditable, Converter={StaticResource InvertirVisibilidad}}" />
       </StackPanel>
     </Grid>
   </Grid>

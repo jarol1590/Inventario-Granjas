@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Constants;
+using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Consultas;
 
@@ -10,8 +11,12 @@ namespace UCaldas.Granjas.App.ViewModels;
 /// <summary>Opción de un combo de filtro por texto (estado, sexo); <see cref="Valor"/> nulo = "todos".</summary>
 public sealed record OpcionTexto(string? Valor, string Nombre);
 
-/// <summary>Gestión de bovinos: búsqueda y filtros sobre el inventario individual, con conteo y total contable.</summary>
-public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapidas
+/// <summary>
+/// Pestaña de Animales: un programa de inventario individual (bovinos, equinos, caprinos...) con su grilla de animales,
+/// sus filtros, las categorías biológicas de su especie y el resumen con el valor contable (saldo del Kardex).
+/// Todas las pestañas comparten la misma vista; aquí solo cambia el programa por el que se consulta.
+/// </summary>
+public sealed partial class ProgramaTabViewModel : ViewModelBase
 {
     private static readonly TimeSpan RetardoDeBusqueda = TimeSpan.FromMilliseconds(300);
 
@@ -24,7 +29,8 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
     private bool _cargandoOpciones;
     private int _version;
 
-    public BovinosViewModel(
+    public ProgramaTabViewModel(
+        Programa programa,
         IConsultasService consultas,
         ICatalogoService catalogo,
         IFormularios formularios,
@@ -32,6 +38,8 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
         IDialogService dialogos)
         : base(dialogos)
     {
+        Programa = programa;
+        Especie = EspecieDePrograma.De(programa);
         _consultas = consultas;
         _catalogo = catalogo;
         _formularios = formularios;
@@ -48,12 +56,26 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
         Sexos = [new(null, "Todos"), new(Sexo.Hembra, "Hembra"), new(Sexo.Macho, "Macho")];
         _estadoSeleccionado = Estados[0];
         _sexoSeleccionado = Sexos[0];
+        _resumenTexto = $"Mostrando: 0 {Especie.Plural}";
     }
 
-    public ObservableCollection<BovinoListItem> Bovinos { get; } = [];
+    /// <summary>El programa de inventario individual que representa la pestaña.</summary>
+    public Programa Programa { get; }
+
+    public EspecieDePrograma Especie { get; }
+
+    /// <summary>Encabezado de la pestaña («Bovinos»).</summary>
+    public string Titulo => Especie.Titulo;
+
+    public string Icono => Especie.Icono;
+
+    public string TituloGestion => $"Gestión de {Especie.Plural}";
+
+    public ObservableCollection<AnimalListItem> Animales { get; } = [];
 
     public ObservableCollection<OpcionFiltro> Orientaciones { get; } = [];
 
+    /// <summary>Solo las categorías biológicas del programa (las de otra especie no aparecen).</summary>
     public ObservableCollection<OpcionFiltro> Categorias { get; } = [];
 
     public IReadOnlyList<OpcionTexto> Estados { get; }
@@ -77,14 +99,16 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AbrirFichaCommand))]
-    private BovinoListItem? _seleccionado;
+    private AnimalListItem? _seleccionado;
+
 
     [ObservableProperty]
-    private string _resumenTexto = "Mostrando: 0 Bovinos";
+    private string _resumenTexto;
 
     [ObservableProperty]
     private string _totalTexto = Formato.Dinero(0);
 
+    /// <summary>Consulta los animales del programa con los filtros de la pestaña y el filtro global de granja.</summary>
     public async Task CargarAsync()
     {
         var version = ++_version;
@@ -95,36 +119,37 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
                 await CargarOpcionesAsync();
             }
 
-            var filtro = new BovinoFiltro(
+            var filtro = new AnimalFiltro(
                 GranjaId: _contexto.GranjaId,
-                ProgramaId: _contexto.ProgramaId,
+                ProgramaId: Programa.Id,
                 Texto: string.IsNullOrWhiteSpace(Texto) ? null : Texto.Trim(),
                 OrientacionId: OrientacionSeleccionada?.Id,
                 Estado: EstadoSeleccionado.Valor,
                 Sexo: SexoSeleccionado.Valor,
                 CategoriaId: CategoriaSeleccionada?.Id);
 
-            var resultado = await _consultas.BuscarBovinosAsync(filtro);
+            var resultado = await _consultas.BuscarAnimalesAsync(filtro);
             if (version != _version)
             {
                 return; // llegó una búsqueda más reciente
             }
 
-            Bovinos.Clear();
+            Animales.Clear();
             foreach (var item in resultado.Items)
             {
-                Bovinos.Add(item);
+                Animales.Add(item);
             }
 
             var resumen = resultado.Resumen;
-            ResumenTexto = $"Mostrando: {resumen.Cantidad:N0} {(resumen.Cantidad == 1 ? "Bovino" : "Bovinos")} {DescribirEstado(EstadoSeleccionado.Valor, resumen.Cantidad)}";
+            var unidad = resumen.Cantidad == 1 ? Especie.Singular : Especie.Plural;
+            ResumenTexto = $"Mostrando: {resumen.Cantidad:N0} {unidad} {DescribirEstado(EstadoSeleccionado.Valor, resumen.Cantidad)}";
             TotalTexto = Formato.Dinero(resumen.ValorContableTotal);
-        }, "consultar los bovinos");
+        }, $"consultar los animales ({Especie.Titulo})");
     }
 
-    /// <summary>Abre la ficha técnica del bovino (doble clic en la tabla o botón "Ver ficha").</summary>
-    [RelayCommand(CanExecute = nameof(HaySeleccion))]
-    private async Task AbrirFichaAsync(BovinoListItem? item)
+    /// <summary>Abre la ficha técnica del animal (botón de la fila, doble clic en la tabla o botón "Ver ficha técnica").</summary>
+    [RelayCommand(CanExecute = nameof(PuedeAbrirFicha))]
+    private async Task AbrirFichaAsync(AnimalListItem? item)
     {
         item ??= Seleccionado;
         if (item is not null && await _formularios.VerFichaAsync(item.Id))
@@ -133,7 +158,8 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
         }
     }
 
-    private bool HaySeleccion() => Seleccionado is not null;
+    // El botón de cada fila pasa su propio animal; los demás usan el seleccionado.
+    private bool PuedeAbrirFicha(AnimalListItem? item) => (item ?? Seleccionado) is not null;
 
     partial void OnTextoChanged(string value) => _ = BuscarConRetardoAsync();
 
@@ -183,7 +209,7 @@ public sealed partial class BovinosViewModel : ViewModelBase, IConAccionesRapida
                 Orientaciones.Add(new OpcionFiltro(o.Id, o.Nombre));
             }
 
-            var categorias = await _catalogo.GetCategoriasAsync();
+            var categorias = await _catalogo.GetCategoriasDeProgramaAsync(Programa.Id);
             Categorias.Clear();
             Categorias.Add(new OpcionFiltro(null, "Todas"));
             foreach (var c in categorias)

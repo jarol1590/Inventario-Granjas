@@ -80,7 +80,7 @@ public class ExcelInventarioYHojaDeVidaTests
         h.Cell("G12").Style.NumberFormat.Format.Should().Contain("$");
         h.Cell("B7").Style.NumberFormat.Format.Should().Be("dd/MM/yyyy");
 
-        h.Cell("A5").Style.Fill.BackgroundColor.Should().Be(XLColor.FromHtml("#1B365D"));
+        h.Cell("A5").Style.Fill.BackgroundColor.Should().Be(XLColor.FromHtml("#003E70"));
         h.Pictures.Count.Should().Be(1);
         h.CellsUsed().Select(c => c.GetString()).Should().Contain("PAULA VALENCIA ARANGO");
     }

@@ -156,6 +156,7 @@ public class AnimalServiceTests
     public async Task La_vista_previa_indica_Sin_tarifa_y_rechaza_fechas_futuras_o_sexo_invalido()
     {
         await using var e = await EscenarioKardex.CrearAsync();
+        await e.Db.QuitarFilaDeLevanteParaMachosAsync(); // una matriz editada con un hueco: macho de 14 meses sin fila
         var servicio = Crear(e);
 
         var sinTarifa = await servicio.PrevisualizarValoracionAsync(Sexo.Macho, e.Ids.Lacteo, 0, Datos.F("2025-09-01"));

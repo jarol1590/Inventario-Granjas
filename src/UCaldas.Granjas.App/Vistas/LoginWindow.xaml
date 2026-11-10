@@ -1,44 +1,113 @@
-<Window x:Class="UCaldas.Granjas.App.Vistas.LoginWindow"
+﻿<Window x:Class="UCaldas.Granjas.App.Vistas.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura"
         Title="Inventario Sistema Granjas"
-        Width="480" SizeToContent="Height" ResizeMode="NoResize"
+        Icon="/Recursos/Imagenes/SistemaGranjas.ico"
+        FontFamily="{StaticResource Fuente.Base}"
+        Width="500" SizeToContent="Height" ResizeMode="NoResize"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource Brush.Fondo}"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         FocusManager.FocusedElement="{Binding ElementName=CampoContrasena}">
-  <Border Margin="28" Style="{StaticResource Tarjeta}" Padding="28">
-    <StackPanel>
-      <!-- Marcador del logo institucional (el escudo oficial se coloca aquí cuando esté disponible). -->
-      <Border Width="84" Height="84" HorizontalAlignment="Center" BorderBrush="{StaticResource Brush.Primario}"
-              BorderThickness="2" CornerRadius="42" Background="{StaticResource Brush.Primario}">
-        <TextBlock Text="UC" Foreground="White" FontSize="30" FontWeight="Bold"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-      </Border>
+  <Border Margin="24" Style="{StaticResource Tarjeta}" Padding="0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <!-- Franja con el degradado verde → azul de la Facultad de Ciencias Agropecuarias -->
+        <Border Height="6" CornerRadius="5,5,0,0" Background="{StaticResource Brush.DegradadoFacultad}" />
 
-      <TextBlock Margin="0,16,0,0" Text="Sistema Unificado de Gestión de Granjas" Style="{StaticResource Texto.Titulo}"
-                 TextAlignment="Center" TextWrapping="Wrap" />
-      <TextBlock Margin="0,4,0,0" Text="Universidad de Caldas · Facultad de Ciencias Agropecuarias"
-                 Style="{StaticResource Texto.Suave}" TextAlignment="Center" />
+        <StackPanel Margin="28,22,28,28">
+          <Image Source="/Recursos/Imagenes/LogoUniversidadDeCaldas.png" Height="116" HorizontalAlignment="Center"
+                 RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="Logo de la Universidad de Caldas" />
 
-      <TextBlock Margin="0,22,0,10" Text="{Binding Instruccion}" Style="{StaticResource Texto.Suave}" />
+          <TextBlock Margin="0,16,0,0" Text="Sistema Unificado de Gestión de Granjas" Style="{StaticResource Texto.Titulo}"
+                     TextAlignment="Center" TextWrapping="Wrap" />
+          <!-- Identificador institucional: Roboto Condensed Bold -->
+          <TextBlock Margin="0,6,0,0" Text="FACULTAD DE CIENCIAS AGROPECUARIAS" Style="{StaticResource Texto.Identificador}"
+                     FontSize="14" TextAlignment="Center" />
 
-      <TextBlock Text="Contraseña" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
-      <PasswordBox x:Name="CampoContrasena" infra:ContrasenaAsistente.Contrasena="{Binding Contrasena, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+          <!-- ===== Ingreso ===== -->
+          <StackPanel Visibility="{Binding EsIngreso, Converter={StaticResource BoolAVisibilidad}}"
+                      infra:FocoAlMostrarse.Activo="True" infra:FocoAlMostrarse.Destino="{Binding ElementName=CampoContrasena}">
+            <TextBlock Margin="0,22,0,10" Text="Ingrese su contraseña para continuar." Style="{StaticResource Texto.Suave}" />
 
-      <StackPanel Visibility="{Binding EsPrimerArranque, Converter={StaticResource BoolAVisibilidad}}">
-        <TextBlock Text="Confirme la contraseña" Style="{StaticResource Texto.Etiqueta}" Margin="0,12,0,4" />
-        <PasswordBox infra:ContrasenaAsistente.Contrasena="{Binding Confirmacion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Margin="0,6,0,0" Style="{StaticResource Texto.Suave}"
-                   Text="{Binding LongitudMinima, StringFormat='Mínimo {0} caracteres.'}" />
+            <TextBlock Text="Contraseña" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+            <PasswordBox x:Name="CampoContrasena" AutomationProperties.Name="Contraseña"
+                         infra:ContrasenaAsistente.Contrasena="{Binding Contrasena, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Margin="0,12,0,0" Text="{Binding MensajeInformativo}" Foreground="{StaticResource Brush.Exito}" FontWeight="Medium" TextWrapping="Wrap"
+                       Visibility="{Binding MensajeInformativo, Converter={StaticResource NuloAVisibilidad}}" />
+            <TextBlock Margin="0,12,0,0" Text="{Binding MensajeError}" Style="{StaticResource Texto.Error}"
+                       Visibility="{Binding MensajeError, Converter={StaticResource NuloAVisibilidad}}" />
+
+            <Button Margin="0,18,0,0" Content="INGRESAR" Command="{Binding AceptarCommand}"
+                    Style="{StaticResource Boton.Primario}" IsDefault="True" Padding="14,10" />
+            <Button Margin="0,10,0,0" Content="¿Olvidó su contraseña?" Command="{Binding OlvideLaContrasenaCommand}"
+                    Style="{StaticResource Boton.Enlace}" HorizontalAlignment="Center" />
+          </StackPanel>
+
+          <!-- ===== Restablecer la contraseña (sin borrar la base de datos) ===== -->
+          <StackPanel Visibility="{Binding EsRecuperacion, Converter={StaticResource BoolAVisibilidad}}"
+                      infra:FocoAlMostrarse.Activo="True" infra:FocoAlMostrarse.Destino="{Binding ElementName=CampoRespuesta}">
+            <TextBlock Margin="0,20,0,6" Text="Restablecer la contraseña" Style="{StaticResource Texto.Seccion}" FontSize="17" />
+
+            <!-- Instalaciones creadas antes de que existiera la recuperación -->
+            <Border Margin="0,6,0,0" Padding="12,10" CornerRadius="4" Background="#FFF6E5" BorderBrush="{StaticResource Brush.Advertencia}" BorderThickness="1"
+                    Visibility="{Binding RecuperacionDisponible, Converter={StaticResource InvertirVisibilidad}}">
+              <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Brush.Texto}"
+                         Text="Esta instalación no tiene pregunta secreta ni clave de recuperación (se creó antes de que existieran), así que la contraseña no se puede restablecer desde aquí. Para poder hacerlo en el futuro, ingrese al sistema y configúrelas en Configuración › Respaldos / Backup. Si hoy no recuerda la contraseña, la única salida es reemplazar el archivo de la base de datos por el de un respaldo (.zip) hecho cuando sí la recordaba; pida apoyo al administrador del sistema." />
+            </Border>
+
+            <StackPanel Visibility="{Binding RecuperacionDisponible, Converter={StaticResource BoolAVisibilidad}}">
+              <TextBlock Margin="0,0,0,10" Style="{StaticResource Texto.Suave}"
+                         Text="Compruebe que usted administra el sistema con una de estas dos opciones. Su información no se borra." />
+
+              <RadioButton GroupName="Metodo" Content="Responder mi pregunta secreta" IsChecked="{Binding UsaPregunta}" FontWeight="Medium" />
+              <StackPanel Margin="22,6,0,8" Visibility="{Binding UsaPregunta, Converter={StaticResource BoolAVisibilidad}}">
+                <TextBlock Text="{Binding PreguntaSecreta}" Style="{StaticResource Texto.Etiqueta}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                <TextBox x:Name="CampoRespuesta" Text="{Binding Respuesta, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="Respuesta a la pregunta secreta" />
+              </StackPanel>
+
+              <RadioButton GroupName="Metodo" Content="Usar mi clave de recuperación" IsChecked="{Binding UsaClave}" FontWeight="Medium" Margin="0,4,0,0" />
+              <StackPanel Margin="22,6,0,8" Visibility="{Binding UsaClave, Converter={StaticResource BoolAVisibilidad}}">
+                <TextBlock Text="Clave de 16 caracteres (con o sin guiones)" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+                <TextBox Text="{Binding ClaveIngresada, UpdateSourceTrigger=PropertyChanged}" MaxLength="24" CharacterCasing="Upper"
+                         FontFamily="Consolas" FontSize="15" AutomationProperties.Name="Clave de recuperación" />
+              </StackPanel>
+
+              <TextBlock Text="Nueva contraseña" Style="{StaticResource Texto.Etiqueta}" Margin="0,10,0,4" />
+              <PasswordBox AutomationProperties.Name="Nueva contraseña"
+                           infra:ContrasenaAsistente.Contrasena="{Binding NuevaContrasena, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBlock Text="Confirme la nueva contraseña" Style="{StaticResource Texto.Etiqueta}" Margin="0,10,0,4" />
+              <PasswordBox AutomationProperties.Name="Confirme la nueva contraseña"
+                           infra:ContrasenaAsistente.Contrasena="{Binding ConfirmacionNueva, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBlock Margin="0,4,0,0" Style="{StaticResource Texto.Suave}"
+                         Text="{Binding LongitudMinima, StringFormat='Mínimo {0} caracteres.'}" />
+            </StackPanel>
+
+            <TextBlock Margin="0,12,0,0" Text="{Binding MensajeError}" Style="{StaticResource Texto.Error}"
+                       Visibility="{Binding MensajeError, Converter={StaticResource NuloAVisibilidad}}" />
+
+            <Button Margin="0,16,0,0" Content="RESTABLECER CONTRASEÑA" Command="{Binding RestablecerCommand}"
+                    Style="{StaticResource Boton.Primario}" Padding="14,10" IsDefault="True"
+                    Visibility="{Binding RecuperacionDisponible, Converter={StaticResource BoolAVisibilidad}}" />
+            <Button Margin="0,10,0,0" Content="Volver al ingreso" Command="{Binding VolverAlIngresoCommand}"
+                    Style="{StaticResource Boton.Enlace}" HorizontalAlignment="Center" />
+          </StackPanel>
+
+          <!-- ===== Contraseña restablecida: clave de recuperación nueva ===== -->
+          <StackPanel Visibility="{Binding EsClaveNueva, Converter={StaticResource BoolAVisibilidad}}">
+            <Border Margin="0,20,0,12" Padding="10,8" CornerRadius="4" Background="#EAF4EE" BorderBrush="{StaticResource Brush.Secundario}" BorderThickness="1">
+              <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Brush.SecundarioOscuro}" FontWeight="Medium"
+                         Text="Contraseña restablecida. No se borró ningún dato. Por seguridad la clave de recuperación anterior ya no sirve: esta es la nueva." />
+            </Border>
+            <ContentControl Content="{Binding ClaveNueva}" IsTabStop="False" />
+            <Button Margin="0,16,0,0" Content="CONTINUAR" Command="{Binding ContinuarTrasRestablecerCommand}"
+                    Style="{StaticResource Boton.Primario}" Padding="14,10" IsDefault="True" />
+          </StackPanel>
+        </StackPanel>
       </StackPanel>
-
-      <TextBlock Margin="0,12,0,0" Text="{Binding MensajeError}" Style="{StaticResource Texto.Error}"
-                 Visibility="{Binding MensajeError, Converter={StaticResource NuloAVisibilidad}}" />
-
-      <Button Margin="0,18,0,0" Content="{Binding TextoBoton}" Command="{Binding AceptarCommand}"
-              Style="{StaticResource Boton.Primario}" IsDefault="True" Padding="14,10" />
-    </StackPanel>
+    </ScrollViewer>
   </Border>
 </Window>

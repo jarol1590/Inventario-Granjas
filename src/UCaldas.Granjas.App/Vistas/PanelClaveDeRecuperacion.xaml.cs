@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace UCaldas.Granjas.App.Vistas;
 
-public partial class BovinosView : UserControl
+public partial class PanelClaveDeRecuperacion : UserControl
 {
-    public BovinosView()
+    public PanelClaveDeRecuperacion()
     {
         InitializeComponent();
     }

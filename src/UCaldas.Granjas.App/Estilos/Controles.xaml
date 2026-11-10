@@ -10,20 +10,33 @@
   <infra:SignoABrochaConverter x:Key="SignoABrocha" />
 
   <!-- ===== Texto ===== -->
+  <!-- Las ayudas emergentes viven en su propia ventana: no heredan la tipografía de la ventana principal. -->
+  <Style TargetType="ToolTip">
+    <Setter Property="FontFamily" Value="{StaticResource Fuente.Base}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <!-- Un ScrollViewer es enfocable por omisión: al ocultarse el control que tenía el foco este cae en él y, con el teclado,
+       WPF dibuja un rectángulo punteado alrededor de toda la zona desplazable. El desplazamiento con rueda y con teclas
+       (que llegan desde los controles hijos) sigue funcionando. -->
+  <Style TargetType="ScrollViewer">
+    <Setter Property="Focusable" Value="False" />
+  </Style>
+
   <Style x:Key="Texto.Titulo" TargetType="TextBlock">
     <Setter Property="FontSize" Value="20" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{StaticResource Brush.Primario}" />
   </Style>
 
   <Style x:Key="Texto.Seccion" TargetType="TextBlock">
     <Setter Property="FontSize" Value="15" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{StaticResource Brush.Primario}" />
   </Style>
 
   <Style x:Key="Texto.Etiqueta" TargetType="TextBlock">
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{StaticResource Brush.Texto}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
@@ -38,9 +51,25 @@
     <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
 
+  <!-- Identificadores institucionales (p. ej. el nombre de la Facultad): Roboto Condensed Bold. -->
+  <Style x:Key="Texto.Identificador" TargetType="TextBlock">
+    <Setter Property="FontStretch" Value="Condensed" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.SecundarioOscuro}" />
+  </Style>
+
+  <!-- Texto de ayuda dentro de un campo vacío (marcador de posición): cursiva suave que no recibe clics. -->
+  <Style x:Key="Texto.Marcador" TargetType="TextBlock">
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="Margin" Value="9,0,0,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontStyle" Value="Italic" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.TextoSuave}" />
+  </Style>
+
   <Style x:Key="Texto.KpiValor" TargetType="TextBlock">
     <Setter Property="FontSize" Value="24" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{StaticResource Brush.Primario}" />
     <Setter Property="HorizontalAlignment" Value="Center" />
   </Style>
@@ -58,7 +87,7 @@
     <Setter Property="BorderBrush" Value="{StaticResource Brush.Primario}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="14,7" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="SnapsToDevicePixels" Value="True" />
     <Setter Property="Template">
@@ -199,9 +228,9 @@
   <Style x:Key="Tabla.Encabezado" TargetType="DataGridColumnHeader">
     <Setter Property="Background" Value="{StaticResource Brush.Primario}" />
     <Setter Property="Foreground" Value="White" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Padding" Value="8,8" />
-    <Setter Property="BorderBrush" Value="#3B567F" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimarioClaro}" />
     <Setter Property="BorderThickness" Value="0,0,1,0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
@@ -278,17 +307,23 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Borde" Background="White" BorderBrush="{StaticResource Brush.Primario}" BorderThickness="1"
-                  Margin="0,0,-1,0" Padding="10,10" SnapsToDevicePixels="True">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Border>
+          <Grid Margin="0,0,-1,0">
+            <Border x:Name="Borde" Background="White" BorderBrush="{StaticResource Brush.Primario}" BorderThickness="1"
+                    Padding="10,10" SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <!-- Franja verde de la Facultad bajo la pestaña elegida -->
+            <Border x:Name="Marca" Height="3" VerticalAlignment="Bottom" Margin="1,0,1,1" Background="{StaticResource Brush.Secundario}" Visibility="Collapsed" />
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Borde" Property="Background" Value="{StaticResource Brush.Resaltado}" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Borde" Property="Background" Value="{StaticResource Brush.Acento}" />
-              <Setter Property="FontWeight" Value="SemiBold" />
+              <Setter TargetName="Borde" Property="Background" Value="{StaticResource Brush.Primario}" />
+              <Setter TargetName="Marca" Property="Visibility" Value="Visible" />
+              <Setter Property="Foreground" Value="White" />
+              <Setter Property="FontWeight" Value="Medium" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.5" />
@@ -316,6 +351,61 @@
     </Setter>
   </Style>
 
+  <!-- ===== TabControl con aspecto de botones segmentados (pestañas dinámicas de Animales) ===== -->
+  <Style x:Key="Tab.Item" TargetType="TabItem">
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="AutomationProperties.Name" Value="{Binding Titulo}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Primario}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabItem">
+          <Grid Margin="0,0,-1,0">
+            <Border x:Name="Borde" Background="White" BorderBrush="{StaticResource Brush.Primario}" BorderThickness="1"
+                    Padding="24,9" MinWidth="170" SnapsToDevicePixels="True">
+              <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border x:Name="Marca" Height="3" VerticalAlignment="Bottom" Margin="1,0,1,1" Background="{StaticResource Brush.Secundario}" Visibility="Collapsed" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Borde" Property="Background" Value="{StaticResource Brush.Resaltado}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Borde" Property="Background" Value="{StaticResource Brush.Primario}" />
+              <Setter TargetName="Marca" Property="Visibility" Value="Visible" />
+              <Setter Property="Foreground" Value="White" />
+              <Setter Property="FontWeight" Value="Medium" />
+              <Setter Property="Panel.ZIndex" Value="1" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="Tab.Segmentado" TargetType="TabControl">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ItemContainerStyle" Value="{StaticResource Tab.Item}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabControl">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" IsItemsHost="True" />
+            <!-- PART_SelectedContentHost es la parte que el TabControl espera (y que lee Automation para exponer el contenido). -->
+            <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Row="1" Margin="0,14,0,0" ContentSource="SelectedContent" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- ===== Menú lateral ===== -->
   <Style x:Key="Menu.Item" TargetType="ListBoxItem">
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -327,7 +417,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Borde" Background="Transparent" BorderBrush="Transparent" BorderThickness="3,0,0,0" Padding="12,8"
+          <Border x:Name="Borde" Background="Transparent" BorderBrush="Transparent" BorderThickness="4,0,0,0" Padding="12,8"
                   SnapsToDevicePixels="True">
             <ContentPresenter VerticalAlignment="Center" />
           </Border>
@@ -337,8 +427,9 @@
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
               <Setter TargetName="Borde" Property="Background" Value="{StaticResource Brush.Seleccion}" />
-              <Setter TargetName="Borde" Property="BorderBrush" Value="{StaticResource Brush.Primario}" />
-              <Setter Property="FontWeight" Value="SemiBold" />
+              <Setter TargetName="Borde" Property="BorderBrush" Value="{StaticResource Brush.Secundario}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Primario}" />
+              <Setter Property="FontWeight" Value="Medium" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.45" />

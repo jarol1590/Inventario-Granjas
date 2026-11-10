@@ -58,7 +58,7 @@ public sealed class ExcelReportingEngine(
         Regla.Exigir(granjas.Count > 0, "No hay granjas para generar el informe.");
         var firma = await LeerFirmaAsync(ct);
 
-        using var libro = new XLWorkbook();
+        using var libro = ExcelEstilos.NuevoLibro();
         var nombres = new NombresDeHoja();
         foreach (var granja in granjas)
         {
@@ -365,7 +365,7 @@ public sealed class ExcelReportingEngine(
                && (request.CategoriaId is null || a.CategoriaId == request.CategoriaId)
                && (request.ProgramaId is null || categorias.GetValueOrDefault(a.CategoriaId)?.ProgramaId == request.ProgramaId);
 
-        using var libro = new XLWorkbook();
+        using var libro = ExcelEstilos.NuevoLibro();
         var nombres = new NombresDeHoja();
         foreach (var granja in granjas)
         {
@@ -463,7 +463,7 @@ public sealed class ExcelReportingEngine(
 
             var filaSubtotal = hoja.Range(fila, 1, fila, ultima);
             filaSubtotal.Style.Font.Bold = true;
-            filaSubtotal.Style.Fill.BackgroundColor = ExcelEstilos.AzulClaro;
+            filaSubtotal.Style.Fill.BackgroundColor = ExcelEstilos.VerdeClaro;
             subtotales.Add(fila);
             fila++;
         }
@@ -512,7 +512,7 @@ public sealed class ExcelReportingEngine(
         var firma = await LeerFirmaAsync(ct);
         var a = ficha.Animal;
 
-        using var libro = new XLWorkbook();
+        using var libro = ExcelEstilos.NuevoLibro();
         var hoja = libro.Worksheets.Add("Hoja de vida");
         const int ultima = 7;
 

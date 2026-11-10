@@ -10,6 +10,15 @@ public class ConfiguracionSistema
 
     /// <summary>Último fin de mes ya valorizado (extensión v2.1).</summary>
     public DateTime? UltimoCierreValorizacion { get; set; }
+
+    /// <summary>Pregunta secreta elegida para recuperar la contraseña (extensión v2.2). Nula si aún no se configuró.</summary>
+    public string? PreguntaSecreta { get; set; }
+
+    /// <summary>Hash PBKDF2-SHA256 de la respuesta a la pregunta secreta, ya normalizada (extensión v2.2).</summary>
+    public string? RespuestaHash { get; set; }
+
+    /// <summary>Hash PBKDF2-SHA256 de la clave de recuperación de 16 caracteres (extensión v2.2). La clave misma no se guarda.</summary>
+    public string? RecoveryKeyHash { get; set; }
 }
 
 /// <summary>Datos de la autoridad que firma los informes institucionales (fila única).</summary>

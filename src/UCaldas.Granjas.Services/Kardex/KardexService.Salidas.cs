@@ -149,6 +149,7 @@ public sealed partial class KardexService
     public async Task<TrasladoResultado> RegistrarTrasladoAsync(TrasladoDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
+        Regla.Exigir(dto.RemisionId is null, "Este traslado ya está registrado; use la edición para modificarlo.");
         validador.ValidarTraslado(dto, reloj.Hoy);
 
         await using var uow = await fabrica.BeginAsync(ct);
@@ -183,33 +184,43 @@ public sealed partial class KardexService
         foreach (var item in dto.Animales)
         {
             var animal = animales.Single(a => a.Id == item.AnimalId);
-            var costo = animal.ValorContableActual;
-            var orientacionDestino = item.OrientacionDestinoId ?? animal.OrientacionId;
-
-            await uow.RemisionDetalles.InsertAsync(new RemisionDetalle
-            {
-                RemisionId = remision.Id,
-                AnimalId = animal.Id,
-                PesoMomentoKg = PesoONulo(animal.PesoActualKg),
-                CostoSistemaLibros = costo,
-                ObservacionesEspecificas = LimpiarONulo(item.ObservacionesEspecificas),
-                OrientacionOrigenId = animal.OrientacionId,
-                OrientacionDestinoId = orientacionDestino,
-            }, ct);
-
-            // El animal conserva su chapeta y su valor de compra; solo cambian la sede y, si se confirma, la orientación.
-            animal.GranjaId = destino.Id;
-            animal.OrientacionId = orientacionDestino;
-            await uow.Animales.UpdateAsync(animal, ct);
-
-            // Registro dual: salida en el origen (−valor) y entrada en el destino (+valor).
-            await uow.Movimientos.InsertAsync(Salida(animal.Id, remision.Id, TipoMovimiento.Traslado, remision.FechaRemision, origen.Id, costo), ct);
-            await uow.Movimientos.InsertAsync(Entrada(animal.Id, remision.Id, TipoMovimiento.Traslado, remision.FechaRemision, destino.Id, costo), ct);
-            totalValor += costo;
+            totalValor += await AplicarTrasladoAsync(uow, remision, animal, origen, destino, item, ct);
         }
 
         await uow.CommitAsync(ct);
         return new TrasladoResultado(remision.Id, dto.Animales.Count, totalValor);
+    }
+
+    /// <summary>
+    /// Mueve un animal de la sede de origen a la de destino: línea de la remisión (con las dos orientaciones) y el par de
+    /// asientos del libro. Devuelve el valor en libros trasladado.
+    /// </summary>
+    private async Task<decimal> AplicarTrasladoAsync(
+        IUnitOfWork uow, Remision remision, Animal animal, Granja origen, Granja destino, TrasladoAnimalDto item, CancellationToken ct)
+    {
+        var costo = animal.ValorContableActual;
+        var orientacionDestino = item.OrientacionDestinoId ?? animal.OrientacionId;
+
+        await uow.RemisionDetalles.InsertAsync(new RemisionDetalle
+        {
+            RemisionId = remision.Id,
+            AnimalId = animal.Id,
+            PesoMomentoKg = PesoONulo(animal.PesoActualKg),
+            CostoSistemaLibros = costo,
+            ObservacionesEspecificas = LimpiarONulo(item.ObservacionesEspecificas),
+            OrientacionOrigenId = animal.OrientacionId,
+            OrientacionDestinoId = orientacionDestino,
+        }, ct);
+
+        // El animal conserva su chapeta y su valor de compra; solo cambian la sede y, si se confirma, la orientación.
+        animal.GranjaId = destino.Id;
+        animal.OrientacionId = orientacionDestino;
+        await uow.Animales.UpdateAsync(animal, ct);
+
+        // Registro dual: salida en el origen (−valor) y entrada en el destino (+valor).
+        await uow.Movimientos.InsertAsync(Salida(animal.Id, remision.Id, TipoMovimiento.Traslado, remision.FechaRemision, origen.Id, costo), ct);
+        await uow.Movimientos.InsertAsync(Entrada(animal.Id, remision.Id, TipoMovimiento.Traslado, remision.FechaRemision, destino.Id, costo), ct);
+        return costo;
     }
 
     // ---- Comunes de las salidas --------------------------------------------------------------------------------

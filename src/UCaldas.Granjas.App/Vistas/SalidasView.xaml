@@ -44,8 +44,7 @@
             <KeyBinding Key="Enter" Command="{Binding BuscarCommand}" />
           </TextBox.InputBindings>
         </TextBox>
-        <TextBlock Text="🔍 Número Chapeta" IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
-                   Foreground="{StaticResource Brush.TextoSuave}"
+        <TextBlock Text="🔍 Número Chapeta" Style="{StaticResource Texto.Marcador}"
                    Visibility="{Binding TextoChapeta, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
       </Grid>
       <Button Margin="10,0,0,0" Content="Buscar" Command="{Binding BuscarCommand}" MinWidth="90" />

@@ -14,14 +14,14 @@ public class ConsultasServiceTests
     private static readonly DateTime Octubre1 = new(2026, 10, 1);
     private static readonly DateTime Octubre31 = new(2026, 10, 31);
 
-    // ---- Bovinos ---------------------------------------------------------------------------------------------------
+    // ---- Animales ---------------------------------------------------------------------------------------------------
 
     [Fact]
     public async Task Por_defecto_lista_solo_los_disponibles_con_sus_datos_y_el_resumen()
     {
         await using var e = await EscenariosDeReporte.CrearOctubreDeTesoritoAsync();
 
-        var r = await Crear(e).BuscarBovinosAsync(new BovinoFiltro());
+        var r = await Crear(e).BuscarAnimalesAsync(new AnimalFiltro());
 
         r.Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-3", "N-1", "P-1", "P-2", "T-1");
         r.Resumen.Cantidad.Should().Be(5);
@@ -50,16 +50,16 @@ public class ConsultasServiceTests
         await using var e = await EscenariosDeReporte.CrearOctubreDeTesoritoAsync();
         var servicio = Crear(e);
 
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(GranjaId: e.Ids.LaCruz))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-3");
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Estado: EstadoAnimal.Vendido))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-1");
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Estado: EstadoAnimal.Muerto))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-2");
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Estado: null))).Items.Should().HaveCount(7);
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(OrientacionId: e.Ids.Carne))).Items.Should().BeEmpty();
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Sexo: Sexo.Macho))).Items.Should().BeEmpty();
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(CategoriaId: e.Ids.Categoria(NombresBase.CategoriaVacasGeneral)))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-3", "P-1");
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Raza: "holstein"))).Items.Should().HaveCount(5);
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Raza: "Jersey"))).Items.Should().BeEmpty();
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Texto: "p-"))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("P-1", "P-2");
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(GranjaId: e.Ids.LaCruz))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-3");
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Estado: EstadoAnimal.Vendido))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-1");
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Estado: EstadoAnimal.Muerto))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-2");
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Estado: null))).Items.Should().HaveCount(7);
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(OrientacionId: e.Ids.Carne))).Items.Should().BeEmpty();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Sexo: Sexo.Macho))).Items.Should().BeEmpty();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(CategoriaId: e.Ids.Categoria(NombresBase.CategoriaVacasGeneral)))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("A-3", "P-1");
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Raza: "holstein"))).Items.Should().HaveCount(5);
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Raza: "Jersey"))).Items.Should().BeEmpty();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Texto: "p-"))).Items.Select(i => i.ChapetaAmarilla).Should().Equal("P-1", "P-2");
     }
 
     [Fact]
@@ -71,10 +71,10 @@ public class ConsultasServiceTests
         await e.AltaVacaAsync("0941-26");
         var servicio = Crear(e);
 
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Texto: "roja"))).Items.Should().ContainSingle();
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Texto: "lucer"))).Items.Should().ContainSingle();
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Texto: "  094  "))).Items.Should().HaveCount(2);
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(Texto: "zzz"))).Items.Should().BeEmpty();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Texto: "roja"))).Items.Should().ContainSingle();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Texto: "lucer"))).Items.Should().ContainSingle();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Texto: "  094  "))).Items.Should().HaveCount(2);
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(Texto: "zzz"))).Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -85,17 +85,18 @@ public class ConsultasServiceTests
         var aves = await e.Db.EscalarAsync<int>("SELECT id FROM PROGRAMA WHERE codigo = 'PRG-AVE'");
         var servicio = Crear(e);
 
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(ProgramaId: e.Ids.ProgramaGanaderia))).Items.Should().ContainSingle();
-        (await servicio.BuscarBovinosAsync(new BovinoFiltro(ProgramaId: aves))).Items.Should().BeEmpty();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(ProgramaId: e.Ids.ProgramaGanaderia))).Items.Should().ContainSingle();
+        (await servicio.BuscarAnimalesAsync(new AnimalFiltro(ProgramaId: aves))).Items.Should().BeEmpty();
     }
 
     [Fact]
     public async Task Marca_los_animales_Sin_tarifa_y_calcula_edad_cero_si_la_fecha_es_futura()
     {
         await using var e = await EscenarioKardex.CrearAsync();
+        await e.Db.QuitarFilaDeLevanteParaMachosAsync(); // una matriz editada con un hueco
         await e.Kardex.RegistrarNacimientoAsync(e.Nacimiento("0800-25", Sexo.Macho, nacimiento: "2025-08-01"));
 
-        var item = (await Crear(e).BuscarBovinosAsync(new BovinoFiltro())).Items.Single();
+        var item = (await Crear(e).BuscarAnimalesAsync(new AnimalFiltro())).Items.Single();
 
         item.SinTarifa.Should().BeTrue();
         item.Categoria.Should().Be(NombresBase.CategoriaSinClasificar);
@@ -323,6 +324,62 @@ public class ConsultasServiceTests
         incluidos.Resumen.Should().Be(new ResumenTraslados(0, 0));
     }
 
+    [Fact]
+    public async Task Obtiene_un_traslado_con_la_orientacion_de_origen_y_el_costo_de_ese_momento()
+    {
+        await using var e = await EscenarioKardex.CrearAsync("2026-10-31");
+        await e.AltaVacaAsync("A-1", valor: 6_000_000m);
+        await e.AltaVacaAsync("A-2", valor: 3_750_000m);
+        var dto = await e.TrasladoAsync("REM-T-1", e.Ids.Tesorito, e.Ids.Montelindo, "A-1", "A-2");
+        dto.Animales[0].OrientacionDestinoId = e.Ids.Carne;
+        dto.Animales[0].ObservacionesEspecificas = "Cojea";
+        await e.Kardex.RegistrarTrasladoAsync(dto);
+        // Después del traslado el animal sigue valorizándose: el detalle muestra lo que se trasladó, no el valor de hoy.
+        await e.Db.EjecutarAsync("UPDATE ANIMAL SET valor_contable_actual = 9000000 WHERE chapeta_amarilla = 'A-1'");
+        var id = (await e.RemisionAsync("REM-T-1")).Id;
+
+        var traslado = await Crear(e).ObtenerTrasladoAsync(id);
+
+        traslado.Anulada.Should().BeFalse();
+        traslado.Dto.RemisionId.Should().Be(id);
+        traslado.Dto.NumeroRemision.Should().Be("REM-T-1");
+        traslado.Dto.FechaTraslado.Should().Be(Datos.F("2026-10-24"));
+        traslado.Dto.GranjaOrigenId.Should().Be(e.Ids.Tesorito);
+        traslado.Dto.GranjaDestinoId.Should().Be(e.Ids.Montelindo);
+        traslado.Dto.Observaciones.Should().Be("Traslado de prueba");
+        var idA1 = await e.IdAsync("A-1");
+        var linea = traslado.Dto.Animales.Single(a => a.AnimalId == idA1);
+        linea.OrientacionDestinoId.Should().Be(e.Ids.Carne);
+        linea.ObservacionesEspecificas.Should().Be("Cojea");
+
+        traslado.Animales.Select(a => a.ChapetaAmarilla).Should().Equal("A-1", "A-2");
+        var a1 = traslado.Animales.Single(a => a.Id == idA1);
+        a1.OrientacionId.Should().Be(e.Ids.Lacteo, "la orientación que tenía en la sede de origen");
+        a1.Orientacion.Should().Be("Lácteo");
+        a1.ValorContable.Should().Be(6_000_000m, "el costo en libros al momento del traslado");
+    }
+
+    [Fact]
+    public async Task Obtener_un_traslado_falla_si_no_existe_o_el_documento_es_de_otro_tipo_y_marca_los_anulados()
+    {
+        await using var e = await EscenarioKardex.CrearAsync("2026-10-31");
+        await e.AltaVacaAsync("A-1");
+        await e.AltaVacaAsync("A-2");
+        await e.Kardex.RegistrarBajaAsync(await e.BajaAsync("REM-B-1", ClaseSalida.Muerte, null, "A-2"));
+        await e.Kardex.RegistrarTrasladoAsync(await e.TrasladoAsync("REM-T-1", e.Ids.Tesorito, e.Ids.LaCruz, "A-1"));
+        var traslado = (await e.RemisionAsync("REM-T-1")).Id;
+        var baja = (await e.RemisionAsync("REM-B-1")).Id;
+        var servicio = Crear(e);
+
+        await ((Func<Task>)(() => servicio.ObtenerTrasladoAsync(99999))).Should().ThrowAsync<ValidationException>().WithMessage("*no existe*");
+        await ((Func<Task>)(() => servicio.ObtenerTrasladoAsync(baja))).Should().ThrowAsync<ValidationException>().WithMessage("*no es un traslado*");
+
+        await e.Kardex.AnularAsync(traslado);
+        var anulado = await servicio.ObtenerTrasladoAsync(traslado);
+        anulado.Anulada.Should().BeTrue();
+        anulado.Animales.Should().BeEmpty("al anular se borran las líneas del documento");
+    }
+
     // ---- Dashboard -------------------------------------------------------------------------------------------------
 
     [Fact]
@@ -350,9 +407,44 @@ public class ConsultasServiceTests
 
         d.TotalAnimales.Should().Be(4);
         d.SaldoTotal.Should().Be(7_750_000m);
-        d.PorCategoria.Select(p => (p.Etiqueta, p.Valor)).Should().Equal(("Terneros", 3m), ("Vacas General", 1m));
+        // Se listan todas las categorías del programa (las vacías en cero) para que la gráfica nunca quede en blanco.
+        d.PorCategoria.Select(p => (p.Etiqueta, p.Valor)).Should().Equal(
+            ("Terneros", 3m), ("Levante", 0m), ("Novilla Vientre", 0m), ("Vacas General", 1m), ("Reproductor", 0m));
         d.NacimientosMes.Should().Be(1);
         d.SalidasMes.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task El_dashboard_muestra_Sin_clasificar_solo_si_hay_animales_en_esa_categoria()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        await e.AltaVacaAsync("A-1");
+
+        var sin = await Crear(e).ObtenerDashboardAsync(e.Ids.Tesorito, e.Ids.ProgramaGanaderia, new DateTime(2026, 11, 6));
+        sin.PorCategoria.Select(p => p.Etiqueta).Should().NotContain(NombresBase.CategoriaSinClasificar);
+
+        var animal = await e.AltaVacaAsync("S-1");
+        await e.Db.EjecutarAsync(
+            $"UPDATE ANIMAL SET categoria_id = {e.Ids.Categoria(NombresBase.CategoriaSinClasificar)} WHERE id = {animal.Id}");
+
+        var con = await Crear(e).ObtenerDashboardAsync(e.Ids.Tesorito, e.Ids.ProgramaGanaderia, new DateTime(2026, 11, 6));
+        con.PorCategoria.Should().Contain(p => p.Etiqueta == NombresBase.CategoriaSinClasificar && p.Valor == 1m);
+    }
+
+    [Fact]
+    public async Task El_dashboard_de_un_programa_nuevo_sin_categorias_ni_animales_devuelve_puntos_en_cero()
+    {
+        await using var e = await EscenariosDeReporte.CrearOctubreDeTesoritoAsync();
+        await e.Db.EjecutarAsync("INSERT INTO PROGRAMA (codigo, nombre, tipo_inventario) VALUES ('PRG-EQU', 'Caballar (Equinos)', 'INDIVIDUAL')");
+        var equinos = await e.Db.EscalarAsync<int>("SELECT id FROM PROGRAMA WHERE codigo = 'PRG-EQU'");
+
+        var todas = await Crear(e).ObtenerDashboardAsync(null, equinos, new DateTime(2026, 10, 15));
+        var deTesorito = await Crear(e).ObtenerDashboardAsync(e.Ids.Tesorito, equinos, new DateTime(2026, 10, 15));
+
+        todas.TotalAnimales.Should().Be(0);
+        todas.PorGranja.Select(p => (p.Etiqueta, p.Valor)).Should().Equal(("Tesorito", 0m), ("La Cruz", 0m), ("Montelindo", 0m));
+        todas.MovimientosMes.Should().HaveCount(5).And.OnlyContain(p => p.Valor == 0);
+        deTesorito.PorCategoria.Select(p => (p.Etiqueta, p.Valor)).Should().Equal(("Sin categorías", 0m));
     }
 
     [Fact]

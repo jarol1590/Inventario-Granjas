@@ -68,7 +68,7 @@
               <Image Source="{Binding ImagenVista}" Stretch="Uniform" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
             </Grid>
             <Border BorderBrush="{StaticResource Brush.Texto}" BorderThickness="0,1,0,0" Margin="0,-6,0,6" Width="260" HorizontalAlignment="Left" />
-            <TextBlock Text="{Binding NombreAutoridad}" FontWeight="Bold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding NombreAutoridad}" FontWeight="Medium" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Cargo}" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Departamento}" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Telefono, StringFormat='Tel: {0}'}" Style="{StaticResource Texto.Suave}"

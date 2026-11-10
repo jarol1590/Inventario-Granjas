@@ -36,8 +36,12 @@
   <DataTemplate DataType="{x:Type vm:InicioViewModel}">
     <vistas:InicioView />
   </DataTemplate>
-  <DataTemplate DataType="{x:Type vm:BovinosViewModel}">
-    <vistas:BovinosView />
+  <DataTemplate DataType="{x:Type vm:AnimalesViewModel}">
+    <vistas:AnimalesView />
+  </DataTemplate>
+  <!-- Contenido de cada pestaña de Animales: una sola vista para todos los programas de inventario individual -->
+  <DataTemplate DataType="{x:Type vm:ProgramaTabViewModel}">
+    <vistas:ProgramaTabView />
   </DataTemplate>
   <DataTemplate DataType="{x:Type vm:ComprasViewModel}">
     <vistas:ComprasView />
@@ -99,6 +103,14 @@
   </DataTemplate>
   <DataTemplate DataType="{x:Type vmc:ProgramaEditorViewModel}">
     <vc:ProgramaEditorView />
+  </DataTemplate>
+  <DataTemplate DataType="{x:Type vmc:ConfigurarRecuperacionViewModel}">
+    <vc:ConfigurarRecuperacionView />
+  </DataTemplate>
+
+  <!-- Clave de recuperación (copiar / guardar): la usan el primer inicio, el restablecimiento y la configuración -->
+  <DataTemplate DataType="{x:Type vm:ClaveDeRecuperacionViewModel}">
+    <vistas:PanelClaveDeRecuperacion />
   </DataTemplate>
 
 </ResourceDictionary>

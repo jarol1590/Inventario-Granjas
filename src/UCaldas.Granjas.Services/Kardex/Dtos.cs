@@ -190,6 +190,9 @@ public sealed class TrasladoAnimalDto
 /// <summary>Traslado entre granjas. Solo lleva Remisión: sin Oficio ni Recibo de Caja.</summary>
 public sealed class TrasladoDto
 {
+    /// <summary>Solo al editar.</summary>
+    public int? RemisionId { get; set; }
+
     public string NumeroRemision { get; set; } = string.Empty;
 
     public DateTime FechaTraslado { get; set; }

@@ -14,7 +14,10 @@ CREATE TABLE CONFIGURACION_SISTEMA (
     password_hash               TEXT    NOT NULL,
     backup_automatico_salir     BOOLEAN NOT NULL DEFAULT 1,
     ruta_backup_predeterminada  TEXT,
-    ultimo_cierre_valorizacion  DATE                                -- [v2.1] último fin de mes valorizado
+    ultimo_cierre_valorizacion  DATE,                               -- [v2.1] último fin de mes valorizado
+    pregunta_secreta            TEXT,                               -- [v2.2] pregunta de recuperación (texto elegido por el usuario)
+    respuesta_hash              TEXT,                               -- [v2.2] PBKDF2-SHA256 de la respuesta normalizada
+    recovery_key_hash           TEXT                                -- [v2.2] PBKDF2-SHA256 de la clave de recuperación (16 caracteres)
 );
 
 -- Fila única con la autoridad que firma los informes.

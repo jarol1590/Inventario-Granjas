@@ -9,7 +9,7 @@
       <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
         <TextBlock Text="Último Respaldo Exitoso:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
         <Border Style="{StaticResource Tarjeta}" Padding="12,5">
-          <TextBlock Text="{Binding UltimoRespaldoTexto}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding UltimoRespaldoTexto}" FontWeight="Medium" />
         </Border>
       </StackPanel>
       <TextBlock Margin="0,8,0,0" Text="{Binding UbicacionTexto}" Style="{StaticResource Texto.Suave}" />
@@ -67,7 +67,15 @@
       </Grid>
       <TextBlock Margin="0,8,0,0" Style="{StaticResource Texto.Suave}"
                  Text="{Binding LongitudMinimaContrasena, StringFormat='Mínimo {0} caracteres.'}" />
-      <Button Margin="0,12,0,24" Content="🔑 CAMBIAR CONTRASEÑA" Command="{Binding CambiarContrasenaCommand}" HorizontalAlignment="Left" />
+      <Button Margin="0,12,0,0" Content="🔑 CAMBIAR CONTRASEÑA" Command="{Binding CambiarContrasenaCommand}" HorizontalAlignment="Left" />
+
+      <Line Margin="0,26,0,22" X1="0" X2="1" Stretch="Fill" Stroke="{StaticResource Brush.Borde}" StrokeDashArray="4 3" StrokeThickness="1.5" />
+
+      <TextBlock Text="SEGURIDAD: RECUPERACIÓN DE LA CONTRASEÑA" Style="{StaticResource Texto.Titulo}" />
+      <TextBlock Margin="0,8,0,0" Style="{StaticResource Texto.Suave}"
+                 Text="Si olvida la contraseña, puede restablecerla desde la ventana de acceso con su pregunta secreta o con la clave de recuperación, sin perder ningún dato." />
+      <TextBlock Margin="0,10,0,0" Text="{Binding RecuperacionTexto}" TextWrapping="Wrap" FontWeight="Medium" />
+      <Button Margin="0,12,0,24" Content="🛟 CONFIGURAR PREGUNTA SECRETA Y CLAVE DE RECUPERACIÓN" Command="{Binding ConfigurarRecuperacionCommand}" HorizontalAlignment="Left" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

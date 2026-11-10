@@ -14,8 +14,7 @@
       <TextBlock Text="Buscar:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
       <Grid Width="260">
         <TextBox x:Name="CampoBuscar" Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}" ToolTip="Chapeta amarilla, chapeta roja o nombre" />
-        <TextBlock Text="🔍 Chapeta del animal" IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
-                   Foreground="{StaticResource Brush.TextoSuave}"
+        <TextBlock Text="🔍 Chapeta del animal" Style="{StaticResource Texto.Marcador}"
                    Visibility="{Binding Texto, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
       </Grid>
       <Button Margin="14,0,0,0" Content="Marcar todos" Command="{Binding MarcarTodosCommand}" Style="{StaticResource Boton.Enlace}" />
@@ -31,10 +30,10 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" MinWidth="132" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Chapeta Roja" Binding="{Binding Animal.ChapetaRoja, TargetNullValue='-'}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Sexo" Binding="{Binding Animal.Sexo}" Width="0.8*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" MinWidth="140" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Raza" Binding="{Binding Animal.Raza}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Orientación" Binding="{Binding Animal.Orientacion}" Width="1.1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Valor" Binding="{Binding Animal.ValorContable, StringFormat='$#,##0'}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Derecha}" />

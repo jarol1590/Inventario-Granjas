@@ -187,6 +187,7 @@ public class NacimientoTests
     public async Task Sin_tarifa_aplicable_el_nacido_entra_en_cero_como_Sin_clasificar()
     {
         await using var e = await EscenarioKardex.CrearAsync();
+        await e.Db.QuitarFilaDeLevanteParaMachosAsync(); // una matriz editada con un hueco: macho de 15 meses sin fila
 
         var resultado = await e.Kardex.RegistrarNacimientoAsync(e.Nacimiento("0800-25", Sexo.Macho, nacimiento: "2025-08-01"));
 

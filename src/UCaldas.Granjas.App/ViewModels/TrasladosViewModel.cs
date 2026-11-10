@@ -7,7 +7,7 @@ using UCaldas.Granjas.Services.Kardex;
 
 namespace UCaldas.Granjas.App.ViewModels;
 
-/// <summary>Traslados entre granjas: resumen del período, búsqueda por remisión o chapeta, registro y anulación.</summary>
+/// <summary>Traslados entre granjas: resumen del período, búsqueda por remisión o chapeta, registro, detalle editable y anulación.</summary>
 public sealed partial class TrasladosViewModel : ViewModelBase, IUsaFiltroGlobal
 {
     private readonly IConsultasService _consultas;
@@ -47,7 +47,7 @@ public sealed partial class TrasladosViewModel : ViewModelBase, IUsaFiltroGlobal
     private bool _incluirAnulados;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AnularCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AnularCommand), nameof(VerDetalleCommand))]
     private TrasladoListItem? _seleccionado;
 
     [ObservableProperty]
@@ -103,6 +103,17 @@ public sealed partial class TrasladosViewModel : ViewModelBase, IUsaFiltroGlobal
         }
     }
 
+    /// <summary>Abre el detalle del traslado (doble clic o botón); desde ahí se puede editar o anular.</summary>
+    [RelayCommand(CanExecute = nameof(HaySeleccion))]
+    private async Task VerDetalleAsync(TrasladoListItem? item)
+    {
+        item ??= Seleccionado;
+        if (item is not null && await _formularios.AbrirTrasladoAsync(item.RemisionId))
+        {
+            await CargarAsync();
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(PuedeAnular))]
     private async Task AnularAsync()
     {
@@ -111,15 +122,7 @@ public sealed partial class TrasladosViewModel : ViewModelBase, IUsaFiltroGlobal
             return;
         }
 
-        if (!Dialogos.Confirmar(
-                $"Se anulará el traslado {traslado.NumeroRemision}: los animales trasladados ({Formato.Animales(traslado.Cantidad)}) " +
-                $"regresan a {traslado.Origen} y se reversan sus asientos del Kardex. El número de la remisión queda consumido.\n\n¿Desea continuar?",
-                "Anular traslado", destructivo: true))
-        {
-            return;
-        }
-
-        var motivo = Dialogos.Pedir("Anular traslado", "Motivo de la anulación:");
+        var motivo = AnulacionDeTraslados.PedirMotivo(Dialogos, traslado.NumeroRemision, traslado.Cantidad, traslado.Origen);
         if (motivo is null)
         {
             return;
@@ -134,6 +137,8 @@ public sealed partial class TrasladosViewModel : ViewModelBase, IUsaFiltroGlobal
 
     [RelayCommand]
     private void GenerarInforme() => _navegador.IrA(ShellViewModel.ClaveInformes);
+
+    private bool HaySeleccion() => Seleccionado is not null;
 
     private bool PuedeAnular() => Seleccionado is { Anulado: false };
 }

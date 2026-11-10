@@ -46,8 +46,7 @@
             <KeyBinding Key="Enter" Command="{Binding BuscarCommand}" />
           </TextBox.InputBindings>
         </TextBox>
-        <TextBlock Text="🔍 Número Factura" IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
-                   Foreground="{StaticResource Brush.TextoSuave}"
+        <TextBlock Text="🔍 Número Factura" Style="{StaticResource Texto.Marcador}"
                    Visibility="{Binding TextoFactura, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
       </Grid>
       <Button Margin="10,0,0,0" Content="Buscar" Command="{Binding BuscarCommand}" MinWidth="90" />

@@ -3,10 +3,10 @@ using UCaldas.Granjas.Services.Kardex;
 
 namespace UCaldas.Granjas.Services.Consultas;
 
-// ---- Bovinos --------------------------------------------------------------------------------------------------------
+// ---- Animales --------------------------------------------------------------------------------------------------------
 
 /// <param name="Estado">Por defecto solo los Disponibles; nulo = todos los estados.</param>
-public sealed record BovinoFiltro(
+public sealed record AnimalFiltro(
     int? GranjaId = null,
     int? ProgramaId = null,
     string? Texto = null,
@@ -16,7 +16,7 @@ public sealed record BovinoFiltro(
     int? CategoriaId = null,
     string? Raza = null);
 
-public sealed record BovinoListItem(
+public sealed record AnimalListItem(
     int Id,
     string ChapetaAmarilla,
     string? ChapetaRoja,
@@ -37,9 +37,9 @@ public sealed record BovinoListItem(
     string Estado,
     bool Exento);
 
-public sealed record ResumenBovinos(int Cantidad, int Machos, int Hembras, decimal ValorContableTotal, decimal ValorCompraTotal);
+public sealed record ResumenAnimales(int Cantidad, int Machos, int Hembras, decimal ValorContableTotal, decimal ValorCompraTotal);
 
-public sealed record ResultadoBovinos(IReadOnlyList<BovinoListItem> Items, ResumenBovinos Resumen);
+public sealed record ResultadoAnimales(IReadOnlyList<AnimalListItem> Items, ResumenAnimales Resumen);
 
 /// <summary>Animal elegible para un documento (venta, baja, traslado).</summary>
 public sealed record AnimalSeleccionable(
@@ -123,6 +123,12 @@ public sealed record TrasladoListItem(
     string Destino,
     int Cantidad,
     bool Anulado);
+
+/// <summary>
+/// Un traslado registrado, listo para consultarlo o editarlo. En <paramref name="Animales"/> la orientación es la que
+/// tenía cada animal en la sede de origen y el valor es el costo en libros al momento del traslado (no el actual).
+/// </summary>
+public sealed record TrasladoEditable(TrasladoDto Dto, bool Anulada, IReadOnlyList<AnimalSeleccionable> Animales);
 
 public sealed record ResumenTraslados(int TrasladosRealizados, int AnimalesMovidos);
 

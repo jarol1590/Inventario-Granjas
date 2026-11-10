@@ -79,6 +79,8 @@ public sealed class FormulariosFalso : IFormularios
 
     public Task<bool> NuevoTrasladoAsync() => Registrar("traslado:nuevo");
 
+    public Task<bool> AbrirTrasladoAsync(int remisionId) => Registrar($"traslado:{remisionId}");
+
     private Task<bool> Registrar(string llamada)
     {
         Llamadas.Add(llamada);

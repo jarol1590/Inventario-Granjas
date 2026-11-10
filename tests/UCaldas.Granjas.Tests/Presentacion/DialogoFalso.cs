@@ -80,6 +80,22 @@ public sealed class DialogoFalso : IDialogService
         return AlMostrar?.Invoke(dialogo) ?? RespuestaMostrar;
     }
 
+    /// <summary>Textos que se copiaron al portapapeles.</summary>
+    public List<string> Copiados { get; } = [];
+
+    /// <summary>Si es false, <see cref="CopiarAlPortapapeles"/> falla como cuando otro programa tiene el portapapeles ocupado.</summary>
+    public bool PortapapelesDisponible { get; set; } = true;
+
+    public bool CopiarAlPortapapeles(string texto)
+    {
+        if (PortapapelesDisponible)
+        {
+            Copiados.Add(texto);
+        }
+
+        return PortapapelesDisponible;
+    }
+
     public void Abrir(string ruta) => Abiertos.Add(ruta);
 
     public void MostrarEnExplorador(string ruta)

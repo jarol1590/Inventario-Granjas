@@ -41,8 +41,7 @@
             <KeyBinding Key="Enter" Command="{Binding BuscarCommand}" />
           </TextBox.InputBindings>
         </TextBox>
-        <TextBlock Text="🔍 Remisión o Chapeta Amarilla" IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
-                   Foreground="{StaticResource Brush.TextoSuave}"
+        <TextBlock Text="🔍 Remisión o Chapeta Amarilla" Style="{StaticResource Texto.Marcador}"
                    Visibility="{Binding Texto, Converter={StaticResource NuloAVisibilidad}, ConverterParameter=invertir}" />
       </Grid>
       <Button Margin="10,0,0,0" Content="Buscar" Command="{Binding BuscarCommand}" MinWidth="90" />
@@ -51,6 +50,9 @@
     </StackPanel>
 
     <DataGrid Grid.Row="3" ItemsSource="{Binding Traslados}" SelectedItem="{Binding Seleccionado}">
+      <DataGrid.InputBindings>
+        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding VerDetalleCommand}" CommandParameter="{Binding Seleccionado}" />
+      </DataGrid.InputBindings>
       <DataGrid.RowStyle>
         <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
           <Style.Triggers>
@@ -70,9 +72,11 @@
       </DataGrid.Columns>
     </DataGrid>
 
-    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-      <Button Content="⊘ ANULAR TRASLADO" Command="{Binding AnularCommand}" Style="{StaticResource Boton.Peligro}" />
-      <Button Margin="10,0,0,0" Content="📊 GENERAR INFORME" Command="{Binding GenerarInformeCommand}" />
-    </StackPanel>
+    <UniformGrid Grid.Row="4" Rows="1" Margin="0,14,0,0">
+      <Button Margin="0,0,-1,0" Padding="10,11" Content="👁 VER DETALLE TRASLADO" Command="{Binding VerDetalleCommand}" CommandParameter="{Binding Seleccionado}"
+              ToolTip="También puede abrirlo con doble clic. Desde el detalle se puede editar o anular." />
+      <Button Margin="0,0,-1,0" Padding="10,11" Content="⊘ ANULAR TRASLADO" Command="{Binding AnularCommand}" Style="{StaticResource Boton.Peligro}" />
+      <Button Padding="10,11" Content="📊 GENERAR INFORME" Command="{Binding GenerarInformeCommand}" />
+    </UniformGrid>
   </Grid>
 </UserControl>

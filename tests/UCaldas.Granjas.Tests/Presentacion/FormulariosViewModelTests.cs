@@ -389,7 +389,7 @@ public class FormulariosViewModelTests
     // ---- Traslado -----------------------------------------------------------------------------------------------------
 
     private static TrasladoEditorViewModel CrearTraslado(EscenarioKardex e, DialogoFalso dialogos, FormulariosFalso formularios)
-        => new(e.Kardex, new CatalogoService(e.Db.Uow), formularios, new ContextoGlobal(), e.Reloj, dialogos);
+        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), formularios, new ContextoGlobal(), e.Reloj, dialogos);
 
     [Fact]
     public async Task El_traslado_propone_origen_y_destino_distintos_y_mueve_los_animales_con_su_valor()
@@ -461,5 +461,159 @@ public class FormulariosViewModelTests
 
         vm.Animales.Single().OrientacionDestinoId = e.Ids.Lacteo;
         vm.Animales.Single().OrientacionDestinoId.Should().Be(e.Ids.Lacteo);
+    }
+
+    /// <summary>A-1 (6 M) y A-2 (3,75 M) pasan de Tesorito a La Cruz en REM-T-1; devuelve el id de la remisión.</summary>
+    private static async Task<int> RegistrarTrasladoDeDosAsync(EscenarioKardex e)
+    {
+        await e.AltaVacaAsync("A-1", valor: 6_000_000m);
+        await e.AltaVacaAsync("A-2", valor: 3_750_000m);
+        await e.Kardex.RegistrarTrasladoAsync(await e.TrasladoAsync("REM-T-1", e.Ids.Tesorito, e.Ids.LaCruz, "A-1", "A-2"));
+        return (await e.RemisionAsync("REM-T-1")).Id;
+    }
+
+    [Fact]
+    public async Task Un_traslado_existente_se_abre_en_detalle_de_solo_lectura()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        var id = await RegistrarTrasladoDeDosAsync(e);
+        var vm = CrearTraslado(e, new DialogoFalso(), new FormulariosFalso());
+
+        (await vm.InicializarExistenteAsync(id)).Should().BeTrue();
+
+        vm.Modo.Should().Be(ModoDocumento.Detalle);
+        vm.Titulo.Should().Be("Detalle del traslado REM-T-1");
+        vm.EsLectura.Should().BeTrue();
+        vm.EsEditable.Should().BeFalse();
+        vm.PuedeCambiarOrigen.Should().BeFalse();
+        vm.GranjaOrigen!.Nombre.Should().Be("Tesorito");
+        vm.GranjaDestino!.Nombre.Should().Be("La Cruz");
+        vm.NumeroRemision.Should().Be("REM-T-1");
+        vm.Observaciones.Should().Be("Traslado de prueba");
+        vm.FechaTraslado.Should().Be(Datos.F("2026-10-24"));
+        vm.Animales.Select(a => a.Animal.ChapetaAmarilla).Should().Equal("A-1", "A-2");
+        vm.CantidadTexto.Should().Be("Total Animales a Mover: 2");
+        vm.ValorTexto.Should().Be("$9.750.000");
+        vm.ConfirmarCommand.CanExecute(null).Should().BeFalse("en la consulta no se guarda");
+        vm.AgregarALaListaCommand.CanExecute(null).Should().BeFalse();
+        vm.QuitarAnimalCommand.CanExecute(vm.Animales[0]).Should().BeFalse();
+        vm.EditarTrasladoCommand.CanExecute(null).Should().BeTrue();
+        vm.AnularCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Editar_un_traslado_cambia_destino_orientacion_y_animales_y_lo_guarda()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        var id = await RegistrarTrasladoDeDosAsync(e);
+        var dialogos = new DialogoFalso();
+        var vm = CrearTraslado(e, dialogos, new FormulariosFalso());
+        await vm.InicializarExistenteAsync(id);
+
+        vm.EditarTrasladoCommand.Execute(null);
+
+        vm.Modo.Should().Be(ModoDocumento.Edicion);
+        vm.Titulo.Should().Be("Editar traslado REM-T-1");
+        vm.TextoConfirmar.Should().Be("💾 GUARDAR CAMBIOS");
+        vm.EsEditable.Should().BeTrue();
+        vm.PuedeCambiarOrigen.Should().BeFalse("el origen no se cambia en un traslado registrado");
+        vm.ConfirmarCommand.CanExecute(null).Should().BeTrue();
+        vm.QuitarAnimalCommand.CanExecute(vm.Animales[0]).Should().BeTrue();
+        vm.EditarTrasladoCommand.CanExecute(null).Should().BeFalse("ya se está editando");
+
+        vm.GranjaDestino = vm.Granjas.Single(g => g.Id == e.Ids.Montelindo); // sugiere Carne/Levante
+        vm.Animales[1].OrientacionDestinoId.Should().Be(e.Ids.Carne);
+        vm.Observaciones = "Corregido";
+        vm.QuitarAnimalCommand.Execute(vm.Animales[0]); // A-1 sale del traslado
+        vm.CantidadTexto.Should().Be("Total Animales a Mover: 1");
+        vm.ValorTexto.Should().Be("$3.750.000");
+        var cierres = new List<bool>();
+        vm.CierreSolicitado += cierres.Add;
+
+        await vm.ConfirmarCommand.ExecuteAsync(null);
+
+        cierres.Should().Equal(true);
+        dialogos.Informaciones.Should().ContainSingle().Which.Should().Contain("Traslado actualizado: 1 animal de Tesorito a Montelindo").And.Contain("$3.750.000");
+        (await e.AnimalAsync("A-1")).GranjaId.Should().Be(e.Ids.Tesorito, "al quitarlo regresa a su granja");
+        var a2 = await e.AnimalAsync("A-2");
+        a2.GranjaId.Should().Be(e.Ids.Montelindo);
+        a2.OrientacionId.Should().Be(e.Ids.Carne);
+        (await e.RemisionAsync("REM-T-1")).Observaciones.Should().Be("Corregido");
+        await e.AsegurarInvarianteAsync();
+    }
+
+    [Fact]
+    public async Task Si_el_servicio_rechaza_la_edicion_se_avisa_y_la_ventana_sigue_abierta()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        await e.AltaVacaAsync("A-1", valor: 6_000_000m);
+        await e.Kardex.RegistrarTrasladoAsync(await e.TrasladoAsync("REM-T-1", e.Ids.Tesorito, e.Ids.LaCruz, "A-1"));
+        await e.Kardex.RegistrarTrasladoAsync(await e.TrasladoAsync("REM-T-2", e.Ids.LaCruz, e.Ids.Montelindo, "A-1")); // movimiento posterior
+        var id = (await e.RemisionAsync("REM-T-1")).Id;
+        var dialogos = new DialogoFalso();
+        var vm = CrearTraslado(e, dialogos, new FormulariosFalso());
+        await vm.InicializarExistenteAsync(id);
+        vm.EditarTrasladoCommand.Execute(null);
+        vm.GranjaDestino = vm.Granjas.Single(g => g.Id == e.Ids.Montelindo);
+        var cierres = new List<bool>();
+        vm.CierreSolicitado += cierres.Add;
+
+        await vm.ConfirmarCommand.ExecuteAsync(null);
+
+        dialogos.Advertencias.Should().ContainSingle().Which.Should().Contain("A-1 ya tiene movimientos posteriores");
+        cierres.Should().BeEmpty();
+        vm.Modo.Should().Be(ModoDocumento.Edicion);
+        (await e.RemisionAsync("REM-T-1")).GranjaDestinoId.Should().Be(e.Ids.LaCruz);
+        await e.AsegurarInvarianteAsync();
+    }
+
+    [Fact]
+    public async Task Un_traslado_se_anula_desde_su_detalle_y_al_reabrirlo_queda_solo_como_consulta()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        var id = await RegistrarTrasladoDeDosAsync(e);
+        var dialogos = new DialogoFalso { RespuestaConfirmar = true, RespuestaPedir = "Remisión mal numerada" };
+        var vm = CrearTraslado(e, dialogos, new FormulariosFalso());
+        await vm.InicializarExistenteAsync(id);
+        var cierres = new List<bool>();
+        vm.CierreSolicitado += cierres.Add;
+
+        await vm.AnularCommand.ExecuteAsync(null);
+
+        cierres.Should().Equal(true);
+        dialogos.Confirmaciones.Should().ContainSingle().Which.Should().Contain("(2 animales) regresan a Tesorito");
+        dialogos.Informaciones.Should().ContainSingle().Which.Should().Contain("El traslado REM-T-1 fue anulado");
+        (await e.RemisionAsync("REM-T-1")).Anulada.Should().BeTrue();
+        (await e.AnimalAsync("A-1")).GranjaId.Should().Be(e.Ids.Tesorito);
+        await e.AsegurarInvarianteAsync();
+
+        var reabierto = CrearTraslado(e, new DialogoFalso(), new FormulariosFalso());
+        await reabierto.InicializarExistenteAsync(id);
+
+        reabierto.Anulado.Should().BeTrue();
+        reabierto.PuedeEditarODesechar.Should().BeFalse();
+        reabierto.EditarTrasladoCommand.CanExecute(null).Should().BeFalse();
+        reabierto.AnularCommand.CanExecute(null).Should().BeFalse();
+        reabierto.ConfirmarCommand.CanExecute(null).Should().BeFalse();
+        reabierto.Animales.Should().BeEmpty("al anular, el documento queda sin líneas");
+    }
+
+    [Fact]
+    public async Task Cancelar_la_confirmacion_o_el_motivo_no_anula_el_traslado()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        var id = await RegistrarTrasladoDeDosAsync(e);
+        var dialogos = new DialogoFalso { RespuestaConfirmar = false };
+        var vm = CrearTraslado(e, dialogos, new FormulariosFalso());
+        await vm.InicializarExistenteAsync(id);
+
+        await vm.AnularCommand.ExecuteAsync(null);          // dice que no en la confirmación
+        dialogos.RespuestaConfirmar = true;
+        dialogos.RespuestaPedir = null;
+        await vm.AnularCommand.ExecuteAsync(null);          // confirma pero cancela el motivo
+
+        (await e.RemisionAsync("REM-T-1")).Anulada.Should().BeFalse();
+        (await e.AnimalAsync("A-1")).GranjaId.Should().Be(e.Ids.LaCruz);
+        dialogos.Informaciones.Should().BeEmpty();
     }
 }

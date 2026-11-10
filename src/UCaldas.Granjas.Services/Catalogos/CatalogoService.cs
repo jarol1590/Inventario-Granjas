@@ -13,12 +13,18 @@ public interface ICatalogoService
 
     Task<IReadOnlyList<Programa>> GetProgramasAsync(CancellationToken ct = default);
 
+    /// <summary>Programas de un tipo de inventario (INDIVIDUAL = por chapeta, LOTE = por población), ordenados por código.</summary>
+    Task<IReadOnlyList<Programa>> GetProgramasPorTipoAsync(string tipoInventario, CancellationToken ct = default);
+
     /// <summary>Programas asociados a una granja (el filtro de programa de la cabecera depende de la granja elegida).</summary>
     Task<IReadOnlyList<Programa>> GetProgramasDeGranjaAsync(int granjaId, CancellationToken ct = default);
 
     Task<IReadOnlyList<OrientacionProductiva>> GetOrientacionesAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<CategoriaEtapa>> GetCategoriasAsync(CancellationToken ct = default);
+
+    /// <summary>Categorías biológicas de un programa (la especie de una pestaña de Animales).</summary>
+    Task<IReadOnlyList<CategoriaEtapa>> GetCategoriasDeProgramaAsync(int programaId, CancellationToken ct = default);
 
     /// <summary>Razas usadas en el inventario más algunas comunes, para autocompletar.</summary>
     Task<IReadOnlyList<string>> GetRazasAsync(CancellationToken ct = default);
@@ -67,6 +73,15 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
         return (await uow.Programas.GetAllAsync(ct)).OrderBy(p => p.Codigo, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    public async Task<IReadOnlyList<Programa>> GetProgramasPorTipoAsync(string tipoInventario, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        return (await uow.Programas.GetAllAsync(ct))
+            .Where(p => p.TipoInventario == tipoInventario)
+            .OrderBy(p => p.Codigo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<Programa>> GetProgramasDeGranjaAsync(int granjaId, CancellationToken ct = default)
     {
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
@@ -84,6 +99,12 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
     {
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
         return await uow.Categorias.GetAllAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<CategoriaEtapa>> GetCategoriasDeProgramaAsync(int programaId, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        return await uow.Categorias.GetByProgramaAsync(programaId, ct);
     }
 
     public async Task<IReadOnlyList<string>> GetRazasAsync(CancellationToken ct = default)

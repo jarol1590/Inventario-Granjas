@@ -12,6 +12,8 @@ public interface ISeccion
 /// <summary>Marca las secciones que dependen de los filtros globales Granja / Programa.</summary>
 public interface IUsaFiltroGlobal : ISeccion
 {
+    /// <summary>false si la sección elige su propio programa (p. ej. las pestañas de Animales) y no usa el combo global.</summary>
+    bool MostrarFiltroDePrograma => true;
 }
 
 /// <summary>Secciones que muestran la barra inferior de acciones rápidas (nacimiento, compra, salidas, informe).</summary>

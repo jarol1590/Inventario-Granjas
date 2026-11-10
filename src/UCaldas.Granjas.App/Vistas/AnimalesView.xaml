@@ -1,0 +1,33 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.AnimalesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Animales (Control Individual)" Style="{StaticResource Texto.Titulo}" Margin="0,0,0,10" />
+
+    <!-- Una pestaña por programa de inventario individual (tabla PROGRAMA). Todas muestran la misma vista:
+         ProgramaTabView, resuelta por el tipo del ViewModel en Vistas/Plantillas.xaml. -->
+    <TabControl Grid.Row="1" ItemsSource="{Binding Programas}" SelectedItem="{Binding ProgramaActivo}" Style="{StaticResource Tab.Segmentado}"
+                Visibility="{Binding HayProgramas, Converter={StaticResource BoolAVisibilidad}}">
+      <TabControl.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Icono}" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />
+            <TextBlock Text="{Binding Titulo}" />
+          </StackPanel>
+        </DataTemplate>
+      </TabControl.ItemTemplate>
+    </TabControl>
+
+    <!-- Sin programas de inventario individual -->
+    <Border Grid.Row="1" Style="{StaticResource Tarjeta}" VerticalAlignment="Top" Padding="22"
+            Visibility="{Binding HayProgramas, Converter={StaticResource InvertirVisibilidad}}">
+      <TextBlock Style="{StaticResource Texto.Suave}" FontSize="14"
+                 Text="No hay programas de inventario individual. Cree uno en Configuración › Granjas y Programas (tipo de inventario: Individual) y aparecerá aquí como una pestaña." />
+    </Border>
+  </Grid>
+</UserControl>

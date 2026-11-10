@@ -51,8 +51,9 @@ public static class RaizDeComposicion
         servicios.AddSingleton<INavegador>(proveedor => proveedor.GetRequiredService<ShellViewModel>());
         servicios.AddSingleton<IFormularios, Formularios>();
         servicios.AddTransient<LoginViewModel>();
+        servicios.AddTransient<InicializacionPasswordViewModel>();
         servicios.AddTransient<InicioViewModel>();
-        servicios.AddTransient<BovinosViewModel>();
+        servicios.AddTransient<AnimalesViewModel>();
         servicios.AddTransient<ComprasViewModel>();
         servicios.AddTransient<SalidasViewModel>();
         servicios.AddTransient<TrasladosViewModel>();

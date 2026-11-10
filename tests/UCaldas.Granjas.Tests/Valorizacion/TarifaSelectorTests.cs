@@ -20,6 +20,11 @@ public class TarifaSelectorTests
     [InlineData(Sexo.Macho, Lacteo, 0, 11, Levante, 1_200_000)]
     [InlineData(Sexo.Hembra, Lacteo, 0, 12, Novilla, 3_200_000)]
     [InlineData(Sexo.Hembra, Carne, 0, 24, Novilla, 3_200_000)]   // sin partos, la vaca no aplica aunque tenga 24 meses
+    [InlineData(Sexo.Hembra, Lacteo, 0, 25, Novilla, 3_200_000)]  // novillas de más de 24 meses sin parto: mantienen la clasificación
+    [InlineData(Sexo.Hembra, Carne, 0, 100, Novilla, 3_200_000)]
+    [InlineData(Sexo.Macho, Lacteo, 0, 12, Levante, 1_200_000)]   // machos de 12 a 17 meses: mantienen la clasificación Levante
+    [InlineData(Sexo.Macho, Carne, 0, 14, Levante, 1_200_000)]
+    [InlineData(Sexo.Macho, Carne, 0, 17, Levante, 1_200_000)]
     [InlineData(Sexo.Hembra, Lacteo, 1, 24, Vacas, 6_000_000)]    // con parto gana "Vacas" aunque "Novilla" también cubra el mes 24
     [InlineData(Sexo.Hembra, Carne, 2, 60, Vacas, 4_000_000)]
     [InlineData(Sexo.Hembra, Lacteo, 1, 20, Novilla, 3_200_000)]  // con parto pero menor de 24 meses: sigue como Novilla
@@ -36,14 +41,32 @@ public class TarifaSelectorTests
     }
 
     [Theory]
-    [InlineData(Sexo.Macho, Lacteo, 0, 12)]   // machos entre 12 y 17 meses: la tabla no tiene fila
-    [InlineData(Sexo.Macho, Carne, 0, 17)]
-    [InlineData(Sexo.Hembra, Lacteo, 0, 25)]  // novillas de más de 24 meses sin parto: tampoco
-    [InlineData(Sexo.Hembra, Carne, 0, 100)]
     [InlineData(Sexo.Macho, Lacteo, 0, 1000)] // fuera de todo rango
+    [InlineData(Sexo.Hembra, Carne, 0, 1000)]
     public void Devuelve_nulo_cuando_ninguna_tarifa_aplica(string sexo, int orientacion, int partos, int edad)
     {
         TarifaSelector.Seleccionar(Filas(), sexo, orientacion, partos, edad).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(12)]
+    [InlineData(14)]
+    [InlineData(17)]
+    public void Sin_la_fila_de_Levante_para_machos_vuelve_el_hueco_de_12_a_17_meses(int edad)
+    {
+        // La matriz es editable: si el usuario quita esa fila, los machos de esas edades quedan sin tarifa.
+        var sinLaFila = Filas().Where(f => f.Id != IdLevanteMachos12a17).ToList();
+
+        TarifaSelector.Seleccionar(sinLaFila, Sexo.Macho, Lacteo, 0, edad).Should().BeNull();
+        TarifaSelector.Seleccionar(sinLaFila, Sexo.Hembra, Lacteo, 0, edad).Should().NotBeNull("las hembras de esa edad siguen siendo novillas");
+    }
+
+    [Fact]
+    public void Una_novilla_con_parto_pasa_a_Vacas_a_los_24_meses_y_una_sin_parto_sigue_como_novilla_para_siempre()
+    {
+        TarifaSelector.Seleccionar(Filas(), Sexo.Hembra, Lacteo, 1, 30)!.CategoriaId.Should().Be(Vacas);
+        TarifaSelector.Seleccionar(Filas(), Sexo.Hembra, Lacteo, 0, 30)!.CategoriaId.Should().Be(Novilla);
+        TarifaSelector.Seleccionar(Filas(), Sexo.Hembra, Carne, 0, 999)!.CategoriaId.Should().Be(Novilla);
     }
 
     // ---- Reglas de desempate ---------------------------------------------------------------------------------

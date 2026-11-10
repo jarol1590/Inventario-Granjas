@@ -108,6 +108,26 @@ public sealed class DialogService : IDialogService
         }
     }
 
+    public bool CopiarAlPortapapeles(string texto)
+    {
+        // El portapapeles es un recurso compartido: si otro programa lo tiene abierto, Windows lanza una excepción COM
+        // pasajera. Se reintenta unas pocas veces antes de rendirse.
+        for (var intento = 0; intento < 5; intento++)
+        {
+            try
+            {
+                Clipboard.SetText(texto);
+                return true;
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                Thread.Sleep(60);
+            }
+        }
+
+        return false;
+    }
+
     public void Abrir(string ruta)
     {
         try

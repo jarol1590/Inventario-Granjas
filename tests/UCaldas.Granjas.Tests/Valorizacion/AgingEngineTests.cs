@@ -55,6 +55,7 @@ public class AgingEngineTests
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();
         var (motor, ids) = await PrepararAsync(db, "2026-11-06", null);
+        await db.QuitarFilaDeLevanteParaMachosAsync(); // una matriz editada con un hueco: macho de 14 meses sin fila
         await using var uow = await db.Uow.OpenReadOnlyAsync();
         var macho14Meses = Datos.Animal(ids, "N-3", Sexo.Macho, "2025-09-01", NombresBase.CategoriaLevante, 1_200_000m);
 
@@ -64,6 +65,61 @@ public class AgingEngineTests
         resultado.CategoriaNombre.Should().Be(NombresBase.CategoriaSinClasificar);
         resultado.Valor.Should().BeNull();
         resultado.EdadMeses.Should().Be(14);
+    }
+
+    [Theory]
+    [InlineData("2025-11-06", 12)]
+    [InlineData("2025-09-01", 14)]
+    [InlineData("2025-06-05", 17)]
+    public async Task Un_macho_de_12_a_17_meses_mantiene_la_clasificacion_Levante_con_su_valor(string nacimiento, int edad)
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        var (motor, ids) = await PrepararAsync(db, "2026-11-06", null);
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var macho = Datos.Animal(ids, "M-1", Sexo.Macho, nacimiento, NombresBase.CategoriaLevante, 1_200_000m);
+
+        var resultado = await motor.DeterminarAsync(uow, macho, Datos.F("2026-11-06"));
+
+        resultado.EdadMeses.Should().Be(edad);
+        resultado.SinTarifa.Should().BeFalse("la matriz ya cubre a los machos de 12 a 17 meses");
+        resultado.CategoriaNombre.Should().Be(NombresBase.CategoriaLevante);
+        resultado.Valor.Should().Be(1_200_000m);
+    }
+
+    [Fact]
+    public async Task A_los_18_meses_el_macho_deja_de_ser_Levante_y_pasa_a_Reproductor()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        var (motor, ids) = await PrepararAsync(db, "2026-11-06", null);
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var macho = Datos.Animal(ids, "M-2", Sexo.Macho, "2025-05-06", NombresBase.CategoriaLevante, 1_200_000m);
+
+        var resultado = await motor.DeterminarAsync(uow, macho, Datos.F("2026-11-06"));
+
+        resultado.EdadMeses.Should().Be(18);
+        resultado.CategoriaNombre.Should().Be(NombresBase.CategoriaReproductor);
+        resultado.Valor.Should().Be(7_000_000m);
+    }
+
+    [Theory]
+    [InlineData(Sexo.Hembra, 0, "Lácteo", "Novilla Vientre", 3_200_000)]
+    [InlineData(Sexo.Hembra, 0, "Carne/Levante", "Novilla Vientre", 3_200_000)]
+    [InlineData(Sexo.Hembra, 1, "Lácteo", "Vacas General", 6_000_000)]
+    [InlineData(Sexo.Hembra, 2, "Carne/Levante", "Vacas General", 4_000_000)]
+    public async Task Una_hembra_de_mas_de_24_meses_sin_partos_sigue_siendo_novilla_y_con_partos_es_vaca(
+        string sexo, int partos, string orientacion, string categoria, int valor)
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        var (motor, ids) = await PrepararAsync(db, "2026-11-06", null);
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var hembra = Datos.Animal(ids, "H-1", sexo, "2023-05-06", NombresBase.CategoriaNovillaVientre, 3_200_000m, orientacion: orientacion, partos: partos); // 42 meses
+
+        var resultado = await motor.DeterminarAsync(uow, hembra, Datos.F("2026-11-06"));
+
+        resultado.EdadMeses.Should().Be(42);
+        resultado.SinTarifa.Should().BeFalse();
+        resultado.CategoriaNombre.Should().Be(categoria);
+        resultado.Valor.Should().Be(valor);
     }
 
     [Fact]
@@ -106,6 +162,7 @@ public class AgingEngineTests
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();
         var (motor, ids) = await PrepararAsync(db, "2026-11-06", "2026-09-30");
+        await db.QuitarFilaDeLevanteParaMachosAsync(); // para E: una matriz editada con un hueco
         await using (var uow = await db.Uow.BeginAsync())
         {
             // A: ternera que cumple 3 meses: misma categoría (Terneros), el valor sube de 150 mil a 800 mil.

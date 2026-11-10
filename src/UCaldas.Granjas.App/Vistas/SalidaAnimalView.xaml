@@ -31,7 +31,7 @@
       </Grid.RowDefinitions>
 
       <TextBlock Grid.Row="0" Text="Clase Salida:" Style="{StaticResource Etiq}" />
-      <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClaseSalida}" Style="{StaticResource Dato}" FontWeight="SemiBold" />
+      <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ClaseSalida}" Style="{StaticResource Dato}" FontWeight="Medium" />
       <TextBlock Grid.Row="0" Grid.Column="2" Text="Número Oficio:" Style="{StaticResource Etiq}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
       <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding NumeroOficio}" Style="{StaticResource Dato}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
 
@@ -41,7 +41,7 @@
       <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding ReciboCaja}" Style="{StaticResource Dato}" Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}" />
 
       <TextBlock Grid.Row="2" Text="Chapeta Amarilla:" Style="{StaticResource Etiq}" />
-      <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Animal.ChapetaAmarilla}" Style="{StaticResource Dato}" FontWeight="SemiBold" />
+      <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Animal.ChapetaAmarilla}" Style="{StaticResource Dato}" FontWeight="Medium" />
       <TextBlock Grid.Row="2" Grid.Column="2" Text="Chapeta Roja:" Style="{StaticResource Etiq}" />
       <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding Animal.ChapetaRoja, TargetNullValue='-'}" Style="{StaticResource Dato}" />
 

@@ -34,7 +34,7 @@ public class VigenciaServiceTests
 
         var filas = await Crear(db).GetMatrizAsync(vigenciaId);
 
-        filas.Should().HaveCount(9);
+        filas.Should().HaveCount(10);
         filas.Select(f => (f.CategoriaId, f.EdadMinimaMeses, f.Sexo)).Should().BeInAscendingOrder();
         filas.Take(3).Select(f => (f.EdadMinimaMeses, f.Sexo, f.ValorEstandar)).Should().Equal(
             (0, Sexo.Hembra, 150_000m), (0, Sexo.Macho, 160_000m), (3, Sexo.Ambos, 800_000m));
@@ -81,11 +81,11 @@ public class VigenciaServiceTests
         await using var uow = await db.Uow.OpenReadOnlyAsync();
         var originales = await uow.Tarifas.GetByVigenciaAsync(origenId);
         var copiadas = await uow.Tarifas.GetByVigenciaAsync(clon.Id);
-        copiadas.Should().HaveCount(9);
+        copiadas.Should().HaveCount(10);
         copiadas.Select(t => (t.CategoriaId, t.OrientacionId, t.EdadMinimaMeses, t.EdadMaximaMeses, t.Sexo, t.RequierePartos, t.ValorEstandar))
             .Should().BeEquivalentTo(originales.Select(t => (t.CategoriaId, t.OrientacionId, t.EdadMinimaMeses, t.EdadMaximaMeses, t.Sexo, t.RequierePartos, t.ValorEstandar)));
         copiadas.Select(t => t.Id).Should().NotIntersectWith(originales.Select(t => t.Id));
-        originales.Should().HaveCount(9, "la vigencia origen queda intacta");
+        originales.Should().HaveCount(10, "la vigencia origen queda intacta");
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class VigenciaServiceTests
         var act = () => Crear(db).GuardarMatrizAsync(vigenciaId, filas);
 
         await act.Should().ThrowAsync<SolapamientoDeTarifasException>().WithMessage("*Vacas General*30–40*");
-        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE WHERE vigencia_id = @vigenciaId", new { vigenciaId })).Should().Be(9);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE WHERE vigencia_id = @vigenciaId", new { vigenciaId })).Should().Be(10);
     }
 
     [Fact]

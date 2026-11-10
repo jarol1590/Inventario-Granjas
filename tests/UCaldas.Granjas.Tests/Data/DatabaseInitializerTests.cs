@@ -93,8 +93,8 @@ public class DatabaseInitializerTests
         var tarifas = await uow.Tarifas.GetByVigenciaAsync(vigencia!.Id);
 
         vigencia.Anio.Should().Be(2026);
-        tarifas.Should().HaveCount(9);
-        tarifas.Sum(t => t.ValorEstandar).Should().Be(25_710_000m);
+        tarifas.Should().HaveCount(10);
+        tarifas.Sum(t => t.ValorEstandar).Should().Be(26_910_000m);
 
         var reproductor = tarifas.Single(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaReproductor));
         reproductor.Sexo.Should().Be(Sexo.Macho);
@@ -112,6 +112,123 @@ public class DatabaseInitializerTests
         var terneros = tarifas.Where(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaTerneros)).ToList();
         terneros.Single(t => t.Sexo == Sexo.Hembra).ValorEstandar.Should().Be(150_000m);
         terneros.Single(t => t.Sexo == Sexo.Macho).ValorEstandar.Should().Be(160_000m);
+    }
+
+    [Fact]
+    public async Task La_matriz_2026_no_deja_huecos_machos_de_12_a_17_meses_siguen_como_Levante_y_las_novillas_como_novillas()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var ids = await Datos.IdsBaseAsync(uow);
+        var tarifas = await uow.Tarifas.GetByVigenciaAsync((await uow.Vigencias.GetActivaAsync())!.Id);
+
+        var levanteMachos = tarifas.Single(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaLevante) && t.Sexo == Sexo.Macho);
+        levanteMachos.EdadMinimaMeses.Should().Be(12);
+        levanteMachos.EdadMaximaMeses.Should().Be(17);
+        levanteMachos.OrientacionId.Should().BeNull();
+        levanteMachos.RequierePartos.Should().BeFalse();
+        levanteMachos.ValorEstandar.Should().Be(1_200_000m, "mantiene el valor de Levante");
+
+        var novillas = tarifas.Where(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaNovillaVientre)).ToList();
+        novillas.Should().HaveCount(2).And.OnlyContain(t => t.EdadMinimaMeses == 12 && t.EdadMaximaMeses == 999 && !t.RequierePartos);
+    }
+
+    // ---- Migración de la versión 1 (esquema v2.1) a la 2 (v2.2) ----------------------------------------------------
+
+    /// <summary>Deja la base como la dejaba la versión 1: sin las columnas de recuperación y con los huecos de la matriz.</summary>
+    private static async Task DegradarAVersion1Async(BaseDeDatosDePrueba db)
+    {
+        await db.EjecutarAsync("DELETE FROM TABLA_VALORIZACION_BASE WHERE sexo = 'Macho' AND edad_minima_meses = 12 AND edad_maxima_meses = 17");
+        await db.EjecutarAsync("UPDATE TABLA_VALORIZACION_BASE SET edad_maxima_meses = 24 WHERE sexo = 'Hembra' AND requiere_partos = 0 AND edad_minima_meses = 12");
+        foreach (var columna in new[] { "pregunta_secreta", "respuesta_hash", "recovery_key_hash" })
+        {
+            await db.EjecutarAsync($"ALTER TABLE CONFIGURACION_SISTEMA DROP COLUMN {columna}");
+        }
+
+        await db.EjecutarAsync("PRAGMA user_version = 1");
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_1_se_migra_completando_la_matriz_y_agregando_las_columnas_de_recuperacion()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("INSERT INTO CONFIGURACION_SISTEMA (password_hash) VALUES ('hash-existente')");
+        await DegradarAVersion1Async(db);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(9);
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(2);
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var ids = await Datos.IdsBaseAsync(uow);
+        var tarifas = await uow.Tarifas.GetByVigenciaAsync((await uow.Vigencias.GetActivaAsync())!.Id);
+        tarifas.Should().HaveCount(10);
+        var machos = tarifas.Single(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaLevante) && t.Sexo == Sexo.Macho);
+        (machos.EdadMinimaMeses, machos.EdadMaximaMeses, machos.ValorEstandar).Should().Be((12, 17, 1_200_000m));
+        tarifas.Where(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaNovillaVientre))
+            .Should().HaveCount(2).And.OnlyContain(t => t.EdadMaximaMeses == 999);
+
+        // Lo que ya existía queda intacto y las columnas nuevas nacen vacías.
+        var configuracion = (await uow.Configuracion.GetSistemaAsync())!;
+        configuracion.PasswordHash.Should().Be("hash-existente");
+        configuracion.PreguntaSecreta.Should().BeNull();
+        configuracion.RespuestaHash.Should().BeNull();
+        configuracion.RecoveryKeyHash.Should().BeNull();
+        (await uow.Granjas.GetAllAsync()).Should().HaveCount(3);
+
+        // Idempotente: una segunda ejecución no cambia nada.
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(10);
+    }
+
+    [Fact]
+    public async Task La_migracion_no_pisa_una_matriz_que_el_usuario_ya_edito()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await DegradarAVersion1Async(db);
+        // El usuario ya alargó la novilla Lácteo hasta los 30 meses y bajó el Reproductor a 12 meses (ya cubre a los machos de 12 a 17).
+        await db.EjecutarAsync(
+            "UPDATE TABLA_VALORIZACION_BASE SET edad_maxima_meses = 30 WHERE sexo = 'Hembra' AND edad_minima_meses = 12 " +
+            "AND orientacion_id = (SELECT id FROM ORIENTACION_PRODUCTIVA WHERE nombre = 'Lácteo')");
+        await db.EjecutarAsync("UPDATE TABLA_VALORIZACION_BASE SET edad_minima_meses = 12 WHERE sexo = 'Macho' AND edad_minima_meses = 18");
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var ids = await Datos.IdsBaseAsync(uow);
+        var tarifas = await uow.Tarifas.GetByVigenciaAsync((await uow.Vigencias.GetActivaAsync())!.Id);
+        tarifas.Should().HaveCount(9, "no se agrega la fila de Levante porque ya hay otra que cubre esas edades");
+        var novillas = tarifas.Where(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaNovillaVientre)).ToList();
+        novillas.Single(t => t.OrientacionId == ids.Lacteo).EdadMaximaMeses.Should().Be(30, "la edición del usuario se respeta");
+        novillas.Single(t => t.OrientacionId == ids.Carne).EdadMaximaMeses.Should().Be(999, "la que seguía como la sembró el sistema sí se completa");
+    }
+
+    [Fact]
+    public async Task Restaurar_un_respaldo_de_la_version_1_lo_migra_de_inmediato()
+    {
+        await using var origen = await BaseDeDatosDePrueba.CrearAsync();
+        await DegradarAVersion1Async(origen);
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        var copia = Path.Combine(Path.GetTempPath(), "SistemaGranjasPruebas", Guid.NewGuid().ToString("N") + "_v1.db");
+        File.Copy(origen.Ruta, copia);
+        await using var destino = await BaseDeDatosDePrueba.CrearAsync();
+        var mantenimiento = new SqliteDatabaseMaintenance(destino.Conexiones);
+
+        try
+        {
+            (await mantenimiento.EsBaseValidaAsync(copia)).Should().BeTrue("un respaldo de la versión anterior sigue siendo válido");
+
+            await mantenimiento.ReemplazarBaseAsync(copia);
+
+            (await destino.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+            (await destino.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(10);
+            (await destino.EscalarAsync<long>("SELECT COUNT(*) FROM pragma_table_info('CONFIGURACION_SISTEMA') WHERE name = 'recovery_key_hash'")).Should().Be(1);
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            File.Delete(copia);
+        }
     }
 
     [Fact]
@@ -137,7 +254,7 @@ public class DatabaseInitializerTests
         await new DatabaseInitializer(db.Conexiones).InitializeAsync();
 
         (await db.EscalarAsync<long>("SELECT COUNT(*) FROM GRANJA")).Should().Be(4);
-        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(9);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(10);
         (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
     }
 

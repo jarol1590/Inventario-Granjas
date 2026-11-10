@@ -4,7 +4,7 @@ using UCaldas.Granjas.Services.Kardex;
 namespace UCaldas.Granjas.App.ViewModels;
 
 /// <summary>Un animal de un traslado, con la orientación que tendrá en la sede destino.</summary>
-public sealed partial class TrasladoFila(AnimalSeleccionable animal, int orientacionDestinoId) : ObservableObject
+public sealed partial class TrasladoFila(AnimalSeleccionable animal, int orientacionDestinoId, string? observaciones = null) : ObservableObject
 {
     public AnimalSeleccionable Animal { get; } = animal;
 
@@ -14,7 +14,7 @@ public sealed partial class TrasladoFila(AnimalSeleccionable animal, int orienta
     private int _orientacionDestinoId = orientacionDestinoId;
 
     [ObservableProperty]
-    private string _observaciones = string.Empty;
+    private string _observaciones = observaciones ?? string.Empty;
 
     public TrasladoAnimalDto ToDto() => new()
     {

@@ -28,6 +28,9 @@ public interface IDialogService
     /// <summary>Muestra una ventana modal con la vista asociada al ViewModel. true = aceptado, false = cancelado.</summary>
     bool Mostrar(IDialogViewModel dialogo);
 
+    /// <summary>Copia un texto al portapapeles de Windows. Devuelve false si otro programa lo tiene ocupado y no se pudo copiar.</summary>
+    bool CopiarAlPortapapeles(string texto);
+
     /// <summary>Abre un archivo con el programa predeterminado de Windows (p. ej. Excel). No lanza excepciones.</summary>
     void Abrir(string ruta);
 

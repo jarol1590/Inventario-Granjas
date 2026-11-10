@@ -91,17 +91,17 @@
 
       <Border Margin="0,10,0,0" Background="#FDECEA" BorderBrush="{StaticResource Brush.Peligro}" BorderThickness="1" CornerRadius="4" Padding="10,6"
               Visibility="{Binding Anulada, Converter={StaticResource BoolAVisibilidad}}">
-        <TextBlock Text="SALIDA ANULADA: los animales volvieron al inventario." Foreground="{StaticResource Brush.Peligro}" FontWeight="SemiBold" />
+        <TextBlock Text="SALIDA ANULADA: los animales volvieron al inventario." Foreground="{StaticResource Brush.Peligro}" FontWeight="Medium" />
       </Border>
     </StackPanel>
 
     <!-- Animales -->
     <DataGrid Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding Animales}" SelectedItem="{Binding FilaSeleccionada}" IsReadOnly="False" SelectionUnit="FullRow">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Chapeta Amarilla" Binding="{Binding Animal.ChapetaAmarilla}" Width="1.2*" MinWidth="132" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Chapeta Roja" Binding="{Binding Animal.ChapetaRoja, TargetNullValue='-'}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Sexo" Binding="{Binding Animal.Sexo}" Width="0.8*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding Animal.FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" MinWidth="140" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Raza" Binding="{Binding Animal.Raza}" Width="1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Valor en libros" Binding="{Binding Animal.ValorContable, StringFormat='$#,##0'}" Width="1.1*" IsReadOnly="True" ElementStyle="{StaticResource Celda.Derecha}" />
         <DataGridTemplateColumn Header="Precio Venta" Width="1.2*" MinWidth="120"
@@ -139,7 +139,7 @@
         <TextBlock Text="{Binding CantidadTexto}" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,26,0" />
         <TextBlock Text="{Binding EtiquetaTotal}" FontSize="15" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
         <Border Style="{StaticResource Tarjeta}" Padding="14,5" MinWidth="150">
-          <TextBlock Text="{Binding TotalTexto}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
+          <TextBlock Text="{Binding TotalTexto}" FontSize="16" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
         </Border>
       </StackPanel>
 

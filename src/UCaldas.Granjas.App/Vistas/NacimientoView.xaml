@@ -82,7 +82,7 @@
           </TextBlock.Style>
         </TextBlock>
         <TextBlock Grid.Column="2" Text="Valor Inicial:" Style="{StaticResource Texto.Etiqueta}" Margin="16,0,8,0" />
-        <TextBlock Grid.Column="3" Text="{Binding ValorInicial}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="3" Text="{Binding ValorInicial}" FontSize="16" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" VerticalAlignment="Center" />
       </Grid>
     </Border>
     <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,0,0,6"

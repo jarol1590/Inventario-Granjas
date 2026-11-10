@@ -104,14 +104,11 @@ public sealed partial class SalidasViewModel : ViewModelBase, IUsaFiltroGlobal
             return;
         }
 
-        if (item.Clase == ClaseSalida.Traslado)
-        {
-            Dialogos.Informar("Los traslados entre granjas se consultan y registran en la sección Traslados.", "Traslado");
-            _navegador.IrA(ShellViewModel.ClaveTraslados);
-            return;
-        }
-
-        if (await _formularios.AbrirSalidaAsync(item.RemisionId, item.Clase))
+        // Los traslados tienen su propio detalle (también editable), que se abre desde aquí o desde la sección Traslados.
+        var guardado = item.Clase == ClaseSalida.Traslado
+            ? await _formularios.AbrirTrasladoAsync(item.RemisionId)
+            : await _formularios.AbrirSalidaAsync(item.RemisionId, item.Clase);
+        if (guardado)
         {
             await CargarAsync();
         }

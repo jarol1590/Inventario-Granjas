@@ -10,7 +10,7 @@ namespace UCaldas.Granjas.Services.Consultas;
 /// <summary>Consultas de solo lectura para las pantallas: listados con filtros, KPIs, selectores y dashboard.</summary>
 public interface IConsultasService
 {
-    Task<ResultadoBovinos> BuscarBovinosAsync(BovinoFiltro filtro, CancellationToken ct = default);
+    Task<ResultadoAnimales> BuscarAnimalesAsync(AnimalFiltro filtro, CancellationToken ct = default);
 
     /// <summary>Animales Disponibles de una granja, opcionalmente filtrados por chapeta o nombre (para armar documentos).</summary>
     Task<IReadOnlyList<AnimalSeleccionable>> BuscarDisponiblesAsync(int granjaId, string? texto = null, CancellationToken ct = default);
@@ -27,14 +27,16 @@ public interface IConsultasService
 
     Task<ResultadoTraslados> ListarTrasladosAsync(TrasladoFiltro filtro, CancellationToken ct = default);
 
+    Task<TrasladoEditable> ObtenerTrasladoAsync(int remisionId, CancellationToken ct = default);
+
     Task<DashboardDatos> ObtenerDashboardAsync(int? granjaId, int? programaId, DateTime mes, CancellationToken ct = default);
 }
 
 public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) : IConsultasService
 {
-    // ---- Bovinos ---------------------------------------------------------------------------------------------------
+    // ---- Animales ---------------------------------------------------------------------------------------------------
 
-    public async Task<ResultadoBovinos> BuscarBovinosAsync(BovinoFiltro filtro, CancellationToken ct = default)
+    public async Task<ResultadoAnimales> BuscarAnimalesAsync(AnimalFiltro filtro, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(filtro);
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
@@ -61,7 +63,7 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
         var items = (await uow.Animales.GetAllAsync(ct))
             .Where(Coincide)
             .OrderBy(a => a.ChapetaAmarilla, StringComparer.OrdinalIgnoreCase)
-            .Select(a => new BovinoListItem(
+            .Select(a => new AnimalListItem(
                 a.Id, a.ChapetaAmarilla, a.ChapetaRoja, a.Nombre, a.GranjaId, granjas.GetValueOrDefault(a.GranjaId, "—"),
                 a.Sexo, a.Raza, a.OrientacionId, orientaciones.GetValueOrDefault(a.OrientacionId, "—"),
                 a.CategoriaId, categorias.TryGetValue(a.CategoriaId, out var c) ? c.Nombre : "—",
@@ -70,13 +72,13 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
                 variacion.GetValueOrDefault(a.Id), a.Estado, a.ExentoValorizacion))
             .ToList();
 
-        var resumen = new ResumenBovinos(
+        var resumen = new ResumenAnimales(
             items.Count,
             items.Count(i => i.Sexo == Sexo.Macho),
             items.Count(i => i.Sexo == Sexo.Hembra),
             items.Sum(i => i.ValorContable),
             items.Sum(i => i.ValorCompraOrigen));
-        return new ResultadoBovinos(items, resumen);
+        return new ResultadoAnimales(items, resumen);
     }
 
     public async Task<IReadOnlyList<AnimalSeleccionable>> BuscarDisponiblesAsync(int granjaId, string? texto = null, CancellationToken ct = default)
@@ -310,6 +312,50 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
         return new ResultadoTraslados(items, new ResumenTraslados(vigentes.Count, vigentes.Sum(i => i.Cantidad)));
     }
 
+    public async Task<TrasladoEditable> ObtenerTrasladoAsync(int remisionId, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        var remision = await uow.Remisiones.GetByIdAsync(remisionId, ct) ?? throw Regla.Violada("El traslado no existe.");
+        Regla.Exigir(remision.TipoMovimiento == TipoRemision.Traslado, $"El documento {remision.NumeroRemision} no es un traslado.");
+
+        var detalles = (await uow.RemisionDetalles.GetByRemisionAsync(remisionId, ct)).Where(d => d.AnimalId is not null).ToList();
+        var animales = (await uow.Animales.GetByIdsAsync(detalles.Select(d => d.AnimalId!.Value), ct)).ToDictionary(a => a.Id);
+        var orientaciones = (await uow.Orientaciones.GetAllAsync(ct)).ToDictionary(o => o.Id, o => o.Nombre);
+        var categorias = (await uow.Categorias.GetAllAsync(ct)).ToDictionary(c => c.Id, c => c.Nombre);
+
+        var dto = new TrasladoDto
+        {
+            RemisionId = remision.Id,
+            NumeroRemision = remision.NumeroRemision,
+            FechaTraslado = remision.FechaRemision,
+            GranjaOrigenId = remision.GranjaOrigenId ?? 0,
+            GranjaDestinoId = remision.GranjaDestinoId ?? 0,
+            Observaciones = remision.Observaciones,
+            Animales = detalles.Select(d => new TrasladoAnimalDto
+            {
+                AnimalId = d.AnimalId!.Value,
+                OrientacionDestinoId = d.OrientacionDestinoId,
+                ObservacionesEspecificas = d.ObservacionesEspecificas,
+            }).ToList(),
+        };
+
+        var seleccionables = detalles
+            .Where(d => animales.ContainsKey(d.AnimalId!.Value))
+            .Select(d =>
+            {
+                var a = animales[d.AnimalId!.Value];
+                var orientacionOrigen = d.OrientacionOrigenId ?? a.OrientacionId;
+                return new AnimalSeleccionable(
+                    a.Id, a.ChapetaAmarilla, a.ChapetaRoja, a.Sexo, a.FechaNacimiento, a.Raza,
+                    categorias.GetValueOrDefault(a.CategoriaId, "—"), orientacionOrigen,
+                    orientaciones.GetValueOrDefault(orientacionOrigen, "—"), d.CostoSistemaLibros);
+            })
+            .OrderBy(a => a.ChapetaAmarilla, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new TrasladoEditable(dto, remision.Anulada, seleccionables);
+    }
+
     // ---- Dashboard -------------------------------------------------------------------------------------------------
 
     public async Task<DashboardDatos> ObtenerDashboardAsync(int? granjaId, int? programaId, DateTime mes, CancellationToken ct = default)
@@ -348,10 +394,7 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
             nacimientos,
             ventas + bajas,
             granjas.Select(g => new PuntoGrafica(g.Nombre, disponibles.Count(a => a.GranjaId == g.Id))).ToList(),
-            enFiltro.GroupBy(a => a.CategoriaId)
-                .OrderBy(g => g.Key)
-                .Select(g => new PuntoGrafica(categorias.TryGetValue(g.Key, out var c) ? c.Nombre : "—", g.Count()))
-                .ToList(),
+            PuntosPorCategoria(categorias.Values, enFiltro, programaId),
             [
                 new PuntoGrafica("Nacimientos", nacimientos),
                 new PuntoGrafica("Compras", compras),
@@ -359,6 +402,28 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
                 new PuntoGrafica("Bajas", bajas),
                 new PuntoGrafica("Traslados", traslados),
             ]);
+    }
+
+    /// <summary>
+    /// Animales por categoría para la gráfica del tablero. Lista todas las categorías del programa (aunque no tengan
+    /// animales: la gráfica se dibuja en cero en vez de quedar vacía); "Sin clasificar" solo aparece si tiene animales.
+    /// Un programa sin categorías (recién creado) produce un único punto en cero.
+    /// </summary>
+    private static List<PuntoGrafica> PuntosPorCategoria(IEnumerable<CategoriaEtapa> categorias, IReadOnlyList<Animal> enFiltro, int? programaId)
+    {
+        var puntos = categorias
+            .Where(c => programaId is null || c.ProgramaId == programaId)
+            .OrderBy(c => c.Id)
+            .Select(c => new PuntoGrafica(c.Nombre, enFiltro.Count(a => a.CategoriaId == c.Id)))
+            .Where(p => p.Valor > 0 || p.Etiqueta != NombresBase.CategoriaSinClasificar)
+            .ToList();
+
+        if (puntos.Count == 0)
+        {
+            puntos.Add(new PuntoGrafica("Sin categorías", 0));
+        }
+
+        return puntos;
     }
 
     // ---- Auxiliares ------------------------------------------------------------------------------------------------

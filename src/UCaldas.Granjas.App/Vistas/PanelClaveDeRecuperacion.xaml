@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.PanelClaveDeRecuperacion"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura"
+             Focusable="False"
+             infra:FocoAlMostrarse.Activo="True"
+             infra:FocoAlMostrarse.Destino="{Binding ElementName=BotonCopiar}">
+  <!-- Clave de recuperación recién generada: se muestra una sola vez; en la base solo queda su hash. -->
+  <StackPanel>
+    <TextBlock Text="Su clave de recuperación" Style="{StaticResource Texto.Seccion}" />
+
+    <Border Margin="0,10,0,0" Padding="12,10" Background="White" BorderBrush="{StaticResource Brush.Secundario}" BorderThickness="2" CornerRadius="6">
+      <TextBox Text="{Binding Clave, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+               FontFamily="Consolas" FontSize="24" FontWeight="Bold" Foreground="{StaticResource Brush.Primario}"
+               HorizontalContentAlignment="Center" AutomationProperties.Name="Clave de recuperación"
+               ToolTip="Puede seleccionarla y copiarla con Ctrl+C." />
+    </Border>
+
+    <TextBlock Margin="0,10,0,0" Style="{StaticResource Texto.Suave}"
+               Text="Guárdela ahora en un lugar seguro y fuera de este equipo. Se muestra una sola vez: en el sistema solo queda una huella cifrada y no se puede volver a consultar. Con ella (o con su pregunta secreta) podrá restablecer la contraseña sin perder ningún dato." />
+
+    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+      <Button x:Name="BotonCopiar" Content="📋 COPIAR" Command="{Binding CopiarCommand}" MinWidth="120" />
+      <Button Margin="10,0,0,0" Content="💾 GUARDAR EN ARCHIVO…" Command="{Binding GuardarCommand}" />
+    </StackPanel>
+
+    <TextBlock Margin="0,8,0,0" Text="{Binding Mensaje}" Style="{StaticResource Texto.Suave}" FontWeight="Medium"
+               Visibility="{Binding Mensaje, Converter={StaticResource NuloAVisibilidad}}" />
+
+    <CheckBox Margin="0,14,0,0" Content="Ya guardé mi clave de recuperación en un lugar seguro" IsChecked="{Binding Confirmada}" />
+  </StackPanel>
+</UserControl>

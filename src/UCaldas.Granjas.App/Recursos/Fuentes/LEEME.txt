@@ -1,0 +1,10 @@
+﻿Fuentes incrustadas en la aplicación (tipografía oficial de la Universidad de Caldas)
+
+- Roboto Regular, Roboto Medium, Roboto Italic  -> toda la interfaz
+- Roboto Condensed Regular y Bold               -> identificadores institucionales
+
+Origen: Roboto 2.136 (versión "hinted"), proyecto googlefonts/roboto-2
+        https://github.com/googlefonts/roboto-2/releases/tag/v2.136
+Licencia: Apache License 2.0 (ver LICENSE-Roboto.txt). Se pueden redistribuir con la aplicación.
+
+Notas de uso en WPF: ver la sección "Trampas de WPF" de CLAUDE.md (pesos, ancho condensado y respaldo de emojis).

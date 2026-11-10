@@ -23,6 +23,9 @@ public interface IFormularios
 
     Task<bool> NuevoTrasladoAsync();
 
+    /// <summary>Abre un traslado registrado en modo de consulta (desde ahí se puede editar o anular).</summary>
+    Task<bool> AbrirTrasladoAsync(int remisionId);
+
     /// <summary>Muestra los animales Disponibles de la granja para marcar varios. Nulo si se cancela.</summary>
     Task<IReadOnlyList<AnimalSeleccionable>?> SeleccionarAnimalesAsync(
         int granjaId, IReadOnlyCollection<int> excluidos, string? textoInicial = null);

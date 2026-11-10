@@ -56,14 +56,14 @@
       <TextBlock Grid.Row="4" Text="Fecha Nacimiento:" Style="{StaticResource Etiq}" />
       <DatePicker Grid.Row="4" Grid.Column="1" Margin="0,0,24,10" SelectedDate="{Binding FechaNacimiento, UpdateSourceTrigger=PropertyChanged}" />
       <TextBlock Grid.Row="4" Grid.Column="2" Text="Ubicación Actual:" Style="{StaticResource Etiq}" />
-      <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding UbicacionActual}" Style="{StaticResource Dato}" FontWeight="SemiBold"
+      <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding UbicacionActual}" Style="{StaticResource Dato}" FontWeight="Medium"
                  ToolTip="La ubicación solo cambia con un traslado entre granjas." />
 
       <TextBlock Grid.Row="5" Text="Fecha Compra:" Style="{StaticResource Etiq}" />
       <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding FechaCompraTexto}" Style="{StaticResource Dato}" Margin="0,0,24,10" />
       <TextBlock Grid.Row="5" Grid.Column="2" Text="Estado / Edad:" Style="{StaticResource Etiq}" />
       <TextBlock Grid.Row="5" Grid.Column="3" Style="{StaticResource Dato}">
-        <Run Text="{Binding EstadoTexto, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding EdadTexto, Mode=OneWay}" />
+        <Run Text="{Binding EstadoTexto, Mode=OneWay}" FontWeight="Medium" /><Run Text=" · " /><Run Text="{Binding EdadTexto, Mode=OneWay}" />
       </TextBlock>
     </Grid>
 
@@ -77,7 +77,7 @@
       </StackPanel>
     </StackPanel>
     <TextBlock Margin="0,8,0,0" Style="{StaticResource Texto.Suave}" FontSize="11.5">
-      <Run Text="Origen: " /><Run Text="{Binding OrigenTexto, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding GenealogiaTexto, Mode=OneWay}" />
+      <Run Text="Origen: " /><Run Text="{Binding OrigenTexto, Mode=OneWay}" FontWeight="Medium" /><Run Text=" · " /><Run Text="{Binding GenealogiaTexto, Mode=OneWay}" />
     </TextBlock>
 
     <Separator Margin="0,16,0,14" Background="{StaticResource Brush.Borde}" />
@@ -96,22 +96,22 @@
 
       <TextBlock Grid.Row="0" Text="Valor Compra:" Style="{StaticResource Etiq}" />
       <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Tarjeta}" Padding="12,5" Margin="0,0,0,10" Background="{StaticResource Brush.Deshabilitado}">
-        <TextBlock Text="{Binding ValorCompraTexto}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+        <TextBlock Text="{Binding ValorCompraTexto}" FontWeight="Medium" HorizontalAlignment="Right" />
       </Border>
       <TextBlock Grid.Row="0" Grid.Column="2" Text="🔒  Costo de adquisición según factura: no se puede modificar." Style="{StaticResource Texto.Suave}"
                  VerticalAlignment="Center" Margin="12,0,0,10" />
 
       <TextBlock Grid.Row="1" Text="Valor Contable:" Style="{StaticResource Etiq}" />
       <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Tarjeta}" Padding="12,5" Margin="0,0,0,0" Background="{StaticResource Brush.Deshabilitado}">
-        <TextBlock Text="{Binding ValorContableTexto}" FontWeight="SemiBold" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
+        <TextBlock Text="{Binding ValorContableTexto}" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" HorizontalAlignment="Right" />
       </Border>
       <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
-        <TextBlock Text="{Binding CategoriaTexto}" FontWeight="SemiBold" VerticalAlignment="Center" />
-        <TextBlock Text=" (!)" Foreground="{StaticResource Brush.Advertencia}" FontWeight="Bold" VerticalAlignment="Center"
+        <TextBlock Text="{Binding CategoriaTexto}" FontWeight="Medium" VerticalAlignment="Center" />
+        <TextBlock Text=" (!)" Foreground="{StaticResource Brush.Advertencia}" FontWeight="Medium" VerticalAlignment="Center"
                    Visibility="{Binding SinTarifa, Converter={StaticResource BoolAVisibilidad}}"
                    ToolTip="Ninguna tarifa de la vigencia activa cubre a este animal." />
         <TextBlock Text="  ·  Variación acumulada: " Style="{StaticResource Texto.Suave}" VerticalAlignment="Center" />
-        <TextBlock Text="{Binding VariacionTexto}" FontWeight="SemiBold" VerticalAlignment="Center"
+        <TextBlock Text="{Binding VariacionTexto}" FontWeight="Medium" VerticalAlignment="Center"
                    Foreground="{Binding VariacionAcumulada, Converter={StaticResource SignoABrocha}}" />
       </StackPanel>
     </Grid>

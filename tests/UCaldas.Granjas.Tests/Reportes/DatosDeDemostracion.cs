@@ -24,11 +24,15 @@ public sealed class DemoFactAttribute : FactAttribute
 /// <summary>
 /// No es una prueba de comportamiento: crea una base de datos de demostración (octubre de 2026 más animales de las
 /// tres granjas, contraseña «1234» y una firma de ejemplo) para abrir la aplicación con datos y revisar la interfaz.
+/// La recuperación de contraseña queda configurada: pregunta 1 con respuesta «Firulais» y clave ABCD-EFGH-JKMN-PQRS.
 /// Uso: <c>$env:GRANJAS_DEMO="C:\demo"; dotnet test --filter DatosDeDemostracion</c> y luego
 /// <c>$env:SISTEMA_GRANJAS_DATOS="C:\demo"; dotnet run --project src/UCaldas.Granjas.App</c>.
 /// </summary>
 public class DatosDeDemostracion
 {
+    public const string RespuestaDeDemostracion = "Firulais";
+    public const string ClaveDeDemostracion = "ABCD-EFGH-JKMN-PQRS";
+
     [DemoFact]
     public async Task Genera_una_base_de_demostracion_para_probar_la_interfaz()
     {
@@ -60,11 +64,15 @@ public class DatosDeDemostracion
             await e.AltaDirectaAsync(animal);
         }
 
-        // Contraseña «1234» y firma de ejemplo
+        // Contraseña «1234», recuperación de contraseña (para no mostrar el aviso de "configure su recuperación" en cada
+        // arranque de la demostración) y firma de ejemplo
         await using (var uow = await e.Db.Uow.BeginAsync())
         {
             var sistema = (await uow.Configuracion.GetSistemaAsync())!;
             sistema.PasswordHash = AuthService.GenerarHash("1234");
+            sistema.PreguntaSecreta = AuthService.PreguntasSecretas[0];
+            sistema.RespuestaHash = AuthService.GenerarHash(AuthService.NormalizarRespuesta(RespuestaDeDemostracion));
+            sistema.RecoveryKeyHash = AuthService.GenerarHash(AuthService.NormalizarClave(ClaveDeDemostracion));
             sistema.BackupAutomaticoSalir = false;
             sistema.RutaBackupPredeterminada = Path.Combine(carpeta, "respaldos");
             await uow.Configuracion.GuardarSistemaAsync(sistema);

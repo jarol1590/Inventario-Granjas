@@ -1,4 +1,5 @@
 using UCaldas.Granjas.App.Infraestructura;
+using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Respaldos;
 using UCaldas.Granjas.Services.Seguridad;
@@ -12,6 +13,7 @@ public sealed partial class RespaldosViewModel : ViewModelBase, ISeccion
     private readonly ICatalogoService _catalogo;
     private readonly IAuthService _autenticacion;
     private readonly INavegador _navegador;
+    private readonly IReloj _reloj;
     private bool _cargando;
 
     public RespaldosViewModel(
@@ -19,6 +21,7 @@ public sealed partial class RespaldosViewModel : ViewModelBase, ISeccion
         ICatalogoService catalogo,
         IAuthService autenticacion,
         INavegador navegador,
+        IReloj reloj,
         IDialogService dialogos)
         : base(dialogos)
     {
@@ -26,6 +29,7 @@ public sealed partial class RespaldosViewModel : ViewModelBase, ISeccion
         _catalogo = catalogo;
         _autenticacion = autenticacion;
         _navegador = navegador;
+        _reloj = reloj;
     }
 
     [ObservableProperty]
@@ -51,6 +55,13 @@ public sealed partial class RespaldosViewModel : ViewModelBase, ISeccion
 
     public int LongitudMinimaContrasena => AuthService.LongitudMinima;
 
+    /// <summary>Estado de la recuperación de contraseña (pregunta secreta y clave de recuperación).</summary>
+    [ObservableProperty]
+    private string _recuperacionTexto = string.Empty;
+
+    [ObservableProperty]
+    private bool _recuperacionConfigurada;
+
     public async Task CargarAsync()
     {
         await EjecutarAsync(async () =>
@@ -68,6 +79,7 @@ public sealed partial class RespaldosViewModel : ViewModelBase, ISeccion
             }
 
             await ActualizarUltimoRespaldoAsync();
+            await ActualizarRecuperacionAsync();
         }, "cargar la configuración de respaldos");
     }
 
@@ -150,6 +162,23 @@ public sealed partial class RespaldosViewModel : ViewModelBase, ISeccion
             ContrasenaActual = ContrasenaNueva = ContrasenaConfirmacion = string.Empty;
             Dialogos.Informar("La contraseña se cambió correctamente. Úsela la próxima vez que abra el sistema.", "Contraseña");
         }
+    }
+
+    /// <summary>Configura la pregunta secreta y entrega una clave de recuperación nueva (pide la contraseña actual).</summary>
+    [RelayCommand]
+    private async Task ConfigurarRecuperacionAsync()
+    {
+        Dialogos.Mostrar(new ConfigurarRecuperacionViewModel(_autenticacion, _reloj, Dialogos));
+        await EjecutarAsync(ActualizarRecuperacionAsync, "actualizar el estado de la recuperación");
+    }
+
+    private async Task ActualizarRecuperacionAsync()
+    {
+        var estado = await _autenticacion.ObtenerEstadoDeRecuperacionAsync();
+        RecuperacionConfigurada = estado.Configurada;
+        RecuperacionTexto = estado.Configurada
+            ? $"Recuperación configurada. Pregunta secreta: {estado.PreguntaSecreta}"
+            : "Sin configurar: si olvida la contraseña no se podrá restablecer. Configure su pregunta secreta y obtenga su clave de recuperación.";
     }
 
     private async Task GuardarPreferenciasAsync()

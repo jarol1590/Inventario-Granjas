@@ -42,6 +42,12 @@ public interface IKardexService
     Task<SalidaResultado> EditarBajaAsync(BajaDto dto, CancellationToken ct = default);
 
     /// <summary>
+    /// Edita un traslado ya registrado (número, fecha, granja destino, observaciones, animales y orientación de cada uno),
+    /// reajustando el par de asientos de cada animal en el Kardex. La granja de origen no se puede cambiar.
+    /// </summary>
+    Task<TrasladoResultado> EditarTrasladoAsync(TrasladoDto dto, CancellationToken ct = default);
+
+    /// <summary>
     /// Anula un documento (compra, venta, baja o traslado): revierte todos sus efectos y lo deja marcado como anulado,
     /// conservando su número. Solo si ningún animal tiene movimientos posteriores al documento.
     /// </summary>

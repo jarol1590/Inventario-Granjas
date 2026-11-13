@@ -1,13 +1,15 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels;
 using UCaldas.Granjas.App.ViewModels.Configuracion;
+using UCaldas.Granjas.App.ViewModels.Lotes;
 using UCaldas.Granjas.Data;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Services.Animales;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Services.Kardex;
+using UCaldas.Granjas.Services.Lotes;
 using UCaldas.Granjas.Services.Reportes;
 using UCaldas.Granjas.Services.Respaldos;
 using UCaldas.Granjas.Services.Seguridad;
@@ -43,6 +45,8 @@ public static class RaizDeComposicion
         servicios.AddSingleton<IBackupService, BackupService>();
         servicios.AddSingleton<ICatalogoService, CatalogoService>();
         servicios.AddSingleton<IConsultasService, ConsultasService>();
+        servicios.AddSingleton<ITarifaProgramaService, TarifaProgramaService>();
+        servicios.AddSingleton<ILoteService, LoteService>();
 
         // Presentación
         servicios.AddSingleton<IDialogService, DialogService>();
@@ -54,6 +58,7 @@ public static class RaizDeComposicion
         servicios.AddTransient<InicializacionPasswordViewModel>();
         servicios.AddTransient<InicioViewModel>();
         servicios.AddTransient<AnimalesViewModel>();
+        servicios.AddTransient<LotesViewModel>();
         servicios.AddTransient<ComprasViewModel>();
         servicios.AddTransient<SalidasViewModel>();
         servicios.AddTransient<TrasladosViewModel>();

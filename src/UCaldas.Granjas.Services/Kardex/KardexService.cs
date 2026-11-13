@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain;
+﻿using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
@@ -47,6 +47,16 @@ public interface IKardexService
     /// </summary>
     Task<TrasladoResultado> EditarTrasladoAsync(TrasladoDto dto, CancellationToken ct = default);
 
+    /// <summary>Venta de lotes (Oficio → Remisión → Recibo de Caja). Descuenta cabezas del lote; no escribe en el libro del Kardex.</summary>
+    Task<SalidaResultado> RegistrarVentaLoteAsync(VentaLoteDto dto, CancellationToken ct = default);
+
+    Task<SalidaResultado> EditarVentaLoteAsync(VentaLoteDto dto, CancellationToken ct = default);
+
+    /// <summary>Traslado de lotes entre granjas (total o parcial). No escribe en el libro del Kardex.</summary>
+    Task<TrasladoResultado> RegistrarTrasladoLoteAsync(TrasladoLoteDto dto, CancellationToken ct = default);
+
+    Task<TrasladoResultado> EditarTrasladoLoteAsync(TrasladoLoteDto dto, CancellationToken ct = default);
+
     /// <summary>
     /// Anula un documento (compra, venta, baja o traslado): revierte todos sus efectos y lo deja marcado como anulado,
     /// conservando su número. Solo si ningún animal tiene movimientos posteriores al documento.
@@ -70,7 +80,7 @@ public sealed partial class KardexService(
         await using var uow = await fabrica.BeginAsync(ct);
 
         var granja = await ObtenerGranjaActivaAsync(uow, dto.GranjaId, "La granja de nacimiento", ct);
-        await ExigirOrientacionAsync(uow, dto.OrientacionId, ct);
+        dto.OrientacionId = await ResolverOrientacionAsync(uow, dto.OrientacionId, dto.CategoriaId, ct);
         var chapeta = Limpiar(dto.ChapetaAmarilla);
         await ExigirChapetaLibreAsync(uow, chapeta, null, ct);
 
@@ -111,6 +121,7 @@ public sealed partial class KardexService(
             GranjaId = granja.Id,
             Estado = EstadoAnimal.Disponible,
             FechaRegistro = reloj.Ahora,
+            CategoriaId = dto.CategoriaId ?? 0,   // solo programas sin valorización biológica; en bovinos la asigna el AgingEngine
         };
 
         var valoracion = await aging.DeterminarAsync(uow, animal, reloj.Hoy, ct);
@@ -156,7 +167,7 @@ public sealed partial class KardexService(
         await ExigirNumeroLibreAsync(uow, numero, null, ct);
         foreach (var animal in dto.Animales)
         {
-            await ExigirOrientacionAsync(uow, animal.OrientacionId, ct);
+            animal.OrientacionId = await ResolverOrientacionAsync(uow, animal.OrientacionId, animal.CategoriaId, ct);
             await ExigirChapetaLibreAsync(uow, Limpiar(animal.ChapetaAmarilla), null, ct);
         }
 
@@ -215,12 +226,14 @@ public sealed partial class KardexService(
             Estado = EstadoAnimal.Disponible,
             NumeroPartos = item.NumeroPartos,
             FechaRegistro = reloj.Ahora,
+            CategoriaId = item.CategoriaId ?? 0,   // solo programas sin valorización biológica
         };
 
-        // El valor contable sale de la matriz (igual que en los nacidos); si no hay tarifa se parte del precio de factura.
+        // Bovinos: el valor contable sale de la matriz (igual que en los nacidos); si no hay tarifa se parte del precio de factura.
+        // Otros programas: el valor en libros es el costo de la factura.
         var valoracion = valorador.Determinar(animal, reloj.Hoy);
         animal.CategoriaId = valoracion.CategoriaId;
-        animal.ValorContableActual = valoracion.Valor ?? item.PrecioFactura;
+        animal.ValorContableActual = valoracion.NoBiologico ? item.PrecioFactura : valoracion.Valor ?? item.PrecioFactura;
         if (valoracion.SinTarifa)
         {
             sinTarifa.Add(animal.ChapetaAmarilla);
@@ -254,6 +267,24 @@ public sealed partial class KardexService(
         var granja = await uow.Granjas.GetByIdAsync(granjaId, ct) ?? throw Regla.Violada($"{rol} no existe.");
         Regla.Exigir(granja.Activa, $"{rol} ({granja.Nombre}) está inactiva.");
         return granja;
+    }
+
+    /// <summary>
+    /// La orientación (Lácteo / Carne) solo tiene sentido en bovinos. Si el animal es de un programa sin valorización biológica
+    /// (se informó su categoría) y no trae orientación, se usa la primera del catálogo: la columna es obligatoria en el esquema.
+    /// </summary>
+    private static async Task<int> ResolverOrientacionAsync(IUnitOfWork uow, int orientacionId, int? categoriaId, CancellationToken ct)
+    {
+        if (orientacionId > 0)
+        {
+            await ExigirOrientacionAsync(uow, orientacionId, ct);
+            return orientacionId;
+        }
+
+        Regla.Exigir(categoriaId is > 0, "Seleccione la orientación productiva.");
+        var primera = (await uow.Orientaciones.GetAllAsync(ct)).FirstOrDefault()
+            ?? throw new InvalidOperationException("No hay orientaciones productivas en la base de datos.");
+        return primera.Id;
     }
 
     private static async Task ExigirOrientacionAsync(IUnitOfWork uow, int orientacionId, CancellationToken ct)

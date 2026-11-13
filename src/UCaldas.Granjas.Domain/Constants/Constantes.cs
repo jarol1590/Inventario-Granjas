@@ -1,4 +1,4 @@
-namespace UCaldas.Granjas.Domain.Constants;
+﻿namespace UCaldas.Granjas.Domain.Constants;
 
 /// <summary>Valores de <c>sexo</c>. Los animales solo son Macho/Hembra; las tarifas y categorías admiten además "Ambos".</summary>
 public static class Sexo
@@ -32,6 +32,9 @@ public static class ClaseEntrada
     public const string Nacimiento = "NACIMIENTO";
     public const string Compra = "COMPRA";
     public const string Traslado = "TRASLADO";
+
+    /// <summary>Solo lotes: el lote nació al dividir otro (desdoble).</summary>
+    public const string Desdoble = "DESDOBLE";
 }
 
 /// <summary>Valores de <c>REMISION.tipo_movimiento</c> (el documento).</summary>
@@ -75,6 +78,24 @@ public static class TipoInventario
     public const string Lote = "LOTE";
 }
 
+/// <summary>Valores de <c>unidad_cobro</c> / <c>unidad_venta_default</c>: por cabeza o por kilogramo en báscula.</summary>
+public static class UnidadCobro
+{
+    public const string Unidad = "UNIDAD";
+    public const string Kg = "KG";
+
+    public static readonly IReadOnlyList<string> Todas = [Unidad, Kg];
+
+    public static string Texto(string? valor) => valor == Kg ? "Kilogramo (Kg)" : "Cabeza / Unidad";
+}
+
+/// <summary>Estado de <c>LOTE_POBLACION.estado</c>.</summary>
+public static class EstadoLote
+{
+    public const string Activo = "Activo";
+    public const string Finalizado = "Finalizado";
+}
+
 /// <summary>Nombres de datos base sembrados que el código necesita reconocer.</summary>
 public static class NombresBase
 {
@@ -91,4 +112,7 @@ public static class NombresBase
     public const string CategoriaSinClasificar = "Sin clasificar";
 
     public const string ProgramaGanaderia = "PRG-GAN";
+
+    /// <summary>Categoría que se crea con cada programa sin valorización biológica y que no se puede borrar.</summary>
+    public const string CategoriaGeneral = "General";
 }

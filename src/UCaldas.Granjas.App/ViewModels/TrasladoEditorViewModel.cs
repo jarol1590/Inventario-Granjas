@@ -1,11 +1,13 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Consultas;
+using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Services.Kardex;
+using UCaldas.Granjas.Services.Lotes;
 
 namespace UCaldas.Granjas.App.ViewModels;
 
@@ -19,6 +21,8 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
     private readonly IKardexService _kardex;
     private readonly IConsultasService _consultas;
     private readonly ICatalogoService _catalogo;
+    private readonly ILoteService _lotes;
+    private Programa? _programaLote;
     private readonly IFormularios _formularios;
     private readonly ContextoGlobal _contexto;
     private readonly Dictionary<int, int?> _orientacionSugerida = [];
@@ -30,6 +34,7 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
         IKardexService kardex,
         IConsultasService consultas,
         ICatalogoService catalogo,
+        ILoteService lotes,
         IFormularios formularios,
         ContextoGlobal contexto,
         IReloj reloj,
@@ -39,6 +44,7 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
         _kardex = kardex;
         _consultas = consultas;
         _catalogo = catalogo;
+        _lotes = lotes;
         _formularios = formularios;
         _contexto = contexto;
         _fechaTraslado = reloj.Hoy;
@@ -62,12 +68,30 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
 
     public ObservableCollection<TrasladoFila> Animales { get; } = [];
 
+    /// <summary>El traslado es de lotes de un programa por lotes (misma pantalla, con una grilla de lotes).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Titulo), nameof(EsLectura), nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(PuedeCambiarOrigen), nameof(TextoConfirmar))]
+    [NotifyPropertyChangedFor(nameof(EsIndividual), nameof(CantidadTexto), nameof(ValorTexto), nameof(MostrarSeleccionAnimales), nameof(MostrarSeleccionLotes))]
+    private bool _esLote;
+
+    public bool EsIndividual => !EsLote;
+
+    public bool MostrarSeleccionAnimales => EsEditable && EsIndividual;
+
+    public bool MostrarSeleccionLotes => EsEditable && EsLote;
+
+    public ObservableCollection<TrasladoLoteFila> Lotes { get; } = [];
+
+    public ObservableCollection<LoteSeleccionable> LotesDisponibles { get; } = [];
+
+    [ObservableProperty]
+    private LoteSeleccionable? _loteParaAgregar;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Titulo), nameof(EsLectura), nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(PuedeCambiarOrigen), nameof(TextoConfirmar), nameof(MostrarSeleccionAnimales), nameof(MostrarSeleccionLotes))]
     private ModoDocumento _modo = ModoDocumento.Nuevo;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsEditable), nameof(PuedeEditarODesechar))]
+    [NotifyPropertyChangedFor(nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(MostrarSeleccionAnimales), nameof(MostrarSeleccionLotes))]
     private bool _anulado;
 
     [ObservableProperty]
@@ -103,9 +127,9 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
 
     public string TextoConfirmar => Modo == ModoDocumento.Edicion ? "💾 GUARDAR CAMBIOS" : "💾 CONFIRMAR TRASLADO";
 
-    public string CantidadTexto => $"Total Animales a Mover: {Animales.Count}";
+    public string CantidadTexto => EsLote ? $"Total cabezas a mover: {Lotes.Sum(l => l.Cantidad):N0}" : $"Total Animales a Mover: {Animales.Count}";
 
-    public string ValorTexto => Formato.Dinero(Animales.Sum(a => a.Animal.ValorContable));
+    public string ValorTexto => Formato.Dinero(EsLote ? Lotes.Sum(l => l.Valor) : Animales.Sum(a => a.Animal.ValorContable));
 
     public async Task<bool> InicializarAsync()
     {
@@ -126,6 +150,24 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
                 _cargando = false;
             }
 
+            // En un programa por lotes el traslado es de lotes.
+            if (_contexto.ProgramaId is { } programaId
+                && (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == programaId) is { TipoInventario: TipoInventario.Lote } programa)
+            {
+                _programaLote = programa;
+
+                // Sin granja elegida en los filtros se parte de una granja donde se ejecuta el programa (donde están sus lotes).
+                if (_contexto.GranjaId is null)
+                {
+                    var delPrograma = (await _catalogo.GetGranjaIdsDeProgramaAsync(programa.Id)).ToHashSet();
+                    GranjaOrigen = Granjas.FirstOrDefault(g => g.Id is { } id && delPrograma.Contains(id)) ?? GranjaOrigen;
+                    GranjaDestino = Granjas.FirstOrDefault(g => g.Id != GranjaOrigen?.Id);
+                }
+
+                EsLote = true;
+                await CargarLotesDisponiblesAsync();
+            }
+
             Modo = ModoDocumento.Nuevo;
         }, "preparar el formulario de traslado");
     }
@@ -136,6 +178,12 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
         _remisionId = remisionId;
         return await EjecutarAsync(async () =>
         {
+            if (await _consultas.EsDocumentoDeLotesAsync(remisionId))
+            {
+                await CargarTrasladoDeLotesAsync(remisionId);
+                return;
+            }
+
             var traslado = await _consultas.ObtenerTrasladoAsync(remisionId);
             var dto = traslado.Dto;
 
@@ -180,8 +228,13 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
 
     partial void OnGranjaOrigenChanged(OpcionFiltro? oldValue, OpcionFiltro? newValue)
     {
-        if (_cargando || _revirtiendo || Modo != ModoDocumento.Nuevo || newValue is null || Animales.Count == 0)
+        if (_cargando || _revirtiendo || Modo != ModoDocumento.Nuevo || newValue is null || (EsLote ? Lotes.Count : Animales.Count) == 0)
         {
+            if (EsLote && !_cargando && !_revirtiendo && Modo == ModoDocumento.Nuevo && newValue is not null)
+            {
+                _ = EjecutarAsync(CargarLotesDisponiblesAsync, "consultar los lotes de la granja");
+            }
+
             return;
         }
 
@@ -205,6 +258,100 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
         }
 
         Animales.Clear();
+        Lotes.Clear();
+        if (EsLote)
+        {
+            _ = EjecutarAsync(CargarLotesDisponiblesAsync, "consultar los lotes de la granja");
+        }
+    }
+
+    private async Task CargarLotesDisponiblesAsync()
+    {
+        LotesDisponibles.Clear();
+        if (_programaLote is null || GranjaOrigen?.Id is not { } granjaId)
+        {
+            return;
+        }
+
+        var enTraslado = Lotes.Select(l => l.LoteId).ToHashSet();
+        foreach (var d in (await _lotes.ListarAsync(_programaLote.Id)).Where(d => d.Lote.Estado == EstadoLote.Activo && d.Lote.GranjaId == granjaId && !enTraslado.Contains(d.Lote.Id)))
+        {
+            LotesDisponibles.Add(new LoteSeleccionable(
+                d.Lote.Id, d.Lote.CodigoLote, d.EtapaNombre, d.Lote.Ubicacion, d.Lote.CantidadActual, d.Lote.ControlNumericoPoblacion, d.Lote.ValorContableUnitario));
+        }
+
+        LoteParaAgregar = LotesDisponibles.FirstOrDefault();
+    }
+
+    private async Task CargarTrasladoDeLotesAsync(int remisionId)
+    {
+        var traslado = await _consultas.ObtenerTrasladoLoteAsync(remisionId);
+        var dto = traslado.Dto;
+        var granjas = (await _catalogo.GetGranjasAsync())
+            .Where(g => g.Activa || g.Id == dto.GranjaOrigenId || g.Id == dto.GranjaDestinoId)
+            .ToList();
+
+        _cargando = true;
+        try
+        {
+            await CargarCatalogosAsync(granjas);
+            EsLote = true;
+            GranjaOrigen = Granjas.FirstOrDefault(g => g.Id == dto.GranjaOrigenId);
+            GranjaDestino = Granjas.FirstOrDefault(g => g.Id == dto.GranjaDestinoId);
+            FechaTraslado = dto.FechaTraslado;
+            NumeroRemision = dto.NumeroRemision;
+            Observaciones = dto.Observaciones ?? string.Empty;
+            Anulado = traslado.Anulada;
+
+            Lotes.Clear();
+            foreach (var linea in dto.Lotes)
+            {
+                var lote = traslado.Lotes.First(l => l.Id == linea.LoteId);
+                _programaLote ??= (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.TipoInventario == TipoInventario.Lote);
+                AgregarFilaDeLote(new TrasladoLoteFila(lote, linea.Cantidad, linea.CodigoNuevoLote, linea.UbicacionDestino));
+            }
+        }
+        finally
+        {
+            _cargando = false;
+        }
+
+        Modo = ModoDocumento.Detalle;
+        NotificarTotales();
+    }
+
+    private void AgregarFilaDeLote(TrasladoLoteFila fila)
+    {
+        fila.PropertyChanged += (_, _) => NotificarTotales();
+        Lotes.Add(fila);
+        NotificarTotales();
+    }
+
+    [RelayCommand(CanExecute = nameof(EsEditable))]
+    private void AgregarLote()
+    {
+        if (LoteParaAgregar is not { } lote)
+        {
+            Dialogos.Advertir("No hay lotes activos en la granja de origen para agregar.");
+            return;
+        }
+
+        AgregarFilaDeLote(new TrasladoLoteFila(lote, lote.CantidadActual));
+        LotesDisponibles.Remove(lote);
+        LoteParaAgregar = LotesDisponibles.FirstOrDefault();
+    }
+
+    [RelayCommand(CanExecute = nameof(EsEditable))]
+    private void QuitarLote(TrasladoLoteFila? fila)
+    {
+        if (fila is null)
+        {
+            return;
+        }
+
+        Lotes.Remove(fila);
+        _ = EjecutarAsync(CargarLotesDisponiblesAsync, "consultar los lotes de la granja");
+        NotificarTotales();
     }
 
     partial void OnGranjaDestinoChanged(OpcionFiltro? value)
@@ -272,6 +419,12 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
             return;
         }
 
+        if (EsLote)
+        {
+            await ConfirmarTrasladoDeLotesAsync(origen, destino);
+            return;
+        }
+
         var dto = new TrasladoDto
         {
             RemisionId = _remisionId,
@@ -301,6 +454,33 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
         Cerrar(true);
     }
 
+    private async Task ConfirmarTrasladoDeLotesAsync(OpcionFiltro origen, OpcionFiltro destino)
+    {
+        var dto = new TrasladoLoteDto
+        {
+            RemisionId = _remisionId,
+            NumeroRemision = NumeroRemision,
+            FechaTraslado = FechaTraslado ?? default,
+            GranjaOrigenId = origen.Id!.Value,
+            GranjaDestinoId = destino.Id!.Value,
+            Observaciones = string.IsNullOrWhiteSpace(Observaciones) ? null : Observaciones.Trim(),
+            Lotes = [.. Lotes.Select(l => l.ToDto())],
+        };
+
+        TrasladoResultado? resultado = null;
+        var guardado = await EjecutarAsync(
+            async () => resultado = _remisionId is null ? await _kardex.RegistrarTrasladoLoteAsync(dto) : await _kardex.EditarTrasladoLoteAsync(dto),
+            "guardar el traslado de lotes");
+        if (!guardado || resultado is null)
+        {
+            return;
+        }
+
+        var accion = _remisionId is null ? "registrado" : "actualizado";
+        Dialogos.Informar($"Traslado de lotes {accion}: {Lotes.Sum(l => l.Cantidad):N0} cabezas de {origen.Nombre} a {destino.Nombre}.\nValor trasladado: {Formato.Dinero(resultado.TotalValor)}.", $"Traslado {accion}");
+        Cerrar(true);
+    }
+
     [RelayCommand(CanExecute = nameof(PuedeEditarODesechar))]
     private async Task AnularAsync()
     {
@@ -309,7 +489,7 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
             return;
         }
 
-        var motivo = AnulacionDeTraslados.PedirMotivo(Dialogos, NumeroRemision, Animales.Count, GranjaOrigen?.Nombre ?? "la granja de origen");
+        var motivo = AnulacionDeTraslados.PedirMotivo(Dialogos, NumeroRemision, EsLote ? Lotes.Count : Animales.Count, GranjaOrigen?.Nombre ?? "la granja de origen");
         if (motivo is null)
         {
             return;
@@ -325,6 +505,8 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
     private void NotificarComandos()
     {
         AgregarALaListaCommand.NotifyCanExecuteChanged();
+        AgregarLoteCommand.NotifyCanExecuteChanged();
+        QuitarLoteCommand.NotifyCanExecuteChanged();
         QuitarAnimalCommand.NotifyCanExecuteChanged();
         EditarTrasladoCommand.NotifyCanExecuteChanged();
         ConfirmarCommand.NotifyCanExecuteChanged();

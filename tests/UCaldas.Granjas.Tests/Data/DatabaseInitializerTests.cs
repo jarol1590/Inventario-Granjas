@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Data;
+﻿using UCaldas.Granjas.Data;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Tests.Infraestructura;
 
@@ -10,11 +10,11 @@ public class DatabaseInitializerTests
     [
         "ANIMAL", "CATEGORIA_ETAPA", "CONFIGURACION_FIRMA", "CONFIGURACION_SISTEMA", "DATOS_GENEALOGIA", "GRANJA",
         "GRANJA_PROGRAMA", "LOTE_POBLACION", "MOVIMIENTO_INVENTARIO", "OFICIO_VENTA", "ORIENTACION_PRODUCTIVA",
-        "PROGRAMA", "REMISION", "REMISION_DETALLE", "TABLA_VALORIZACION_BASE", "VIGENCIA_VALORIZACION",
+        "PROGRAMA", "REMISION", "REMISION_DETALLE", "TABLA_VALORIZACION_BASE", "TARIFA_CATEGORIA_PROGRAMA", "VIGENCIA_VALORIZACION",
     ];
 
     [Fact]
-    public async Task Crea_las_16_tablas_del_esquema()
+    public async Task Crea_las_17_tablas_del_esquema()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();
 
@@ -135,9 +135,33 @@ public class DatabaseInitializerTests
 
     // ---- Migración de la versión 1 (esquema v2.1) a la 2 (v2.2) ----------------------------------------------------
 
+    /// <summary>Deja la base como la dejaba la versión 3: sin los documentos de lotes de la v2.4.</summary>
+    private static async Task DegradarAVersion3Async(BaseDeDatosDePrueba db)
+    {
+        await db.EjecutarAsync("ALTER TABLE REMISION_DETALLE DROP COLUMN lote_destino_id");
+        await db.EjecutarAsync("ALTER TABLE LOTE_POBLACION DROP COLUMN operaciones");
+        await db.EjecutarAsync("ALTER TABLE LOTE_POBLACION DROP COLUMN anulado");
+        await db.EjecutarAsync("PRAGMA user_version = 3");
+    }
+
+    /// <summary>Deja la base como la dejaba la versión 2: sin los programas generalizados (columnas, tarifas de referencia y "General").</summary>
+    private static async Task DegradarAVersion2Async(BaseDeDatosDePrueba db)
+    {
+        await DegradarAVersion3Async(db);
+        await db.EjecutarAsync("DROP TABLE TARIFA_CATEGORIA_PROGRAMA");
+        await db.EjecutarAsync("DELETE FROM CATEGORIA_ETAPA WHERE nombre = 'General'");
+        await db.EjecutarAsync("ALTER TABLE PROGRAMA DROP COLUMN usa_valorizacion_biologica");
+        await db.EjecutarAsync("ALTER TABLE PROGRAMA DROP COLUMN unidad_venta_default");
+        await db.EjecutarAsync("ALTER TABLE REMISION_DETALLE DROP COLUMN peso_vendido_kg");
+        await db.EjecutarAsync("ALTER TABLE REMISION_DETALLE DROP COLUMN cantidad");
+        await db.EjecutarAsync("ALTER TABLE MOVIMIENTO_INVENTARIO DROP COLUMN cantidad");
+        await db.EjecutarAsync("PRAGMA user_version = 2");
+    }
+
     /// <summary>Deja la base como la dejaba la versión 1: sin las columnas de recuperación y con los huecos de la matriz.</summary>
     private static async Task DegradarAVersion1Async(BaseDeDatosDePrueba db)
     {
+        await DegradarAVersion2Async(db);
         await db.EjecutarAsync("DELETE FROM TABLA_VALORIZACION_BASE WHERE sexo = 'Macho' AND edad_minima_meses = 12 AND edad_maxima_meses = 17");
         await db.EjecutarAsync("UPDATE TABLA_VALORIZACION_BASE SET edad_maxima_meses = 24 WHERE sexo = 'Hembra' AND requiere_partos = 0 AND edad_minima_meses = 12");
         foreach (var columna in new[] { "pregunta_secreta", "respuesta_hash", "recovery_key_hash" })
@@ -158,7 +182,7 @@ public class DatabaseInitializerTests
 
         await new DatabaseInitializer(db.Conexiones).InitializeAsync();
 
-        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(2);
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
         await using var uow = await db.Uow.OpenReadOnlyAsync();
         var ids = await Datos.IdsBaseAsync(uow);
         var tarifas = await uow.Tarifas.GetByVigenciaAsync((await uow.Vigencias.GetActivaAsync())!.Id);
@@ -179,6 +203,53 @@ public class DatabaseInitializerTests
         // Idempotente: una segunda ejecución no cambia nada.
         await new DatabaseInitializer(db.Conexiones).InitializeAsync();
         (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(10);
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_2_se_migra_a_programas_generalizados_sin_tocar_los_datos()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("INSERT INTO CONFIGURACION_SISTEMA (password_hash) VALUES ('hash-existente')");
+        await DegradarAVersion2Async(db);
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var programas = await uow.Programas.GetAllAsync();
+        programas.Single(p => p.Codigo == "PRG-GAN").UsaValorizacionBiologica.Should().BeTrue("solo los bovinos usan la valorización por edad");
+        var aves = programas.Single(p => p.Codigo == "PRG-AVE");
+        aves.UsaValorizacionBiologica.Should().BeFalse();
+        aves.UnidadVentaDefault.Should().Be("KG");
+
+        // El programa sin valorización biológica recibe "General" con su tarifa por defecto; los bovinos no.
+        var general = (await uow.TarifasPrograma.GetByProgramaAsync(aves.Id)).Should().ContainSingle().Subject;
+        (general.NombreCategoria, general.EsDefault, general.ValorReferencia, general.UnidadCobro).Should().Be(("General", true, 0m, "KG"));
+        (await uow.Categorias.GetByProgramaAsync(aves.Id)).Select(c => c.Nombre).Should().Equal("General");
+        (await uow.TarifasPrograma.GetByProgramaAsync(programas.Single(p => p.Codigo == "PRG-GAN").Id)).Should().BeEmpty();
+
+        (await uow.Configuracion.GetSistemaAsync())!.PasswordHash.Should().Be("hash-existente");
+        (await uow.Granjas.GetAllAsync()).Should().HaveCount(3);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM TABLA_VALORIZACION_BASE")).Should().Be(10);
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_3_se_migra_y_marca_los_lotes_que_ya_tuvieron_operaciones()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        const string columnas = "(codigo_lote, programa_id, granja_id, etapa_id, clase_entrada, ubicacion, linea_raza, fecha_nacimiento_ingreso, cantidad_inicial, cantidad_actual, mortandad_acumulada, valor_contable_unitario, valor_total_contable)";
+        const string base1 = "SELECT {0}, p.id, (SELECT MIN(id) FROM GRANJA), c.id, 'COMPRA', 'G1', 'Hy', '2026-10-01 00:00:00', 100, {1}, {2}, 10, 1000 FROM PROGRAMA p JOIN CATEGORIA_ETAPA c ON c.programa_id = p.id AND c.nombre = 'General' WHERE p.codigo = 'PRG-AVE'";
+        await DegradarAVersion3Async(db);
+        await db.EjecutarAsync("INSERT INTO LOTE_POBLACION " + columnas + " " + string.Format(base1, "'L-NUEVO'", 100, 0));
+        await db.EjecutarAsync("INSERT INTO LOTE_POBLACION " + columnas + " " + string.Format(base1, "'L-CON-BAJAS'", 90, 10));
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await db.EscalarAsync<long>("SELECT operaciones FROM LOTE_POBLACION WHERE codigo_lote = 'L-NUEVO'")).Should().Be(0);
+        (await db.EscalarAsync<long>("SELECT operaciones FROM LOTE_POBLACION WHERE codigo_lote = 'L-CON-BAJAS'")).Should().Be(1);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM LOTE_POBLACION WHERE anulado = 0")).Should().Be(2);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM pragma_table_info('REMISION_DETALLE') WHERE name = 'lote_destino_id'")).Should().Be(1);
     }
 
     [Fact]

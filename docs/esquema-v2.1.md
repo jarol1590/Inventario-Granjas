@@ -1,4 +1,4 @@
-# Esquema de base de datos v2.1 (con la ampliación v2.2)
+﻿# Esquema de base de datos v2.1 (con las ampliaciones v2.2 y v2.3)
 
 Base: el esquema "definitivo" v2.0 de `contexto_y_plan_de_desarrollo_ia.md` (§4). La versión implementada
 (`PRAGMA user_version = 2`, script `src/UCaldas.Granjas.Data/Schema/schema.sql`) agrega las extensiones de abajo.
@@ -24,6 +24,25 @@ las de la recuperación de contraseña, `[v2.2]`. El nombre del archivo se conse
 | CONFIGURACION_SISTEMA | `recovery_key_hash TEXT NULL` `[v2.2]` | Hash PBKDF2-SHA256 de la clave de recuperación (16 caracteres sin guiones). La clave en claro nunca se guarda y se renueva en cada restablecimiento. |
 
 Las tres columnas de recuperación quedan en `NULL` en las bases creadas antes de la v2.2: esa instalación no puede restablecer su contraseña hasta que el usuario configure la recuperación (Configuración › Respaldos / Backup).
+
+## Ampliación v2.3 (`user_version = 3`, `Schema/migracion_v3.sql`)
+
+| Tabla | Cambio |
+|---|---|
+| PROGRAMA | `usa_valorizacion_biologica` (1 solo en bovinos), `unidad_venta_default` (UNIDAD / KG) |
+| TARIFA_CATEGORIA_PROGRAMA (nueva) | categorías y valor de referencia de los programas sin valorización biológica; `categoria_id` liga a `CATEGORIA_ETAPA`; `es_default` = «General» |
+| LOTE_POBLACION | recreada: etapa, clase de entrada (COMPRA/NACIMIENTO/TRASLADO/DESDOBLE), línea/raza, origen, proveedor, orden de compra, `control_numerico_poblacion`, valores unitarios y total. Nunca tuvo datos (ninguna pantalla la usaba) |
+| REMISION_DETALLE | `peso_vendido_kg`, `cantidad` (1 en animales) |
+| MOVIMIENTO_INVENTARIO | `cantidad` (1 en animales) |
+
+La migración da «General» (categoría y tarifa) a cada programa sin valorización biológica.
+
+## Ampliación v2.4 (`user_version = 4`, `Schema/migracion_v4.sql`, solo `ALTER`)
+
+| Tabla | Cambio |
+|---|---|
+| LOTE_POBLACION | `operaciones` (cambios de etapa, desdobles, bajas, ventas y traslados; solo informativo: ya no bloquea la corrección de la compra; la anulación se rechaza únicamente si el lote fue desdoblado, vendido o trasladado) y `anulado` (compra anulada). La migración marca `operaciones = 1` en los lotes con mortandad, desdoble o cantidad distinta de la inicial |
+| REMISION_DETALLE | `lote_destino_id` (lote creado por un traslado parcial de lotes) |
 
 ## Restricciones agregadas
 

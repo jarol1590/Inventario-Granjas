@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Services.Consultas;
+﻿using UCaldas.Granjas.Services.Consultas;
 
 namespace UCaldas.Granjas.App.Composicion;
 
@@ -12,9 +12,19 @@ public interface IFormularios
 
     Task<bool> VerFichaAsync(int animalId);
 
+    /// <summary>
+    /// Nueva compra del programa activo en los filtros globales: en un programa de animales individuales abre el editor de
+    /// compras; en un programa por lotes abre "Nuevo lote" en modo compra. Ambos preseleccionan la granja del filtro.
+    /// </summary>
     Task<bool> NuevaCompraAsync();
 
+    /// <summary>"Nuevo lote" del programa por lotes activo (compra o nacimiento a elección), con la granja del filtro.</summary>
+    Task<bool> NuevoLoteAsync();
+
     Task<bool> AbrirCompraAsync(int remisionId);
+
+    /// <summary>Abre la compra de un lote en la misma pantalla de detalle de compra (editable y anulable).</summary>
+    Task<bool> AbrirCompraLoteAsync(int loteId);
 
     Task<bool> NuevaSalidaAsync();
 

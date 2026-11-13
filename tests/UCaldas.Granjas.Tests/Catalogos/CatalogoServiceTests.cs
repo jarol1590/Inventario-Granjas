@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Catalogos;
@@ -23,7 +23,7 @@ public class CatalogoServiceTests
         (await servicio.GetGranjasAsync()).Select(g => g.Nombre).Should().Equal("Tesorito", "La Cruz", "Montelindo");
         (await servicio.GetProgramasAsync()).Select(p => p.Codigo).Should().Equal("PRG-AVE", "PRG-GAN");
         (await servicio.GetOrientacionesAsync()).Select(o => o.Nombre).Should().Equal("Lácteo", "Carne/Levante");
-        (await servicio.GetCategoriasAsync()).Should().HaveCount(6);
+        (await servicio.GetCategoriasAsync()).Should().HaveCount(7, "las 6 de ganadería más «General» de avicultura");
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class CatalogoServiceTests
         ganaderia.Should().OnlyContain(c => c.ProgramaId == ids.ProgramaGanaderia);
 
         var aves = (await servicio.GetProgramasAsync()).Single(p => p.Codigo == "PRG-AVE");
-        (await servicio.GetCategoriasDeProgramaAsync(aves.Id)).Select(c => c.Nombre).Should().Equal("Potro");
+        (await servicio.GetCategoriasDeProgramaAsync(aves.Id)).Select(c => c.Nombre).Should().Equal("General", "Potro");
         (await servicio.GetCategoriasDeProgramaAsync(99999)).Should().BeEmpty();
     }
 

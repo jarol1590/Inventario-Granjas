@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
@@ -73,7 +73,8 @@ public sealed partial class ComprasViewModel : ViewModelBase, IUsaFiltroGlobal
                 Rango.Desde,
                 Rango.Hasta,
                 string.IsNullOrWhiteSpace(TextoFactura) ? null : TextoFactura.Trim(),
-                IncluirAnuladas));
+                IncluirAnuladas,
+                _contexto.ProgramaId));
             if (version != _version)
             {
                 return;
@@ -98,7 +99,16 @@ public sealed partial class ComprasViewModel : ViewModelBase, IUsaFiltroGlobal
     private async Task VerDetalleAsync(CompraListItem? item)
     {
         item ??= Seleccionada;
-        if (item is not null && await _formularios.AbrirCompraAsync(item.RemisionId))
+        if (item is null)
+        {
+            return;
+        }
+
+        // La compra de un lote se abre en la misma pantalla de detalle (editable y anulable).
+        var guardado = item.LoteId is { } loteId
+            ? await _formularios.AbrirCompraLoteAsync(loteId)
+            : await _formularios.AbrirCompraAsync(item.RemisionId);
+        if (guardado)
         {
             await CargarAsync();
         }

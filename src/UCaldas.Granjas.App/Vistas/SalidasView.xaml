@@ -1,9 +1,10 @@
-<UserControl x:Class="UCaldas.Granjas.App.Vistas.SalidasView"
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.SalidasView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
+      
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />

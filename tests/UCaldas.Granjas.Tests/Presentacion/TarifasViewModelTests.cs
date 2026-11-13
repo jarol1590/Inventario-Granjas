@@ -15,12 +15,12 @@ public class TarifasViewModelTests
         var reloj = new RelojFijo(Datos.F("2026-11-06"));
         var servicio = new VigenciaService(db.Uow, new TarifaValidationService());
         var dialogos = new DialogoFalso();
-        var vm = new TarifasViewModel(servicio, new CatalogoService(db.Uow), new AgingEngine(db.Uow, reloj), reloj, dialogos);
+        var vm = new TarifasViewModel(servicio, new CatalogoService(db.Uow), new AgingEngine(db.Uow, reloj), reloj, new TarifaProgramaService(db.Uow), dialogos);
         return (vm, dialogos, servicio);
     }
 
     private static TarifasViewModel CrearConEscenario(EscenarioKardex e, DialogoFalso dialogos)
-        => new(new VigenciaService(e.Db.Uow, new TarifaValidationService()), new CatalogoService(e.Db.Uow), e.Aging, e.Reloj, dialogos);
+        => new(new VigenciaService(e.Db.Uow, new TarifaValidationService()), new CatalogoService(e.Db.Uow), e.Aging, e.Reloj, new TarifaProgramaService(e.Db.Uow), dialogos);
 
     private static async Task<int> IdVigenciaAsync(BaseDeDatosDePrueba db, int anio)
         => await db.EscalarAsync<int>("SELECT id FROM VIGENCIA_VALORIZACION WHERE anio = @anio", new { anio });

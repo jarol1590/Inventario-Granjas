@@ -13,6 +13,7 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
       <TextBlock Grid.Row="0" Text="*Código:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
@@ -21,6 +22,9 @@
       <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="80" />
       <TextBlock Grid.Row="2" Text="Tipo de inventario:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
       <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding Tipos}" SelectedItem="{Binding TipoSeleccionado}"
+                DisplayMemberPath="Nombre" />
+      <TextBlock Grid.Row="5" Text="Unidad base de venta:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" />
+      <ComboBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding Unidades}" SelectedItem="{Binding UnidadSeleccionada}"
                 DisplayMemberPath="Nombre" />
       <TextBlock Grid.Row="3" Text="Observaciones:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Top" Margin="0,6,0,0" />
       <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}"
@@ -34,6 +38,9 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </Grid>
+
+    <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0"
+               Text="Al crear un programa se crea automáticamente la categoría «General» para registrar inventario de inmediato; sus categorías y valores de referencia se editan en Configuración › Tarifas." />
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
       <Button Content="GUARDAR" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" MinWidth="110" />

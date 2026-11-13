@@ -1,0 +1,82 @@
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.FichaLoteView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}"><Setter Property="Margin" Value="0,0,10,10" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style x:Key="Dato" TargetType="TextBlock"><Setter Property="Margin" Value="0,0,0,10" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+  </UserControl.Resources>
+  <StackPanel Margin="28,20,28,22">
+    <TextBlock Text="Datos del lote" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
+    <Grid IsEnabled="{Binding EsEditable}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="130" /><ColumnDefinition Width="*" /><ColumnDefinition Width="130" /><ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Text="Código:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Column="1" Margin="0,0,24,10" Text="{Binding CodigoLote, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
+      <TextBlock Grid.Column="2" Text="Ubicación:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Column="3" Margin="0,0,0,10" Text="{Binding Ubicacion, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
+
+      <TextBlock Grid.Row="1" Text="Línea / raza:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" Text="{Binding LineaRaza, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Fecha ingreso:" Style="{StaticResource Etiq}" />
+      <DatePicker Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" SelectedDate="{Binding FechaIngreso, UpdateSourceTrigger=PropertyChanged}" />
+
+      <TextBlock Grid.Row="2" Text="Origen:" Style="{StaticResource Etiq}" ToolTip="N.º de factura, chapeta de la madre o código del lote padre." />
+      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,10" Text="{Binding OrigenReferencia, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="Proveedor:" Style="{StaticResource Etiq}"
+                 Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" Text="{Binding Proveedor, UpdateSourceTrigger=PropertyChanged}"
+               Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />
+
+      <TextBlock Grid.Row="3" Text="Orden de compra:" Style="{StaticResource Etiq}"
+                 Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,24,10" Text="{Binding OrdenCompra, UpdateSourceTrigger=PropertyChanged}"
+               Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />    </Grid>
+
+    <TextBlock Text="Población y valorización" Style="{StaticResource Texto.Seccion}" Margin="0,8,0,10" />
+    <Grid IsEnabled="{Binding EsEditable}">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="*" /><ColumnDefinition Width="130" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Text="Granja:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Column="1" Margin="0,0,24,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaSeleccionada}" DisplayMemberPath="Nombre" />
+      <TextBlock Grid.Column="2" Text="Etapa:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Etapas}" SelectedItem="{Binding EtapaSeleccionada}" DisplayMemberPath="Nombre" />
+
+      <TextBlock Grid.Row="1" Text="Entrada:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Entrada}" Style="{StaticResource Dato}" />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Estado:" Style="{StaticResource Etiq}" ToolTip="Se calcula: Finalizado cuando no queda ninguna cabeza." />
+      <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding EstadoTexto}" Style="{StaticResource Dato}" FontWeight="Medium" />
+
+      <TextBlock Grid.Row="2" Text="Cant. inicial:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,10" HorizontalContentAlignment="Right" IsEnabled="{Binding PuedeEditarConteo}"
+               Text="{Binding CantidadInicial, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="Bajas:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" HorizontalContentAlignment="Right" IsEnabled="{Binding PuedeEditarConteo}"
+               Text="{Binding Bajas, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" />
+
+      <TextBlock Grid.Row="3" Text="Población actual:" Style="{StaticResource Etiq}" ToolTip="Se calcula: cantidad inicial − bajas − cabezas desdobladas, vendidas o trasladadas." />
+      <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding PoblacionActualTexto}" Style="{StaticResource Dato}" FontWeight="Medium" />
+      <TextBlock Grid.Row="3" Grid.Column="2" Text="Valor compra:" Style="{StaticResource Etiq}" ToolTip="Por cabeza; inmutable ($0 si nació en la granja). Solo cambia corrigiendo la factura en el detalle de la compra." />
+      <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding ValorCompra}" Style="{StaticResource Dato}" />
+
+      <TextBlock Grid.Row="4" Text="Valor contable:" Style="{StaticResource Etiq}" ToolTip="Por cabeza (por el lote entero si no lleva conteo)." />
+      <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,24,10" HorizontalContentAlignment="Right"
+               Text="{Binding ValorContable, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" />
+      <TextBlock Grid.Row="4" Grid.Column="2" Text="Valor total:" Style="{StaticResource Etiq}" />
+      <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding ValorTotalTexto}" Style="{StaticResource Dato}" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" />
+    </Grid>
+
+    <TextBlock Text="Anotaciones" Style="{StaticResource Texto.Seccion}" Margin="0,8,0,6" />
+    <TextBox Text="{Binding Anotaciones, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" Height="120"
+             VerticalScrollBarVisibility="Auto" IsEnabled="{Binding EsEditable}" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="💾 GUARDAR CAMBIOS" Command="{Binding GuardarCambiosCommand}" Style="{StaticResource Boton.Primario}" />
+      <Button Margin="10,0,0,0" Content="CERRAR" Command="{Binding CerrarCommand}" IsCancel="True" MinWidth="110" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

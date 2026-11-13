@@ -91,12 +91,22 @@
         <!-- Acciones rápidas (Inicio y Animales) -->
         <UniformGrid Grid.Row="2" Rows="1" Margin="0,12,0,0"
                      Visibility="{Binding MostrarAccionesRapidas, Converter={StaticResource BoolAVisibilidad}}">
-          <Button Command="{Binding RegistrarNacimientoCommand}" Margin="0,0,-1,0" Padding="10,11" AutomationProperties.Name="Registro nacimiento">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="🐄" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />
-              <TextBlock Text="REGISTRO NACIMIENTO" />
-            </StackPanel>
-          </Button>
+          <Grid>
+            <Button Command="{Binding RegistrarNacimientoCommand}" Margin="0,0,-1,0" Padding="10,11" AutomationProperties.Name="Registro nacimiento"
+                    Visibility="{Binding MostrarRegistroNacimiento, Converter={StaticResource BoolAVisibilidad}}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="🐄" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />
+                <TextBlock Text="REGISTRO NACIMIENTO" />
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding RegistrarNuevoLoteCommand}" Margin="0,0,-1,0" Padding="10,11" AutomationProperties.Name="Nuevo lote"
+                    Visibility="{Binding MostrarNuevoLote, Converter={StaticResource BoolAVisibilidad}}">
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="📦" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />
+                <TextBlock Text="NUEVO LOTE" />
+              </StackPanel>
+            </Button>
+          </Grid>
           <Button Command="{Binding RegistrarCompraCommand}" Margin="0,0,-1,0" Padding="10,11" AutomationProperties.Name="Registro compra">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="📦" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />

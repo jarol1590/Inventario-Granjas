@@ -1,4 +1,4 @@
-using LiveChartsCore.SkiaSharpView;
+﻿using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels;

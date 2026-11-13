@@ -1,7 +1,9 @@
-<UserControl x:Class="UCaldas.Granjas.App.Vistas.CompraEditorView"
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.CompraEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura">
   <UserControl.Resources>
+    <infra:BindingProxy x:Key="Proxy" Data="{Binding}" />
     <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}">
       <Setter Property="Margin" Value="0,0,10,10" />
       <Setter Property="FontSize" Value="14" />
@@ -29,7 +31,12 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="3" Text="*Programa:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,0,28,10" ItemsSource="{Binding Programas}" SelectedItem="{Binding ProgramaSeleccionado}"
+                DisplayMemberPath="Nombre" IsEnabled="{Binding PuedeElegirPrograma}" />
 
       <TextBlock Grid.Row="0" Text="Número Orden:" Style="{StaticResource Etiq}" />
       <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" Text="{Binding NumeroOrden, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" />
@@ -61,12 +68,73 @@
       </Grid>
       <Border Margin="0,10,0,0" Background="#FDECEA" BorderBrush="{StaticResource Brush.Peligro}" BorderThickness="1" CornerRadius="4" Padding="10,6"
               Visibility="{Binding Anulada, Converter={StaticResource BoolAVisibilidad}}">
-        <TextBlock Text="COMPRA ANULADA: los animales ya no cuentan en el inventario ni en el Kardex." Foreground="{StaticResource Brush.Peligro}" FontWeight="Medium" />
+        <TextBlock Text="COMPRA ANULADA: los animales o el lote ya no cuentan en el inventario." Foreground="{StaticResource Brush.Peligro}" FontWeight="Medium" />
       </Border>
     </StackPanel>
 
+    <!-- Lote comprado (programas por lotes): la misma pantalla, con una fila de lote -->
+    <Grid Grid.Row="2" Visibility="{Binding EsLote, Converter={StaticResource BoolAVisibilidad}}">
+      <!-- Consulta (solo lectura) -->
+      <DataGrid ItemsSource="{Binding Lotes}" Visibility="{Binding EsEditable, Converter={StaticResource InvertirVisibilidad}}" VerticalAlignment="Top">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Código Lote" Binding="{Binding Codigo}" Width="1.2*" MinWidth="110" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Etapa" Binding="{Binding Etapa}" Width="1*" MinWidth="90" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Ubicación" Binding="{Binding Ubicacion}" Width="1.1*" MinWidth="95" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Línea / Raza" Binding="{Binding LineaRaza}" Width="1.2*" MinWidth="105" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, StringFormat='N0'}" Width="0.8*" MinWidth="80" ElementStyle="{StaticResource Celda.Derecha}" />
+          <DataGridTextColumn Header="Precio Unitario" Binding="{Binding PrecioUnitario, StringFormat='$#,##0'}" Width="1.1*" MinWidth="110" ElementStyle="{StaticResource Celda.Derecha}" />
+          <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat='$#,##0'}" Width="1.1*" MinWidth="110" ElementStyle="{StaticResource Celda.Derecha}" />
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <!-- Edición -->
+      <DataGrid ItemsSource="{Binding Lotes}" IsReadOnly="False" SelectionUnit="FullRow" VerticalAlignment="Top"
+                Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Código Lote" Binding="{Binding Codigo}" IsReadOnly="True" Width="1.2*" MinWidth="110" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Etapa" Binding="{Binding Etapa}" IsReadOnly="True" Width="1*" MinWidth="90" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTemplateColumn Header="*Ubicación" Width="1.1*" MinWidth="110">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate><TextBox Text="{Binding Ubicacion, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" /></DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="*Línea / Raza" Width="1.2*" MinWidth="115">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate><TextBox Text="{Binding LineaRaza, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" /></DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="*Cantidad" Width="0.8*" MinWidth="90">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBox Text="{Binding Cantidad, UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Right" IsEnabled="{Binding PuedeCorregirCantidad}"
+                         ToolTip="Cantidad inicial del lote; la población actual se ajusta igual (no puede bajar de lo ya dado de baja, desdoblado, vendido o trasladado)." />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="*Precio Unitario" Width="1.1*" MinWidth="120">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBox Text="{Binding PrecioUnitario, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Right"
+                         ToolTip="Precio de la factura por cabeza (por el lote entero si no lleva conteo)." />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat='$#,##0'}" IsReadOnly="True" Width="1.1*" MinWidth="110" ElementStyle="{StaticResource Celda.Derecha}" />
+          <DataGridTemplateColumn Width="Auto" MinWidth="95">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Button Content="🗑 Quitar" Style="{StaticResource Boton.Enlace}" Foreground="{StaticResource Brush.Peligro}"
+                        Command="{Binding DataContext.QuitarLoteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        ToolTip="Quita el lote: anula su compra (no se puede si ya fue desdoblado, vendido o trasladado)." />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
+
     <!-- Animales -->
-    <Grid Grid.Row="2">
+    <Grid Grid.Row="2" Visibility="{Binding EsIndividual, Converter={StaticResource BoolAVisibilidad}}">
       <!-- Consulta (solo lectura) -->
       <DataGrid ItemsSource="{Binding Animales}" Margin="0,0,0,0" Visibility="{Binding EsEditable, Converter={StaticResource InvertirVisibilidad}}">
         <DataGrid.Columns>
@@ -75,7 +143,8 @@
           <DataGridTextColumn Header="Sexo" Binding="{Binding Sexo}" Width="0.8*" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Fecha Nacimiento" Binding="{Binding FechaNacimiento, StringFormat='dd/MM/yyyy'}" Width="1.2*" MinWidth="140" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Raza" Binding="{Binding Raza}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
-          <DataGridTextColumn Header="Partos" Binding="{Binding NumeroPartos}" Width="0.6*" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTextColumn Header="Partos" Binding="{Binding NumeroPartos}" Width="0.6*" ElementStyle="{StaticResource Celda.Centro}"
+                              Visibility="{Binding Data.EsBovino, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}" />
           <DataGridTextColumn Header="Peso (kg)" Binding="{Binding PesoKg, StringFormat='0.##'}" Width="0.8*" ElementStyle="{StaticResource Celda.Derecha}" />
           <DataGridTextColumn Header="Precio" Binding="{Binding PrecioFactura, StringFormat='$#,##0'}" Width="1.1*" ElementStyle="{StaticResource Celda.Derecha}" />
           <DataGridTextColumn Header="Observaciones" Binding="{Binding Observaciones, TargetNullValue='-'}" Width="1.5*" />
@@ -123,7 +192,17 @@
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
-          <DataGridTemplateColumn Header="*Orientación" Width="1.2*" MinWidth="115">
+          <DataGridTemplateColumn Header="*Categoría" Width="1.2*" MinWidth="115"
+                                  Visibility="{Binding Data.NoEsBovino, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <ComboBox ItemsSource="{Binding DataContext.Categorias, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          DisplayMemberPath="Nombre" SelectedValuePath="Id" SelectedValue="{Binding CategoriaId, UpdateSourceTrigger=PropertyChanged}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="*Orientación" Width="1.2*" MinWidth="115"
+                                  Visibility="{Binding Data.EsBovino, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
                 <ComboBox ItemsSource="{Binding DataContext.Orientaciones, RelativeSource={RelativeSource AncestorType=DataGrid}}"
@@ -131,7 +210,8 @@
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
-          <DataGridTemplateColumn Header="Partos" Width="0.6*" MinWidth="62">
+          <DataGridTemplateColumn Header="Partos" Width="0.6*" MinWidth="62"
+                                  Visibility="{Binding Data.EsBovino, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
                 <TextBox Text="{Binding NumeroPartos, UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Center"
@@ -168,7 +248,7 @@
     </Grid>
 
     <Button Grid.Row="3" Margin="0,8,0,0" Content="+ Agregar Animal" Command="{Binding AgregarAnimalCommand}"
-            Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" HorizontalAlignment="Stretch" />
+            Visibility="{Binding MostrarAgregarAnimal, Converter={StaticResource BoolAVisibilidad}}" HorizontalAlignment="Stretch" />
 
     <Grid Grid.Row="4" Margin="0,14,0,0">
       <Grid.ColumnDefinitions>

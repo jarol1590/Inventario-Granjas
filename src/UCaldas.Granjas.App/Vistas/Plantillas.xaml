@@ -1,8 +1,9 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura"
                     xmlns:vm="clr-namespace:UCaldas.Granjas.App.ViewModels"
                     xmlns:vmc="clr-namespace:UCaldas.Granjas.App.ViewModels.Configuracion"
+                    xmlns:vml="clr-namespace:UCaldas.Granjas.App.ViewModels.Lotes"
                     xmlns:vistas="clr-namespace:UCaldas.Granjas.App.Vistas"
                     xmlns:vc="clr-namespace:UCaldas.Granjas.App.Vistas.Configuracion">
 
@@ -43,6 +44,13 @@
   <DataTemplate DataType="{x:Type vm:ProgramaTabViewModel}">
     <vistas:ProgramaTabView />
   </DataTemplate>
+  <!-- Lotes: una pestaña por programa de inventario por lotes y sus ventanas modales -->
+  <DataTemplate DataType="{x:Type vml:LotesViewModel}"><vistas:LotesView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vml:ProgramaLoteTabViewModel}"><vistas:LoteTabView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vml:NuevoLoteViewModel}"><vistas:NuevoLoteView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vml:CambioEtapaDesdobleViewModel}"><vistas:CambioEtapaDesdobleView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vml:BajaLoteViewModel}"><vistas:BajaLoteView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vml:FichaLoteViewModel}"><vistas:FichaLoteView /></DataTemplate>
   <DataTemplate DataType="{x:Type vm:ComprasViewModel}">
     <vistas:ComprasView />
   </DataTemplate>

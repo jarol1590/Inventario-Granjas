@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Entities;
 
@@ -97,7 +97,11 @@ internal sealed class ProgramaRepository(SqliteConnection connection, SqliteTran
     public Task<bool> TieneReferenciasAsync(int programaId, CancellationToken ct = default)
         => ExisteAsync(
             """
-            SELECT (SELECT COUNT(1) FROM CATEGORIA_ETAPA WHERE programa_id = @id)
+            -- Un programa bovino con categorías no se elimina; en los demás, las categorías (General, etapas) se eliminan junto
+            -- con el programa y solo cuentan los animales, lotes y oficios que dependen de ellas.
+            SELECT (SELECT COUNT(1) FROM CATEGORIA_ETAPA WHERE programa_id = @id
+                      AND (SELECT usa_valorizacion_biologica FROM PROGRAMA WHERE id = @id) = 1)
+                 + (SELECT COUNT(1) FROM ANIMAL WHERE categoria_id IN (SELECT id FROM CATEGORIA_ETAPA WHERE programa_id = @id))
                  + (SELECT COUNT(1) FROM OFICIO_VENTA WHERE programa_id = @id)
                  + (SELECT COUNT(1) FROM LOTE_POBLACION WHERE programa_id = @id)
             """,
@@ -149,4 +153,18 @@ internal sealed class CategoriaRepository(SqliteConnection connection, SqliteTra
         => UnoAsync<CategoriaEtapa>(
             "SELECT * FROM CATEGORIA_ETAPA WHERE programa_id = @programaId AND nombre = @nombre",
             new { programaId, nombre }, ct);
+}
+
+internal sealed class TarifaProgramaRepository(SqliteConnection connection, SqliteTransaction? transaction)
+    : RepositoryBase<TarifaCategoriaPrograma>(connection, transaction), ITarifaProgramaRepository
+{
+    public Task<IReadOnlyList<TarifaCategoriaPrograma>> GetByProgramaAsync(int programaId, CancellationToken ct = default)
+        => ListaAsync<TarifaCategoriaPrograma>(
+            "SELECT * FROM TARIFA_CATEGORIA_PROGRAMA WHERE programa_id = @programaId ORDER BY es_default DESC, id", new { programaId }, ct);
+
+    public Task<TarifaCategoriaPrograma?> GetByCategoriaAsync(int categoriaId, CancellationToken ct = default)
+        => UnoAsync<TarifaCategoriaPrograma>("SELECT * FROM TARIFA_CATEGORIA_PROGRAMA WHERE categoria_id = @categoriaId", new { categoriaId }, ct);
+
+    public Task EliminarPorProgramaAsync(int programaId, CancellationToken ct = default)
+        => EjecutarAsync("DELETE FROM TARIFA_CATEGORIA_PROGRAMA WHERE programa_id = @programaId", new { programaId }, ct);
 }

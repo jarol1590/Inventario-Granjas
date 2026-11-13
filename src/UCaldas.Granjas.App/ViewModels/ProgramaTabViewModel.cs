@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Constants;
@@ -68,6 +68,9 @@ public sealed partial class ProgramaTabViewModel : ViewModelBase
     public string Titulo => Especie.Titulo;
 
     public string Icono => Especie.Icono;
+
+    /// <summary>La orientación (Lácteo / Carne) solo aplica a los bovinos; en los demás programas no se muestra.</summary>
+    public bool EsBovino => Programa.UsaValorizacionBiologica;
 
     public string TituloGestion => $"Gestión de {Especie.Plural}";
 

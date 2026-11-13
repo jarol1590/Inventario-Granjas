@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Services.Kardex;
+﻿using UCaldas.Granjas.Services.Kardex;
 
 namespace UCaldas.Granjas.App.ViewModels;
 
@@ -15,6 +15,7 @@ public sealed partial class CompraAnimalFila : ObservableObject
         _fechaNacimiento = dto is null ? fechaNacimientoPredeterminada : dto.FechaNacimiento;
         _raza = dto?.Raza ?? string.Empty;
         _orientacionId = dto?.OrientacionId ?? orientacionPredeterminada;
+        _categoriaId = dto?.CategoriaId ?? 0;
         _numeroPartos = dto?.NumeroPartos ?? 0;
         _pesoKg = dto?.PesoKg ?? 0m;
         _precioFactura = dto?.PrecioFactura ?? 0m;
@@ -45,6 +46,10 @@ public sealed partial class CompraAnimalFila : ObservableObject
     [ObservableProperty]
     private int _orientacionId;
 
+    /// <summary>Categoría (programas sin valorización biológica); 0 en bovinos.</summary>
+    [ObservableProperty]
+    private int _categoriaId;
+
     [ObservableProperty]
     private int _numeroPartos;
 
@@ -57,7 +62,7 @@ public sealed partial class CompraAnimalFila : ObservableObject
     [ObservableProperty]
     private string _observaciones;
 
-    public CompraAnimalDto ToDto() => new()
+    public CompraAnimalDto ToDto(bool conCategoria = false) => new()
     {
         AnimalId = AnimalId,
         ChapetaAmarilla = ChapetaAmarilla,
@@ -66,7 +71,8 @@ public sealed partial class CompraAnimalFila : ObservableObject
         Sexo = Sexo,
         FechaNacimiento = FechaNacimiento ?? default,
         Raza = Raza,
-        OrientacionId = OrientacionId,
+        OrientacionId = conCategoria ? 0 : OrientacionId,
+        CategoriaId = conCategoria && CategoriaId > 0 ? CategoriaId : null,
         NumeroPartos = Sexo == Domain.Constants.Sexo.Hembra ? NumeroPartos : 0,
         PesoKg = PesoKg,
         PrecioFactura = PrecioFactura,

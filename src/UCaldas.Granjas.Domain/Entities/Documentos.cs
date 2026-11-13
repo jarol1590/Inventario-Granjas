@@ -1,4 +1,4 @@
-namespace UCaldas.Granjas.Domain.Entities;
+﻿namespace UCaldas.Granjas.Domain.Entities;
 
 /// <summary>Oficio de venta: documento formal asignado a un solo programa productivo (ej. OF-120).</summary>
 public class OficioVenta
@@ -64,6 +64,15 @@ public class RemisionDetalle
 
     public string? ObservacionesEspecificas { get; set; }
 
+    /// <summary>Peso en báscula de una venta por kilogramo (extensión v2.3).</summary>
+    public decimal? PesoVendidoKg { get; set; }
+
+    /// <summary>1 en animales; N en lotes (extensión v2.3).</summary>
+    public int Cantidad { get; set; } = 1;
+
+    /// <summary>Lote creado por un traslado parcial de lotes (extensión v2.4).</summary>
+    public int? LoteDestinoId { get; set; }
+
     /// <summary>Orientación antes del traslado (extensión v2.1).</summary>
     public int? OrientacionOrigenId { get; set; }
 
@@ -86,4 +95,7 @@ public class MovimientoInventario
     public int? GranjaOrigenId { get; set; }
     public int? GranjaDestinoId { get; set; }
     public decimal CostoAsociado { get; set; }
+
+    /// <summary>1 en animales; N en lotes (extensión v2.3).</summary>
+    public int Cantidad { get; set; } = 1;
 }

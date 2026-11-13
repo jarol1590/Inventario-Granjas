@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain;
+﻿using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
@@ -44,7 +44,7 @@ public interface IAnimalService
 
     /// <summary>Categoría y valor que la matriz activa asignaría hoy (para mostrar al registrar un nacimiento).</summary>
     Task<ResultadoValorizacion> PrevisualizarValoracionAsync(
-        string sexo, int orientacionId, int numeroPartos, DateTime fechaNacimiento, CancellationToken ct = default);
+        string sexo, int orientacionId, int numeroPartos, DateTime fechaNacimiento, int? categoriaId = null, CancellationToken ct = default);
 }
 
 public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging, IReloj reloj) : IAnimalService
@@ -90,7 +90,7 @@ public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging
     }
 
     public async Task<ResultadoValorizacion> PrevisualizarValoracionAsync(
-        string sexo, int orientacionId, int numeroPartos, DateTime fechaNacimiento, CancellationToken ct = default)
+        string sexo, int orientacionId, int numeroPartos, DateTime fechaNacimiento, int? categoriaId = null, CancellationToken ct = default)
     {
         Regla.Exigir(Sexo.EsDeAnimal(sexo), "Seleccione el sexo.");
         Regla.Exigir(fechaNacimiento != default && fechaNacimiento.Date <= reloj.Hoy, "La fecha de nacimiento no puede ser futura.");
@@ -102,6 +102,7 @@ public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging
             OrientacionId = orientacionId,
             NumeroPartos = numeroPartos,
             FechaNacimiento = fechaNacimiento.Date,
+            CategoriaId = categoriaId ?? 0,
         };
         return await aging.DeterminarAsync(uow, temporal, reloj.Hoy, ct);
     }

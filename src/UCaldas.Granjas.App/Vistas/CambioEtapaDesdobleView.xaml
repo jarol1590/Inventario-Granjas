@@ -1,0 +1,39 @@
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.CambioEtapaDesdobleView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}"><Setter Property="Margin" Value="0,0,10,10" /></Style>
+  </UserControl.Resources>
+  <StackPanel Margin="28,20,28,22">
+    <TextBlock Text="{Binding Resumen}" Style="{StaticResource Texto.Suave}" TextWrapping="Wrap" Margin="0,0,0,12" />
+    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+      <RadioButton GroupName="Modo" Content="Promoción de etapa" IsChecked="{Binding EsPromocion}" Margin="0,0,24,0" />
+      <RadioButton GroupName="Modo" Content="Desdoble de lote" IsChecked="{Binding EsDesdoble}" IsEnabled="{Binding PuedeDesdoblar}"
+                   ToolTip="Divide el lote en dos instalaciones (solo lotes con conteo de población)." />
+    </StackPanel>
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Text="*Etapa destino:" Style="{StaticResource Etiq}" Visibility="{Binding EsPromocion, Converter={StaticResource BoolAVisibilidad}}" />
+      <ComboBox Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding Etapas}" SelectedItem="{Binding EtapaDestino}" DisplayMemberPath="Nombre"
+                Visibility="{Binding EsPromocion, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBlock Grid.Row="1" Text="*Código del nuevo lote:" Style="{StaticResource Etiq}" Visibility="{Binding EsDesdoble, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Text="{Binding CodigoNuevoLote, UpdateSourceTrigger=PropertyChanged}" MaxLength="30"
+               Visibility="{Binding EsDesdoble, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBlock Grid.Row="2" Text="*Cantidad a transferir:" Style="{StaticResource Etiq}" Visibility="{Binding EsDesdoble, Converter={StaticResource BoolAVisibilidad}}" />
+      <TextBox Grid.Row="2" Grid.Column="1" Width="160" HorizontalAlignment="Left" Margin="0,0,0,10" Text="{Binding Cantidad, UpdateSourceTrigger=LostFocus}"
+               Visibility="{Binding EsDesdoble, Converter={StaticResource BoolAVisibilidad}}" />
+    </Grid>
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <TextBlock Text="Nueva ubicación:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Column="1" Text="{Binding UbicacionNueva, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" />
+    </Grid>
+    <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"
+               Text="La promoción recalcula el valor con el valor de referencia de la etapa. El desdoble conserva fecha, línea y costos unitarios y no cambia el saldo financiero." />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="💾 GUARDAR" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" />
+      <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

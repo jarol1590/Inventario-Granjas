@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain;
+﻿using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
@@ -6,8 +6,9 @@ using UCaldas.Granjas.Domain.Entities;
 namespace UCaldas.Granjas.Services.Valorizacion;
 
 /// <summary>Categoría y valor que la matriz activa le asigna a un animal en una fecha.</summary>
-/// <param name="Valor">Nulo cuando ninguna tarifa aplica (<see cref="SinTarifa"/>).</param>
-public sealed record ResultadoValorizacion(int EdadMeses, int CategoriaId, string CategoriaNombre, decimal? Valor, int? TarifaId)
+/// <param name="Valor">Nulo cuando ninguna tarifa aplica (<see cref="SinTarifa"/>). En programas sin valorización biológica es el valor de referencia de la categoría.</param>
+/// <param name="NoBiologico">true si el animal es de un programa sin valorización biológica: conserva la categoría elegida y no usa la matriz por edades.</param>
+public sealed record ResultadoValorizacion(int EdadMeses, int CategoriaId, string CategoriaNombre, decimal? Valor, int? TarifaId, bool NoBiologico = false)
 {
     /// <summary>Ninguna tarifa de la vigencia activa aplica: el animal queda como "Sin clasificar".</summary>
     public bool SinTarifa => TarifaId is null;
@@ -65,7 +66,14 @@ public sealed class AgingEngine(IUnitOfWorkFactory fabrica, IReloj reloj) : IAgi
         VigenciaValorizacion Vigencia,
         IReadOnlyList<TablaValorizacionBase> Tarifas,
         IReadOnlyDictionary<int, CategoriaEtapa> Categorias,
-        CategoriaEtapa SinClasificar);
+        CategoriaEtapa SinClasificar,
+        IReadOnlySet<int> ProgramasNoBiologicos,
+        IReadOnlyDictionary<int, TarifaCategoriaPrograma> Referencias)
+    {
+        /// <summary>El animal pertenece a un programa sin valorización biológica (Equinos, etc.): el AgingEngine no lo toca.</summary>
+        public bool EsNoBiologico(Animal animal)
+            => animal.CategoriaId > 0 && Categorias.TryGetValue(animal.CategoriaId, out var c) && ProgramasNoBiologicos.Contains(c.ProgramaId);
+    }
 
     private sealed class Valorador(Contexto contexto) : IValoradorDeTarifas
     {
@@ -128,6 +136,12 @@ public sealed class AgingEngine(IUnitOfWorkFactory fabrica, IReloj reloj) : IAgi
 
         foreach (var animal in animales)
         {
+            // La valorización mensual por edad es exclusiva de los bovinos (programas con usa_valorizacion_biologica).
+            if (contexto.EsNoBiologico(animal))
+            {
+                continue;
+            }
+
             // Un animal registrado (o nacido) después del corte todavía no formaba parte del inventario a esa fecha.
             if (animal.FechaRegistro.Date > corte || animal.FechaNacimiento.Date > corte)
             {
@@ -219,6 +233,13 @@ public sealed class AgingEngine(IUnitOfWorkFactory fabrica, IReloj reloj) : IAgi
     private static ResultadoValorizacion Determinar(Contexto contexto, Animal animal, DateTime fechaReferencia)
     {
         var edad = EdadCalculator.Meses(animal.FechaNacimiento, fechaReferencia);
+        if (contexto.EsNoBiologico(animal))
+        {
+            var categoria = contexto.Categorias[animal.CategoriaId];
+            var referencia = contexto.Referencias.GetValueOrDefault(categoria.Id);
+            return new ResultadoValorizacion(edad, categoria.Id, categoria.Nombre, referencia?.ValorReferencia ?? 0m, referencia?.Id ?? 0, NoBiologico: true);
+        }
+
         var tarifa = TarifaSelector.Seleccionar(contexto.Tarifas, animal.Sexo, animal.OrientacionId, animal.NumeroPartos, edad);
 
         return tarifa is null
@@ -232,11 +253,13 @@ public sealed class AgingEngine(IUnitOfWorkFactory fabrica, IReloj reloj) : IAgi
             ?? throw Regla.Violada("No hay una vigencia de valorización activa. Active una en Configuración > Tarifas de valorización.");
 
         var tarifas = await uow.Tarifas.GetByVigenciaAsync(vigencia.Id, ct);
+        var noBiologicos = (await uow.Programas.GetAllAsync(ct)).Where(p => !p.UsaValorizacionBiologica).Select(p => p.Id).ToHashSet();
+        var referencias = (await uow.TarifasPrograma.GetAllAsync(ct)).ToDictionary(t => t.CategoriaId);
         var categorias = (await uow.Categorias.GetAllAsync(ct)).ToDictionary(c => c.Id);
         var sinClasificar = categorias.Values.FirstOrDefault(
                 c => c.Nombre.Equals(NombresBase.CategoriaSinClasificar, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"Falta la categoría «{NombresBase.CategoriaSinClasificar}» en la base de datos.");
 
-        return new Contexto(vigencia, tarifas, categorias, sinClasificar);
+        return new Contexto(vigencia, tarifas, categorias, sinClasificar, noBiologicos, referencias);
     }
 }

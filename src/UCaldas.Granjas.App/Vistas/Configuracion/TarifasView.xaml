@@ -4,6 +4,26 @@
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Una pestaña por programa (tabla PROGRAMA): la ganadería usa la matriz por edades; los demás, la tabla simple. -->
+    <ListBox Grid.Row="0" Margin="0,0,0,14" ItemsSource="{Binding ProgramasTarifa}" SelectedItem="{Binding ProgramaTarifa}"
+             Style="{StaticResource Pestana.Lista}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Icono}" FontFamily="{StaticResource Fuente.Iconos}" Margin="0,0,8,0" />
+            <TextBlock Text="{Binding Titulo}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- ===== Programa con valorización biológica (Ganadería): matriz por edades ===== -->
+    <Grid Grid.Row="1" Visibility="{Binding EsBovino, Converter={StaticResource BoolAVisibilidad}}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
@@ -110,5 +130,73 @@
       <Button Content="💾 GUARDAR TARIFAS" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" />
       <Button Margin="10,0,0,0" Content="🔒 ACTIVAR ESTA VIGENCIA" Command="{Binding ActivarCommand}" />
     </StackPanel>
+    </Grid>
+
+    <!-- ===== Programas sin valorización biológica: categoría, unidad de cobro y valor de referencia ===== -->
+    <Grid Grid.Row="1" Visibility="{Binding NoEsBovino, Converter={StaticResource BoolAVisibilidad}}">
+    <Grid DataContext="{Binding Simples}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="{Binding Titulo}" Style="{StaticResource Texto.Titulo}" />
+      <TextBlock Grid.Row="1" Margin="0,4,0,10" Style="{StaticResource Texto.Suave}" TextWrapping="Wrap"
+                 Text="Este programa no se valoriza por edad: su valor en libros es el costo de compra o ingreso, o el valor de referencia de la categoría en los nacimientos. La categoría «General» se crea con el programa y permite registrar inventario de inmediato." />
+
+      <DataGrid Grid.Row="2" ItemsSource="{Binding Filas}" SelectedItem="{Binding FilaSeleccionada}" IsReadOnly="False"
+                SelectionUnit="FullRow" VerticalScrollBarVisibility="Auto">
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Header="Categoría / Etapa" Width="2*" MinWidth="200">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBox Text="{Binding NombreCategoria, UpdateSourceTrigger=PropertyChanged}" MaxLength="60"
+                         IsReadOnly="{Binding EsDefault}" ToolTip="La categoría General (por defecto) no se puede renombrar." />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Unidad de Cobro" Width="1.3*" MinWidth="170">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <ComboBox ItemsSource="{Binding DataContext.Unidades, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          DisplayMemberPath="Nombre" SelectedValuePath="Valor"
+                          SelectedValue="{Binding UnidadCobro, UpdateSourceTrigger=PropertyChanged}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Valor Referencia ($)" Width="1.3*" MinWidth="170">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBox Text="{Binding ValorReferencia, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Right" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="" Width="Auto" MinWidth="60">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Button Content="✕" ToolTip="Quitar esta categoría" Style="{StaticResource Boton.Peligro}" Padding="8,3"
+                        Visibility="{Binding NoEsDefault, Converter={StaticResource BoolAVisibilidad}}"
+                        Command="{Binding DataContext.QuitarFilaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0">
+        <Button Content="+ Agregar Fila" Command="{Binding AgregarFilaCommand}" />
+        <Button Margin="10,0,0,0" Content="% Reajuste porcentual" Command="{Binding ReajustarCommand}"
+                ToolTip="Aumenta o reduce todos los valores de referencia en un porcentaje (se revisa antes de guardar)." />
+      </StackPanel>
+
+      <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+        <Button Content="💾 GUARDAR CATEGORÍAS" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" />
+      </StackPanel>
+    </Grid>
+    </Grid>
   </Grid>
 </UserControl>

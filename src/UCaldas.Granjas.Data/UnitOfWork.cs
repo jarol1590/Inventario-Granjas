@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using UCaldas.Granjas.Data.Repositories;
 using UCaldas.Granjas.Domain.Abstractions;
 
@@ -19,6 +19,7 @@ internal sealed class UnitOfWork : IUnitOfWork
     private ICategoriaRepository? _categorias;
     private IVigenciaRepository? _vigencias;
     private ITarifaRepository? _tarifas;
+    private ITarifaProgramaRepository? _tarifasPrograma;
     private IAnimalRepository? _animales;
     private IGenealogiaRepository? _genealogias;
     private ILoteRepository? _lotes;
@@ -48,6 +49,8 @@ internal sealed class UnitOfWork : IUnitOfWork
     public IVigenciaRepository Vigencias => _vigencias ??= new VigenciaRepository(_connection, _transaction);
 
     public ITarifaRepository Tarifas => _tarifas ??= new TarifaRepository(_connection, _transaction);
+
+    public ITarifaProgramaRepository TarifasPrograma => _tarifasPrograma ??= new TarifaProgramaRepository(_connection, _transaction);
 
     public IAnimalRepository Animales => _animales ??= new AnimalRepository(_connection, _transaction);
 

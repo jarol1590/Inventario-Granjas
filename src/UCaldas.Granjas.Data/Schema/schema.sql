@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Sistema Unificado de Gestión de Granjas - Universidad de Caldas
 -- Esquema v2.1 = esquema definitivo v2.0 del documento de contexto + extensiones aprobadas.
 -- Cada extensión está marcada con [v2.1]. Ver docs/esquema-v2.1.md.
@@ -51,7 +51,9 @@ CREATE TABLE PROGRAMA (
     codigo          TEXT NOT NULL UNIQUE COLLATE NOCASE,
     nombre          TEXT NOT NULL,
     tipo_inventario TEXT NOT NULL CHECK (tipo_inventario IN ('INDIVIDUAL', 'LOTE')),
-    observaciones   TEXT                                            -- [v2.1] visible en el mockup de Granjas y Programas
+    observaciones   TEXT,                                           -- [v2.1] visible en el mockup de Granjas y Programas
+    usa_valorizacion_biologica BOOLEAN NOT NULL DEFAULT 0,          -- [v2.3] 1 solo en Bovinos: valorización mensual por edad (AgingEngine)
+    unidad_venta_default       TEXT NOT NULL DEFAULT 'UNIDAD' CHECK (unidad_venta_default IN ('UNIDAD', 'KG'))   -- [v2.3]
 );
 
 CREATE TABLE GRANJA_PROGRAMA (
@@ -67,6 +69,20 @@ CREATE TABLE CATEGORIA_ETAPA (
     sexo        TEXT    NOT NULL CHECK (sexo IN ('Macho', 'Hembra', 'Ambos')),
     programa_id INTEGER NOT NULL REFERENCES PROGRAMA(id),
     UNIQUE (programa_id, nombre)
+);
+
+-- [v2.3] Categorías y valores de referencia de los programas que NO usan valorización biológica (todo menos Bovinos).
+-- Cada fila está ligada a su CATEGORIA_ETAPA (la que referencian animales y lotes); "General" (es_default) no se puede borrar.
+CREATE TABLE TARIFA_CATEGORIA_PROGRAMA (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    programa_id      INTEGER NOT NULL REFERENCES PROGRAMA(id),
+    categoria_id     INTEGER NOT NULL REFERENCES CATEGORIA_ETAPA(id),
+    nombre_categoria TEXT    NOT NULL COLLATE NOCASE,
+    unidad_cobro     TEXT    NOT NULL DEFAULT 'UNIDAD' CHECK (unidad_cobro IN ('UNIDAD', 'KG')),
+    valor_referencia DECIMAL(12,2) NOT NULL DEFAULT 0.00 CHECK (valor_referencia >= 0),
+    es_default       BOOLEAN NOT NULL DEFAULT 0,
+    activo           BOOLEAN NOT NULL DEFAULT 1,
+    UNIQUE (programa_id, nombre_categoria)
 );
 
 -- MATRIZ DE VALORIZACIÓN ANUAL ----------------------------------------------
@@ -126,19 +142,30 @@ CREATE INDEX ix_animal_granja_estado ON ANIMAL(granja_id, estado);
 CREATE INDEX ix_animal_categoria     ON ANIMAL(categoria_id);
 CREATE INDEX ix_animal_madre         ON ANIMAL(madre_identificacion);
 
-CREATE TABLE LOTE_POBLACION (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    codigo_lote         TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    programa_id         INTEGER NOT NULL REFERENCES PROGRAMA(id),
-    granja_id           INTEGER NOT NULL REFERENCES GRANJA(id),
-    ubicacion           TEXT NOT NULL,                                -- galpón, estanque, era
-    cantidad_inicial    INTEGER NOT NULL,
-    cantidad_actual     INTEGER NOT NULL,
-    mortandad_acumulada INTEGER NOT NULL DEFAULT 0,
-    valor_unitario      DECIMAL(12,2) NOT NULL,
-    valor_total         DECIMAL(12,2) NOT NULL,
-    fecha_ingreso       DATETIME NOT NULL,
-    estado              TEXT NOT NULL DEFAULT 'Activo'
+CREATE TABLE LOTE_POBLACION (                                                      -- [v2.3] ver especificacion_tecnica_modulo_lotes
+    id                         INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo_lote                TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    programa_id                INTEGER NOT NULL REFERENCES PROGRAMA(id),
+    granja_id                  INTEGER NOT NULL REFERENCES GRANJA(id),
+    etapa_id                   INTEGER NOT NULL REFERENCES CATEGORIA_ETAPA(id),
+    clase_entrada              TEXT NOT NULL CHECK (clase_entrada IN ('COMPRA', 'NACIMIENTO', 'TRASLADO', 'DESDOBLE')),
+    ubicacion                  TEXT NOT NULL,                                -- galpón, estanque, corral
+    linea_raza                 TEXT NOT NULL,
+    origen_referencia          TEXT,                                         -- N.º de factura, chapeta de la madre o lote padre (desdoble)
+    proveedor                  TEXT,
+    orden_compra               TEXT,
+    fecha_nacimiento_ingreso   DATETIME NOT NULL,
+    control_numerico_poblacion BOOLEAN NOT NULL DEFAULT 1,                   -- 0 = estanque sin conteo de individuos (piscicultura)
+    cantidad_inicial           INTEGER NOT NULL,
+    cantidad_actual            INTEGER NOT NULL,
+    mortandad_acumulada        INTEGER NOT NULL DEFAULT 0,
+    valor_compra_unitario      DECIMAL(12,2) NOT NULL DEFAULT 0.00,          -- inmutable ($0 si es nacimiento)
+    valor_contable_unitario    DECIMAL(12,2) NOT NULL,                       -- dinámico por etapa
+    valor_total_contable       DECIMAL(12,2) NOT NULL,
+    observaciones              TEXT,
+    estado                     TEXT NOT NULL DEFAULT 'Activo' CHECK (estado IN ('Activo', 'Finalizado')),
+    operaciones                INTEGER NOT NULL DEFAULT 0,                   -- [v2.4] cambios de etapa, desdobles, bajas, ventas y traslados
+    anulado                    BOOLEAN NOT NULL DEFAULT 0                    -- [v2.4] compra del lote anulada
 );
 
 CREATE TABLE DATOS_GENEALOGIA (
@@ -196,6 +223,9 @@ CREATE TABLE REMISION_DETALLE (
     valor_total_transaccion    DECIMAL(12,2),
     costo_sistema_libros       DECIMAL(12,2) NOT NULL,
     observaciones_especificas  TEXT,
+    peso_vendido_kg            DECIMAL(12,2),                                   -- [v2.3] venta por kilogramo (báscula)
+    cantidad                   INTEGER NOT NULL DEFAULT 1,                      -- [v2.3] 1 en animales; N en lotes
+    lote_destino_id            INTEGER REFERENCES LOTE_POBLACION(id),           -- [v2.4] lote que creó un traslado parcial de lotes
     orientacion_origen_id      INTEGER REFERENCES ORIENTACION_PRODUCTIVA(id),   -- [v2.1]
     orientacion_destino_id     INTEGER REFERENCES ORIENTACION_PRODUCTIVA(id),   -- [v2.1]
     CHECK ((animal_id IS NOT NULL) + (lote_id IS NOT NULL) = 1)
@@ -217,6 +247,7 @@ CREATE TABLE MOVIMIENTO_INVENTARIO (
     granja_origen_id  INTEGER REFERENCES GRANJA(id),
     granja_destino_id INTEGER REFERENCES GRANJA(id),
     costo_asociado    DECIMAL(12,2) NOT NULL,
+    cantidad          INTEGER NOT NULL DEFAULT 1,                               -- [v2.3]
     CHECK ((granja_origen_id IS NOT NULL) + (granja_destino_id IS NOT NULL) = 1)
 );
 

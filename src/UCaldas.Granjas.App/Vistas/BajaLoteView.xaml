@@ -1,0 +1,29 @@
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.BajaLoteView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="Etiq" TargetType="TextBlock" BasedOn="{StaticResource Texto.Etiqueta}"><Setter Property="Margin" Value="0,0,10,10" /></Style>
+  </UserControl.Resources>
+  <StackPanel Margin="28,20,28,22">
+    <TextBlock Text="{Binding Resumen}" Style="{StaticResource Texto.Suave}" TextWrapping="Wrap" Margin="0,0,0,12" />
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Text="*Cantidad de bajas:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Column="1" Width="160" HorizontalAlignment="Left" Margin="0,0,0,10" Text="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="1" Text="*Causa:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding Causas}" SelectedItem="{Binding Causa}" />
+      <TextBlock Grid.Row="2" Text="*Fecha:" Style="{StaticResource Etiq}" />
+      <DatePicker Grid.Row="2" Grid.Column="1" Width="160" HorizontalAlignment="Left" Margin="0,0,0,10" SelectedDate="{Binding Fecha, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="3" Text="Observaciones:" Style="{StaticResource Etiq}" />
+      <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" />
+    </Grid>
+    <Border Style="{StaticResource Tarjeta}" Padding="14,8" Margin="0,12,0,0">
+      <TextBlock Text="{Binding SaldoTexto}" Foreground="{StaticResource Brush.Primario}" FontWeight="Medium" TextWrapping="Wrap" />
+    </Border>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <Button Content="💾 REGISTRAR BAJA" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" />
+      <Button Margin="10,0,0,0" Content="CANCELAR" Command="{Binding CancelarCommand}" IsCancel="True" MinWidth="100" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

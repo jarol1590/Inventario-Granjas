@@ -35,6 +35,8 @@ public sealed partial class ProgramaEditorViewModel : DialogViewModelBase
 
         Tipos = [new(TipoInventario.Individual, "Individual (Chapeta)"), new(TipoInventario.Lote, "Lote (Población)")];
         _tipoSeleccionado = Tipos.First(t => t.Valor == _original.TipoInventario);
+        Unidades = [new(UnidadCobro.Unidad, "Por cabeza / unidad"), new(UnidadCobro.Kg, "Por kilogramo (Kg)")];
+        _unidadSeleccionada = Unidades.FirstOrDefault(u => u.Valor == _original.UnidadVentaDefault) ?? Unidades[0];
         _codigo = _original.Codigo;
         _nombre = _original.Nombre;
         _observaciones = _original.Observaciones ?? string.Empty;
@@ -52,6 +54,11 @@ public sealed partial class ProgramaEditorViewModel : DialogViewModelBase
     public override double Ancho => 540;
 
     public IReadOnlyList<OpcionTexto> Tipos { get; }
+
+    public IReadOnlyList<OpcionTexto> Unidades { get; }
+
+    [ObservableProperty]
+    private OpcionTexto _unidadSeleccionada;
 
     public ObservableCollection<GranjaSeleccionable> Granjas { get; } = [];
 
@@ -81,6 +88,7 @@ public sealed partial class ProgramaEditorViewModel : DialogViewModelBase
                     Nombre = Nombre,
                     TipoInventario = TipoSeleccionado.Valor!,
                     Observaciones = Observaciones,
+                    UnidadVentaDefault = UnidadSeleccionada.Valor!,
                 },
                 granjaIds);
         }, "guardar el programa");

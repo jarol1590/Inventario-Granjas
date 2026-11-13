@@ -1,4 +1,4 @@
-using UCaldas.Granjas.App.Composicion;
+﻿using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Services.Consultas;
 
@@ -71,7 +71,11 @@ public sealed class FormulariosFalso : IFormularios
 
     public Task<bool> NuevaCompraAsync() => Registrar("compra:nueva");
 
+    public Task<bool> NuevoLoteAsync() => Registrar("lote:nuevo");
+
     public Task<bool> AbrirCompraAsync(int remisionId) => Registrar($"compra:{remisionId}");
+
+    public Task<bool> AbrirCompraLoteAsync(int loteId) => Registrar($"compralote:{loteId}");
 
     public Task<bool> NuevaSalidaAsync() => Registrar("salida:nueva");
 

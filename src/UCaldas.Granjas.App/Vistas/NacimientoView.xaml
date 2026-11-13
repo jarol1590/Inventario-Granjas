@@ -1,4 +1,4 @@
-<UserControl x:Class="UCaldas.Granjas.App.Vistas.NacimientoView"
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.NacimientoView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              FocusManager.FocusedElement="{Binding ElementName=CampoChapeta}">
@@ -9,6 +9,21 @@
   </UserControl.Resources>
 
   <StackPanel Margin="28,20,28,22">
+    <TextBlock Text="Programa" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="150" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="140" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Text="*Programa:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Column="1" Margin="0,0,24,10" ItemsSource="{Binding Programas}" SelectedItem="{Binding ProgramaSeleccionado}" DisplayMemberPath="Nombre" />
+      <TextBlock Grid.Column="2" Text="*Categoría:" Style="{StaticResource Etiq}" Visibility="{Binding NoEsBovino, Converter={StaticResource BoolAVisibilidad}}" />
+      <ComboBox Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Categorias}" SelectedItem="{Binding CategoriaSeleccionada}" DisplayMemberPath="Nombre"
+                Visibility="{Binding NoEsBovino, Converter={StaticResource BoolAVisibilidad}}" />
+    </Grid>
+
     <TextBlock Text="Ubicación y Fecha" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
     <Grid>
       <Grid.ColumnDefinitions>
@@ -53,8 +68,9 @@
         <RadioButton GroupName="Sexo" Content="Hembra" IsChecked="{Binding EsHembra}" Margin="0,0,18,0" />
         <RadioButton GroupName="Sexo" Content="Macho" IsChecked="{Binding EsMacho}" />
       </StackPanel>
-      <TextBlock Grid.Row="2" Grid.Column="2" Text="*Orientación:" Style="{StaticResource Etiq}" />
-      <ComboBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Orientaciones}" SelectedItem="{Binding OrientacionSeleccionada}" DisplayMemberPath="Nombre" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Text="*Orientación:" Style="{StaticResource Etiq}" Visibility="{Binding EsBovino, Converter={StaticResource BoolAVisibilidad}}" />
+      <ComboBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Orientaciones}" SelectedItem="{Binding OrientacionSeleccionada}" DisplayMemberPath="Nombre"
+                Visibility="{Binding EsBovino, Converter={StaticResource BoolAVisibilidad}}" />
 
       <TextBlock Grid.Row="3" Text="Peso al nacer (kg):" Style="{StaticResource Etiq}" />
       <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,24,10" Text="{Binding PesoAlNacerKg, StringFormat='0.##', UpdateSourceTrigger=LostFocus}" />
@@ -85,9 +101,10 @@
         <TextBlock Grid.Column="3" Text="{Binding ValorInicial}" FontSize="16" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" VerticalAlignment="Center" />
       </Grid>
     </Border>
-    <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,0,0,6"
-               Text="El valor de compra de una cría nacida en la granja es $0; el valor contable sale de la matriz de tarifas vigente." />
+    <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,0,0,6" TextWrapping="Wrap"
+               Text="El valor de compra de una cría nacida en la granja es $0; el valor contable sale de la matriz de tarifas vigente (bovinos) o del valor de referencia de la categoría (otros programas)." />
 
+    <StackPanel Visibility="{Binding EsBovino, Converter={StaticResource BoolAVisibilidad}}">
     <TextBlock Text="Genealogía y Tipo de Concepción" Style="{StaticResource Texto.Seccion}" Margin="0,12,0,10" />
     <Grid>
       <Grid.ColumnDefinitions>
@@ -122,6 +139,7 @@
     </Grid>
     <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,8,0,0"
                Text="* Datos obligatorios. En la inseminación artificial la raza del padre es obligatoria." />
+    </StackPanel>
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
       <Button Content="💾 GUARDAR NACIMIENTO" Command="{Binding GuardarCommand}" Style="{StaticResource Boton.Primario}" IsDefault="True" />

@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain;
+﻿using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
@@ -19,6 +19,12 @@ public sealed partial class KardexService
     public async Task AnularAsync(int remisionId, string? motivo = null, CancellationToken ct = default)
     {
         await using var uow = await fabrica.BeginAsync(ct);
+
+        if (await AnularDocumentoDeLotesAsync(uow, remisionId, motivo, ct))
+        {
+            await uow.CommitAsync(ct);
+            return;
+        }
 
         var doc = await CargarDocumentoAsync(uow, remisionId, null, ct);
         var remision = doc.Remision;
@@ -118,13 +124,15 @@ public sealed partial class KardexService
                 await ExigirChapetaLibreAsync(uow, chapeta, animal.Id, ct);
             }
 
-            await ExigirOrientacionAsync(uow, item.OrientacionId, ct);
+            item.OrientacionId = await ResolverOrientacionAsync(uow, item.OrientacionId, item.CategoriaId ?? animal.CategoriaId, ct);
+            var noBiologico = valorador.Determinar(animal, reloj.Hoy).NoBiologico;
 
             // Cambios que alteran la valoración inicial del animal (y por tanto el Kardex de la compra).
             var estructural = animal.Sexo != item.Sexo
                               || animal.FechaNacimiento.Date != item.FechaNacimiento.Date
                               || animal.OrientacionId != item.OrientacionId
                               || animal.NumeroPartos != item.NumeroPartos
+                              || (noBiologico && item.PrecioFactura != animal.ValorCompraOrigen)   // su valor en libros ES el precio de factura
                               || cambioGranja;
             if (estructural)
             {
@@ -154,7 +162,7 @@ public sealed partial class KardexService
             {
                 var valoracion = valorador.Determinar(animal, reloj.Hoy);
                 animal.CategoriaId = valoracion.CategoriaId;
-                animal.ValorContableActual = valoracion.Valor ?? item.PrecioFactura;
+                animal.ValorContableActual = valoracion.NoBiologico ? item.PrecioFactura : valoracion.Valor ?? item.PrecioFactura;
                 if (valoracion.SinTarifa)
                 {
                     sinTarifa.Add(chapeta);
@@ -186,7 +194,7 @@ public sealed partial class KardexService
         // 3) Animales agregados al editar.
         foreach (var item in dto.Animales.Where(a => a.AnimalId is null))
         {
-            await ExigirOrientacionAsync(uow, item.OrientacionId, ct);
+            item.OrientacionId = await ResolverOrientacionAsync(uow, item.OrientacionId, item.CategoriaId, ct);
             await ExigirChapetaLibreAsync(uow, Limpiar(item.ChapetaAmarilla), null, ct);
         }
 

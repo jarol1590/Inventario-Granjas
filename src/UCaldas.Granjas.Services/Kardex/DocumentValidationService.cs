@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain;
+﻿using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 
@@ -40,9 +40,13 @@ public sealed class DocumentValidationService : IDocumentValidationService
         Regla.ExigirTexto(dto.ChapetaAmarilla, "La chapeta amarilla");
         Regla.Exigir(Sexo.EsDeAnimal(dto.Sexo), "El sexo debe ser Macho o Hembra.");
         Regla.ExigirTexto(dto.Raza, "La raza");
-        Regla.Exigir(dto.OrientacionId > 0, "Seleccione la orientación productiva.");
+        Regla.Exigir(dto.OrientacionId > 0 || dto.CategoriaId > 0, "Seleccione la orientación productiva.");
         Regla.Exigir(dto.PesoAlNacerKg >= 0, "El peso al nacer no puede ser negativo.");
-        Regla.ExigirTexto(dto.MadreIdentificacion, "La identificación de la madre");
+        // La genealogía por chapeta de la madre es de la ganadería; en otros programas es opcional.
+        if (dto.CategoriaId is not > 0)
+        {
+            Regla.ExigirTexto(dto.MadreIdentificacion, "La identificación de la madre");
+        }
 
         if (dto.EsInseminacion)
         {
@@ -72,7 +76,7 @@ public sealed class DocumentValidationService : IDocumentValidationService
             Regla.ExigirTexto(animal.ChapetaAmarilla, "La chapeta amarilla de cada animal");
             Regla.Exigir(Sexo.EsDeAnimal(animal.Sexo), $"{etiqueta}: el sexo debe ser Macho o Hembra.");
             Regla.ExigirTexto(animal.Raza, $"{etiqueta}: la raza");
-            Regla.Exigir(animal.OrientacionId > 0, $"{etiqueta}: seleccione la orientación productiva.");
+            Regla.Exigir(animal.OrientacionId > 0 || animal.CategoriaId > 0, $"{etiqueta}: seleccione la orientación productiva.");
             Regla.Exigir(
                 animal.FechaNacimiento != default && animal.FechaNacimiento.Date <= dto.FechaCompra.Date,
                 $"{etiqueta}: la fecha de nacimiento es obligatoria y no puede ser posterior a la compra.");

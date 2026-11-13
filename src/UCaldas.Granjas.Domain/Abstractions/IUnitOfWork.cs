@@ -1,4 +1,4 @@
-namespace UCaldas.Granjas.Domain.Abstractions;
+﻿namespace UCaldas.Granjas.Domain.Abstractions;
 
 /// <summary>
 /// Unidad de trabajo: agrupa los repositorios sobre una misma conexión y transacción.
@@ -14,6 +14,7 @@ public interface IUnitOfWork : IAsyncDisposable
     ICategoriaRepository Categorias { get; }
     IVigenciaRepository Vigencias { get; }
     ITarifaRepository Tarifas { get; }
+    ITarifaProgramaRepository TarifasPrograma { get; }
     IAnimalRepository Animales { get; }
     IGenealogiaRepository Genealogias { get; }
     ILoteRepository Lotes { get; }

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
@@ -74,7 +74,8 @@ public sealed partial class SalidasViewModel : ViewModelBase, IUsaFiltroGlobal
                 Rango.Desde,
                 Rango.Hasta,
                 string.IsNullOrWhiteSpace(TextoChapeta) ? null : TextoChapeta.Trim(),
-                IncluirAnuladas));
+                IncluirAnuladas,
+                _contexto.ProgramaId));
             if (version != _version)
             {
                 return;

@@ -1,7 +1,8 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
+using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Animales;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Kardex;
@@ -46,6 +47,24 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
     public ObservableCollection<OpcionFiltro> Granjas { get; } = [];
 
     public ObservableCollection<OpcionFiltro> Orientaciones { get; } = [];
+
+    /// <summary>Programas de inventario individual (bovinos, equinos...).</summary>
+    public ObservableCollection<Programa> Programas { get; } = [];
+
+    /// <summary>Categorías del programa elegido; solo se usan en programas sin valorización biológica.</summary>
+    public ObservableCollection<OpcionFiltro> Categorias { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EsBovino), nameof(NoEsBovino))]
+    private Programa? _programaSeleccionado;
+
+    [ObservableProperty]
+    private OpcionFiltro? _categoriaSeleccionada;
+
+    /// <summary>La orientación, la madre y la matriz de tarifas son de la ganadería (valorización biológica).</summary>
+    public bool EsBovino => ProgramaSeleccionado?.UsaValorizacionBiologica ?? true;
+
+    public bool NoEsBovino => !EsBovino;
 
     public ObservableCollection<string> Razas { get; } = [];
 
@@ -102,6 +121,10 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
     [ObservableProperty]
     private bool _sinTarifa;
 
+    /// <summary>El valor inicial sale del valor de referencia de la categoría (no de la matriz por edades).</summary>
+    [ObservableProperty]
+    private bool _esReferencia;
+
     public bool EsMacho
     {
         get => !EsHembra;
@@ -136,6 +159,14 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
                 Razas.Add(r);
             }
 
+            foreach (var p in await _catalogo.GetProgramasPorTipoAsync(TipoInventario.Individual))
+            {
+                Programas.Add(p);
+            }
+
+            ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == _contexto.ProgramaId)
+                ?? Programas.FirstOrDefault(p => p.UsaValorizacionBiologica) ?? Programas.FirstOrDefault();
+            await CargarCategoriasAsync();
             GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == _contexto.GranjaId) ?? Granjas.FirstOrDefault();
             var sugerida = granjas.FirstOrDefault(g => g.Id == GranjaSeleccionada?.Id)?.OrientacionId;
             OrientacionSeleccionada = Orientaciones.FirstOrDefault(o => o.Id == sugerida) ?? Orientaciones.FirstOrDefault();
@@ -143,6 +174,37 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
             await ActualizarVistaPreviaAsync();
         }, "preparar el formulario de nacimiento");
         return cargado;
+    }
+
+    partial void OnProgramaSeleccionadoChanged(Programa? value)
+    {
+        if (_inicializado)
+        {
+            _ = EjecutarAsync(async () =>
+            {
+                await CargarCategoriasAsync();
+                await ActualizarVistaPreviaAsync();
+            }, "cargar las categorías del programa");
+        }
+    }
+
+    partial void OnCategoriaSeleccionadaChanged(OpcionFiltro? value) => _ = ActualizarVistaPreviaAsync();
+
+    private async Task CargarCategoriasAsync()
+    {
+        Categorias.Clear();
+        if (ProgramaSeleccionado is not { UsaValorizacionBiologica: false } programa)
+        {
+            CategoriaSeleccionada = null;
+            return;
+        }
+
+        foreach (var c in await _catalogo.GetCategoriasDeProgramaAsync(programa.Id))
+        {
+            Categorias.Add(new OpcionFiltro(c.Id, c.Nombre));
+        }
+
+        CategoriaSeleccionada = Categorias.FirstOrDefault();
     }
 
     partial void OnFechaNacimientoChanged(DateTime? value) => _ = ActualizarVistaPreviaAsync();
@@ -154,9 +216,16 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
     [RelayCommand]
     private async Task GuardarAsync()
     {
-        if (GranjaSeleccionada?.Id is not { } granjaId || OrientacionSeleccionada?.Id is not { } orientacionId)
+        var orientacionElegida = EsBovino ? OrientacionSeleccionada?.Id : 0;
+        if (GranjaSeleccionada?.Id is not { } granjaId || orientacionElegida is not { } orientacionId)
         {
             Dialogos.Advertir("Seleccione la granja de nacimiento y la orientación del animal.");
+            return;
+        }
+
+        if (NoEsBovino && CategoriaSeleccionada?.Id is null)
+        {
+            Dialogos.Advertir("Seleccione la categoría del animal.");
             return;
         }
 
@@ -173,6 +242,7 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
                 Sexo = EsHembra ? Domain.Constants.Sexo.Hembra : Domain.Constants.Sexo.Macho,
                 Raza = Raza,
                 OrientacionId = orientacionId,
+                CategoriaId = NoEsBovino ? CategoriaSeleccionada?.Id : null,
                 PesoAlNacerKg = PesoAlNacerKg,
                 MadreIdentificacion = MadreIdentificacion,
                 EsInseminacion = EsInseminacion,
@@ -204,16 +274,20 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
 
     private async Task ActualizarVistaPreviaAsync()
     {
-        if (!_inicializado || FechaNacimiento is not { } fecha || OrientacionSeleccionada?.Id is not { } orientacionId)
+        if (!_inicializado || FechaNacimiento is not { } fecha || (EsBovino && OrientacionSeleccionada?.Id is null)
+            || (NoEsBovino && CategoriaSeleccionada?.Id is null))
         {
             return;
         }
+
+        var orientacionId = EsBovino ? OrientacionSeleccionada!.Id!.Value : 0;
 
         var version = ++_versionVistaPrevia;
         try
         {
             var resultado = await _animales.PrevisualizarValoracionAsync(
-                EsHembra ? Domain.Constants.Sexo.Hembra : Domain.Constants.Sexo.Macho, orientacionId, 0, fecha);
+                EsHembra ? Domain.Constants.Sexo.Hembra : Domain.Constants.Sexo.Macho, orientacionId, 0, fecha,
+                NoEsBovino ? CategoriaSeleccionada!.Id : null);
             if (version != _versionVistaPrevia)
             {
                 return;
@@ -221,6 +295,7 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
 
             SinTarifa = resultado.SinTarifa;
             CategoriaInicial = resultado.SinTarifa ? "Sin clasificar (no hay tarifa para estos datos)" : resultado.CategoriaNombre;
+            EsReferencia = resultado.NoBiologico;
             ValorInicial = Formato.Dinero(resultado.Valor ?? 0m);
         }
         catch (System.ComponentModel.DataAnnotations.ValidationException ex)

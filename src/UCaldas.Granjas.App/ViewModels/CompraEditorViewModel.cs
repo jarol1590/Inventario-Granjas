@@ -1,12 +1,14 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
+using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Services.Kardex;
+using UCaldas.Granjas.Services.Lotes;
 
 namespace UCaldas.Granjas.App.ViewModels;
 
@@ -19,6 +21,8 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
     private readonly IKardexService _kardex;
     private readonly IConsultasService _consultas;
     private readonly ICatalogoService _catalogo;
+    private readonly ILoteService _lotes;
+    private int? _loteId;
     private readonly ContextoGlobal _contexto;
     private int? _remisionId;
     private int _orientacionPredeterminada;
@@ -27,6 +31,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         IKardexService kardex,
         IConsultasService consultas,
         ICatalogoService catalogo,
+        ILoteService lotes,
         ContextoGlobal contexto,
         IReloj reloj,
         IDialogService dialogos)
@@ -35,6 +40,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         _kardex = kardex;
         _consultas = consultas;
         _catalogo = catalogo;
+        _lotes = lotes;
         _contexto = contexto;
         _fechaCompra = reloj.Hoy;
         Animales.CollectionChanged += AlCambiarAnimales;
@@ -57,16 +63,36 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
 
     public ObservableCollection<OpcionFiltro> Orientaciones { get; } = [];
 
+    /// <summary>Programas de inventario individual (bovinos, equinos...).</summary>
+    public ObservableCollection<Programa> Programas { get; } = [];
+
+    /// <summary>Categorías del programa elegido (programas sin valorización biológica).</summary>
+    public ObservableCollection<OpcionFiltro> Categorias { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EsBovino), nameof(NoEsBovino))]
+    private Programa? _programaSeleccionado;
+
+    /// <summary>Orientación y partos son de los bovinos; los demás programas eligen categoría.</summary>
+    public bool EsBovino => ProgramaSeleccionado?.UsaValorizacionBiologica ?? true;
+
+    public bool NoEsBovino => !EsBovino;
+
+    /// <summary>El programa solo se elige al crear la compra.</summary>
+    public bool PuedeElegirPrograma => Modo == ModoDocumento.Nuevo;
+
+    private int _categoriaPredeterminada;
+
     public ObservableCollection<string> Razas { get; } = [];
 
     public ObservableCollection<CompraAnimalFila> Animales { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Titulo), nameof(EsLectura), nameof(EsEditable), nameof(PuedeEditarODesechar))]
+    [NotifyPropertyChangedFor(nameof(Titulo), nameof(EsLectura), nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(PuedeElegirPrograma), nameof(MostrarAgregarAnimal))]
     private ModoDocumento _modo = ModoDocumento.Nuevo;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsEditable), nameof(PuedeEditarODesechar))]
+    [NotifyPropertyChangedFor(nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(MostrarAgregarAnimal))]
     private bool _anulada;
 
     [ObservableProperty]
@@ -101,11 +127,63 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
 
     public bool PuedeEditarODesechar => EsLectura && !Anulada;
 
-    public decimal Total => Animales.Sum(a => a.PrecioFactura);
+    /// <summary>La compra es la de un lote (programa por lotes): se muestra su fila de lote en lugar de los animales.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EsIndividual), nameof(MostrarAgregarAnimal))]
+    private bool _esLote;
+
+    public bool MostrarAgregarAnimal => EsEditable && EsIndividual;
+
+    public bool EsIndividual => !EsLote;
+
+    /// <summary>Una compra de lote tiene un solo lote.</summary>
+    public ObservableCollection<CompraLoteFila> Lotes { get; } = [];
+
+    public decimal Total => EsLote ? Lotes.Sum(l => l.Total) : Animales.Sum(a => a.PrecioFactura);
 
     public string TotalTexto => Formato.Dinero(Total);
 
-    public string CantidadTexto => $"Total animales: {Animales.Count}";
+    public string CantidadTexto => EsLote
+        ? $"Total cabezas: {(Lotes.FirstOrDefault() is { ControlNumerico: true } l ? l.Cantidad.ToString("N0", Formato.Cultura) : "N/A")}"
+        : $"Total animales: {Animales.Count}";
+
+    /// <summary>Abre la compra de un lote: la misma pantalla de detalle, editable y anulable como la de animales.</summary>
+    public async Task<bool> InicializarLoteAsync(int loteId)
+    {
+        _remisionId = null;
+        _loteId = loteId;
+        return await EjecutarAsync(async () =>
+        {
+            await CargarCatalogosAsync();
+            var detalle = await _lotes.ObtenerAsync(loteId);
+            var lote = detalle.Lote;
+
+            EsLote = true;
+            NumeroFactura = lote.OrigenReferencia ?? string.Empty;
+            NumeroOrden = lote.OrdenCompra ?? string.Empty;
+            FechaCompra = lote.FechaNacimientoIngreso;
+            GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == lote.GranjaId);
+            Proveedor = lote.Proveedor ?? string.Empty;
+            Nit = string.Empty;
+            Observaciones = lote.Observaciones ?? string.Empty;
+            // El combo solo lista programas individuales: el programa por lotes de esta compra se agrega para mostrarlo.
+            if (Programas.All(p => p.Id != lote.ProgramaId) && (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == lote.ProgramaId) is { } programaDelLote)
+            {
+                Programas.Add(programaDelLote);
+            }
+
+            ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == lote.ProgramaId) ?? ProgramaSeleccionado;
+
+            Lotes.Clear();
+            var fila = new CompraLoteFila(detalle);
+            fila.PropertyChanged += (_, _) => NotificarTotales();
+            Lotes.Add(fila);
+
+            Anulada = lote.Anulado;
+            Modo = ModoDocumento.Detalle;
+            NotificarTotales();
+        }, "abrir la compra del lote");
+    }
 
     public async Task<bool> InicializarNuevaAsync()
     {
@@ -114,6 +192,9 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         {
             await CargarCatalogosAsync();
             GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == _contexto.GranjaId) ?? Granjas.FirstOrDefault();
+            ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == _contexto.ProgramaId)
+                ?? Programas.FirstOrDefault(p => p.UsaValorizacionBiologica) ?? Programas.FirstOrDefault();
+            await CargarCategoriasAsync();
             Modo = ModoDocumento.Nuevo;
             AgregarAnimal();
         }, "preparar el formulario de compra");
@@ -136,6 +217,12 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
             Nit = dto.ProveedorNit ?? string.Empty;
             Observaciones = dto.Observaciones ?? string.Empty;
 
+            // El programa de la compra se deduce de la categoría de sus animales.
+            var categoriaDeCompra = dto.Animales.Select(a => a.CategoriaId).FirstOrDefault(id => id > 0);
+            var programaId = (await _catalogo.GetCategoriasAsync()).FirstOrDefault(c => c.Id == categoriaDeCompra)?.ProgramaId;
+            ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == programaId) ?? ProgramaSeleccionado;
+            await CargarCategoriasAsync();
+
             Animales.Clear();
             foreach (var animal in dto.Animales)
             {
@@ -149,7 +236,11 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
 
     [RelayCommand(CanExecute = nameof(EsEditable))]
     private void AgregarAnimal()
-        => Animales.Add(new CompraAnimalFila(null, _orientacionPredeterminada));
+    {
+        var fila = new CompraAnimalFila(null, _orientacionPredeterminada);
+        fila.CategoriaId = NoEsBovino ? _categoriaPredeterminada : 0;
+        Animales.Add(fila);
+    }
 
     [RelayCommand(CanExecute = nameof(EsEditable))]
     private void QuitarAnimal(CompraAnimalFila? fila)
@@ -159,6 +250,18 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
             Animales.Remove(fila);
         }
     }
+
+    /// <summary>Quitar el lote de la compra = anular la compra (como quitar el único animal de una factura), con confirmación y motivo.</summary>
+    [RelayCommand(CanExecute = nameof(PuedeQuitarLote))]
+    private async Task QuitarLoteAsync()
+    {
+        if (_loteId is { } loteId)
+        {
+            await AnularCompraDeLoteAsync(loteId);
+        }
+    }
+
+    private bool PuedeQuitarLote() => EsEditable && EsLote && _loteId is not null;
 
     [RelayCommand(CanExecute = nameof(PuedeEditarODesechar))]
     private void EditarCompra() => Modo = ModoDocumento.Edicion;
@@ -172,6 +275,12 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
             return;
         }
 
+        if (EsLote)
+        {
+            await GuardarCompraDeLoteAsync(granjaId);
+            return;
+        }
+
         var dto = new CompraDto
         {
             RemisionId = _remisionId,
@@ -182,7 +291,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
             Proveedor = Proveedor,
             ProveedorNit = Vacio(Nit),
             Observaciones = Vacio(Observaciones),
-            Animales = [.. Animales.Select(a => a.ToDto())],
+            Animales = [.. Animales.Select(a => a.ToDto(NoEsBovino))],
         };
 
         CompraResultado? resultado = null;
@@ -210,9 +319,44 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         Cerrar(true);
     }
 
+    private async Task GuardarCompraDeLoteAsync(int granjaId)
+    {
+        if (Lotes.FirstOrDefault() is not { } fila || _loteId is not { } loteId)
+        {
+            return;
+        }
+
+        var guardado = await EjecutarAsync(() => _lotes.EditarCompraAsync(new EditarCompraLoteDto
+        {
+            LoteId = loteId,
+            Factura = NumeroFactura,
+            OrdenCompra = NumeroOrden,
+            Proveedor = Proveedor,
+            FechaIngreso = FechaCompra ?? default,
+            GranjaId = granjaId,
+            Ubicacion = fila.Ubicacion,
+            LineaRaza = fila.LineaRaza,
+            Cantidad = fila.Cantidad,
+            PrecioUnitarioFactura = fila.PrecioUnitario,
+            Observaciones = Vacio(Observaciones),
+        }), "guardar la compra del lote");
+
+        if (guardado)
+        {
+            Dialogos.Informar($"Compra del lote {fila.Codigo} actualizada: {Formato.Dinero(fila.Total)}.", "Compra guardada");
+            Cerrar(true);
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(PuedeEditarODesechar))]
     private async Task AnularAsync()
     {
+        if (EsLote && _loteId is { } loteDeCompra)
+        {
+            await AnularCompraDeLoteAsync(loteDeCompra);
+            return;
+        }
+
         if (_remisionId is not { } id)
         {
             return;
@@ -239,6 +383,28 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         }
     }
 
+    private async Task AnularCompraDeLoteAsync(int loteId)
+    {
+        if (!Dialogos.Confirmar(
+                $"Quitar el lote equivale a anular la compra {NumeroFactura}: el lote deja de contar en el inventario y su código y número de factura quedan consumidos.\n\n¿Desea continuar?",
+                "Anular compra", destructivo: true))
+        {
+            return;
+        }
+
+        var motivo = Dialogos.Pedir("Anular compra", "Motivo de la anulación:");
+        if (motivo is null)
+        {
+            return;
+        }
+
+        if (await EjecutarAsync(() => _lotes.AnularCompraAsync(loteId, motivo), "anular la compra del lote"))
+        {
+            Dialogos.Informar($"La compra {NumeroFactura} fue anulada.", "Compra anulada");
+            Cerrar(true);
+        }
+    }
+
     partial void OnModoChanged(ModoDocumento value) => NotificarComandos();
 
     partial void OnAnuladaChanged(bool value) => NotificarComandos();
@@ -247,6 +413,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
     {
         AgregarAnimalCommand.NotifyCanExecuteChanged();
         QuitarAnimalCommand.NotifyCanExecuteChanged();
+        QuitarLoteCommand.NotifyCanExecuteChanged();
         EditarCompraCommand.NotifyCanExecuteChanged();
         GuardarCommand.NotifyCanExecuteChanged();
         AnularCommand.NotifyCanExecuteChanged();
@@ -268,11 +435,51 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
 
         _orientacionPredeterminada = Orientaciones.FirstOrDefault()?.Id ?? 0;
 
+        Programas.Clear();
+        foreach (var p in await _catalogo.GetProgramasPorTipoAsync(TipoInventario.Individual))
+        {
+            Programas.Add(p);
+        }
+
         Razas.Clear();
         foreach (var r in await _catalogo.GetRazasAsync())
         {
             Razas.Add(r);
         }
+    }
+
+    partial void OnProgramaSeleccionadoChanged(Programa? value)
+    {
+        if (Modo != ModoDocumento.Nuevo || _remisionId is not null || _loteId is not null)
+        {
+            return;
+        }
+
+        _ = EjecutarAsync(async () =>
+        {
+            await CargarCategoriasAsync();
+            foreach (var fila in Animales)
+            {
+                fila.CategoriaId = NoEsBovino ? _categoriaPredeterminada : 0;
+            }
+        }, "cargar las categorías del programa");
+    }
+
+    private async Task CargarCategoriasAsync()
+    {
+        Categorias.Clear();
+        _categoriaPredeterminada = 0;
+        if (ProgramaSeleccionado is not { UsaValorizacionBiologica: false } programa)
+        {
+            return;
+        }
+
+        foreach (var c in await _catalogo.GetCategoriasDeProgramaAsync(programa.Id))
+        {
+            Categorias.Add(new OpcionFiltro(c.Id, c.Nombre));
+        }
+
+        _categoriaPredeterminada = Categorias.FirstOrDefault()?.Id ?? 0;
     }
 
     private void AlCambiarAnimales(object? sender, NotifyCollectionChangedEventArgs e)

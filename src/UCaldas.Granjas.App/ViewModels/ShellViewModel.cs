@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
@@ -56,7 +56,7 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
         {
             new("🏠", "Inicio", ClaveInicio),
             new("🏷", "Animales", ClaveAnimales),
-            new("📦", "Lotes", ClaveLotes, Habilitada: false, Ayuda: "Inventario por lotes (aves, peces): no disponible en esta versión."),
+            new("📦", "Lotes", ClaveLotes),
             new("🛒", "Compras", ClaveCompras),
             new("📤", "Salidas/Bajas", ClaveSalidas),
             new("🔄", "Traslados", ClaveTraslados),
@@ -95,6 +95,8 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     [NotifyPropertyChangedFor(nameof(MostrarFiltros))]
     [NotifyPropertyChangedFor(nameof(MostrarFiltroDePrograma))]
     [NotifyPropertyChangedFor(nameof(MostrarAccionesRapidas))]
+    [NotifyPropertyChangedFor(nameof(MostrarNuevoLote))]
+    [NotifyPropertyChangedFor(nameof(MostrarRegistroNacimiento))]
     private ISeccion? _contenido;
 
     public bool MostrarFiltros => Contenido is IUsaFiltroGlobal;
@@ -103,6 +105,12 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     public bool MostrarFiltroDePrograma => Contenido is IUsaFiltroGlobal { MostrarFiltroDePrograma: true };
 
     public bool MostrarAccionesRapidas => Contenido is IConAccionesRapidas;
+
+    /// <summary>Programa por lotes elegido en el combo global (en Animales el combo se oculta y siempre es individual).</summary>
+    public bool MostrarNuevoLote => MostrarFiltroDePrograma && ProgramaSeleccionado?.TipoInventario == TipoInventario.Lote;
+
+    /// <summary>El nacimiento es solo de animales individuales.</summary>
+    public bool MostrarRegistroNacimiento => !MostrarNuevoLote;
 
     public ObservableCollection<OpcionFiltro> Granjas { get; } = [];
 
@@ -143,6 +151,15 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     private async Task RegistrarNacimientoAsync()
     {
         if (await _formularios.NuevoNacimientoAsync())
+        {
+            await RecargarContenidoAsync();
+        }
+    }
+
+    [RelayCommand]
+    private async Task RegistrarNuevoLoteAsync()
+    {
+        if (await _formularios.NuevoLoteAsync())
         {
             await RecargarContenidoAsync();
         }
@@ -219,6 +236,8 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
 
     partial void OnProgramaSeleccionadoChanged(Programa? value)
     {
+        OnPropertyChanged(nameof(MostrarNuevoLote));
+        OnPropertyChanged(nameof(MostrarRegistroNacimiento));
         if (_cargandoFiltros || value is null)
         {
             return;
@@ -248,6 +267,7 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     {
         ClaveInicio => _servicios.GetRequiredService<InicioViewModel>(),
         ClaveAnimales => _servicios.GetRequiredService<AnimalesViewModel>(),
+        ClaveLotes => _servicios.GetRequiredService<Lotes.LotesViewModel>(),
         ClaveCompras => _servicios.GetRequiredService<ComprasViewModel>(),
         ClaveSalidas => _servicios.GetRequiredService<SalidasViewModel>(),
         ClaveTraslados => _servicios.GetRequiredService<TrasladosViewModel>(),

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using UCaldas.Granjas.App.Composicion;
@@ -8,6 +8,8 @@ using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Services.Catalogos;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Services.Kardex;
+using UCaldas.Granjas.Services.Lotes;
+using UCaldas.Granjas.Domain.Entities;
 
 namespace UCaldas.Granjas.App.ViewModels;
 
@@ -20,6 +22,8 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
     private readonly IKardexService _kardex;
     private readonly IConsultasService _consultas;
     private readonly ICatalogoService _catalogo;
+    private readonly ILoteService _lotes;
+    private Programa? _programaLote;
     private readonly IFormularios _formularios;
     private readonly ContextoGlobal _contexto;
     private int? _remisionId;
@@ -31,6 +35,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         IKardexService kardex,
         IConsultasService consultas,
         ICatalogoService catalogo,
+        ILoteService lotes,
         IFormularios formularios,
         ContextoGlobal contexto,
         IReloj reloj,
@@ -40,6 +45,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         _kardex = kardex;
         _consultas = consultas;
         _catalogo = catalogo;
+        _lotes = lotes;
         _formularios = formularios;
         _contexto = contexto;
         _fechaSalida = reloj.Hoy;
@@ -70,12 +76,31 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
 
     public ObservableCollection<SalidaAnimalFila> Animales { get; } = [];
 
+    /// <summary>La salida es la venta de lotes de un programa por lotes (misma pantalla, con una grilla de lotes).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Titulo), nameof(EsLectura), nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(PuedeCambiarClase))]
+    [NotifyPropertyChangedFor(nameof(EsIndividual), nameof(PuedeCambiarClase), nameof(CantidadTexto), nameof(TotalTexto), nameof(MostrarAgregarAnimal), nameof(MostrarAgregarLote))]
+    private bool _esLote;
+
+    public bool MostrarAgregarAnimal => EsEditable && EsIndividual;
+
+    public bool MostrarAgregarLote => EsEditable && EsLote;
+
+    public bool EsIndividual => !EsLote;
+
+    public ObservableCollection<SalidaLoteFila> Lotes { get; } = [];
+
+    /// <summary>Lotes activos de la granja de origen que todavía no están en la venta.</summary>
+    public ObservableCollection<LoteSeleccionable> LotesDisponibles { get; } = [];
+
+    [ObservableProperty]
+    private LoteSeleccionable? _loteParaAgregar;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Titulo), nameof(EsLectura), nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(PuedeCambiarClase), nameof(MostrarAgregarAnimal), nameof(MostrarAgregarLote))]
     private ModoDocumento _modo = ModoDocumento.Nuevo;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsEditable), nameof(PuedeEditarODesechar))]
+    [NotifyPropertyChangedFor(nameof(EsEditable), nameof(PuedeEditarODesechar), nameof(MostrarAgregarAnimal), nameof(MostrarAgregarLote))]
     private bool _anulada;
 
     [ObservableProperty]
@@ -122,13 +147,15 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
     public bool PuedeEditarODesechar => EsLectura && !Anulada;
 
     /// <summary>La clase solo se elige al crear el documento (una venta no se convierte en baja).</summary>
-    public bool PuedeCambiarClase => Modo == ModoDocumento.Nuevo;
+    public bool PuedeCambiarClase => Modo == ModoDocumento.Nuevo && !EsLote;
 
-    public string CantidadTexto => $"Total Animales: {Animales.Count}";
+    public string CantidadTexto => EsLote ? $"Total cabezas: {Lotes.Sum(l => l.Cantidad):N0}" : $"Total Animales: {Animales.Count}";
 
     public string EtiquetaTotal => EsVenta ? "Total venta" : "Valor en libros";
 
-    public string TotalTexto => Formato.Dinero(EsVenta ? Animales.Sum(a => a.PrecioVenta) : Animales.Sum(a => a.Animal.ValorContable));
+    public string TotalTexto => Formato.Dinero(
+        EsLote ? Lotes.Sum(l => l.ValorVenta)
+        : EsVenta ? Animales.Sum(a => a.PrecioVenta) : Animales.Sum(a => a.Animal.ValorContable));
 
     public async Task<bool> InicializarNuevaAsync()
     {
@@ -146,6 +173,24 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
                 _cargando = false;
             }
 
+            // En un programa por lotes la salida es la venta de lotes (las bajas por mortandad se registran en Lotes).
+            if (_contexto.ProgramaId is { } programaId
+                && (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == programaId) is { TipoInventario: TipoInventario.Lote } programa)
+            {
+                _programaLote = programa;
+                _programaId = programa.Id;
+
+                // Sin granja elegida en los filtros se parte de una granja donde se ejecuta el programa (donde están sus lotes).
+                if (_contexto.GranjaId is null)
+                {
+                    var delPrograma = (await _catalogo.GetGranjaIdsDeProgramaAsync(programa.Id)).ToHashSet();
+                    GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id is { } id && delPrograma.Contains(id)) ?? GranjaSeleccionada;
+                }
+
+                EsLote = true;
+                await CargarLotesDisponiblesAsync();
+            }
+
             Modo = ModoDocumento.Nuevo;
         }, "preparar el formulario de salida");
     }
@@ -159,7 +204,11 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             _cargando = true;
             try
             {
-                if (clase == ClaseSalida.Venta)
+                if (await _consultas.EsDocumentoDeLotesAsync(remisionId))
+                {
+                    await CargarVentaDeLotesAsync(remisionId);
+                }
+                else if (clase == ClaseSalida.Venta)
                 {
                     var venta = await _consultas.ObtenerVentaAsync(remisionId);
                     var dto = venta.Dto;
@@ -207,8 +256,13 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
 
     partial void OnGranjaSeleccionadaChanged(OpcionFiltro? oldValue, OpcionFiltro? newValue)
     {
-        if (_cargando || _revirtiendo || newValue is null || Animales.Count == 0)
+        if (_cargando || _revirtiendo || newValue is null || (EsLote ? Lotes.Count : Animales.Count) == 0)
         {
+            if (EsLote && !_cargando && !_revirtiendo && newValue is not null)
+            {
+                _ = EjecutarAsync(CargarLotesDisponiblesAsync, "consultar los lotes de la granja");
+            }
+
             return;
         }
 
@@ -232,6 +286,90 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         }
 
         Animales.Clear();
+        Lotes.Clear();
+        if (EsLote)
+        {
+            _ = EjecutarAsync(CargarLotesDisponiblesAsync, "consultar los lotes de la granja");
+        }
+    }
+
+    private async Task CargarLotesDisponiblesAsync()
+    {
+        LotesDisponibles.Clear();
+        if (_programaLote is null || GranjaSeleccionada?.Id is not { } granjaId)
+        {
+            return;
+        }
+
+        var enVenta = Lotes.Select(l => l.LoteId).ToHashSet();
+        foreach (var d in (await _lotes.ListarAsync(_programaLote.Id)).Where(d => d.Lote.Estado == EstadoLote.Activo && d.Lote.GranjaId == granjaId && !enVenta.Contains(d.Lote.Id)))
+        {
+            LotesDisponibles.Add(new LoteSeleccionable(
+                d.Lote.Id, d.Lote.CodigoLote, d.EtapaNombre, d.Lote.Ubicacion, d.Lote.CantidadActual, d.Lote.ControlNumericoPoblacion, d.Lote.ValorContableUnitario));
+        }
+
+        LoteParaAgregar = LotesDisponibles.FirstOrDefault();
+    }
+
+    private async Task CargarVentaDeLotesAsync(int remisionId)
+    {
+        var venta = await _consultas.ObtenerVentaLoteAsync(remisionId);
+        var dto = venta.Dto;
+        _programaLote = (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == dto.ProgramaId);
+        _programaId = dto.ProgramaId;
+        EsLote = true;
+        ClaseSeleccionada = Clases.First(c => c.Valor == ClaseSalida.Venta);
+        GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == dto.GranjaOrigenId);
+        FechaSalida = dto.FechaRemision;
+        NumeroOficio = dto.NumeroOficio;
+        ReciboCaja = dto.ReciboCaja;
+        NumeroRemision = dto.NumeroRemision;
+        Comprador = dto.Comprador;
+        Observaciones = dto.Observaciones ?? string.Empty;
+        Anulada = venta.Anulada;
+
+        Lotes.Clear();
+        foreach (var linea in dto.Lotes)
+        {
+            var lote = venta.Lotes.First(l => l.Id == linea.LoteId);
+            AgregarFilaDeLote(new SalidaLoteFila(lote, linea.Cantidad, linea.PesoKg, linea.ValorVenta, linea.ObservacionesEspecificas));
+        }
+
+        await CargarLotesDisponiblesAsync();
+    }
+
+    private void AgregarFilaDeLote(SalidaLoteFila fila)
+    {
+        fila.PropertyChanged += (_, _) => NotificarTotales();
+        Lotes.Add(fila);
+        NotificarTotales();
+    }
+
+    [RelayCommand(CanExecute = nameof(EsEditable))]
+    private void AgregarLote()
+    {
+        if (LoteParaAgregar is not { } lote)
+        {
+            Dialogos.Advertir("No hay lotes activos en la granja de origen para agregar.");
+            return;
+        }
+
+        AgregarFilaDeLote(new SalidaLoteFila(lote, lote.ControlNumerico ? lote.CantidadActual : 0));
+        LotesDisponibles.Remove(lote);
+        LoteParaAgregar = LotesDisponibles.FirstOrDefault();
+    }
+
+    [RelayCommand(CanExecute = nameof(EsEditable))]
+    private void QuitarLote(SalidaLoteFila? fila)
+    {
+        if (fila is null)
+        {
+            return;
+        }
+
+        Lotes.Remove(fila);
+        _ = EjecutarAsync(CargarLotesDisponiblesAsync, "consultar los lotes de la granja");
+        NotificarTotales();
     }
 
     [RelayCommand(CanExecute = nameof(EsEditable))]
@@ -296,7 +434,25 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         SalidaResultado? resultado = null;
         var guardado = await EjecutarAsync(async () =>
         {
-            if (EsVenta)
+            if (EsLote)
+            {
+                var dto = new VentaLoteDto
+                {
+                    RemisionId = _remisionId,
+                    NumeroOficio = NumeroOficio,
+                    FechaOficio = FechaSalida ?? default,
+                    ProgramaId = _programaId,
+                    NumeroRemision = NumeroRemision,
+                    FechaRemision = FechaSalida ?? default,
+                    ReciboCaja = ReciboCaja,
+                    GranjaOrigenId = granjaId,
+                    Comprador = Comprador,
+                    Observaciones = Vacio(Observaciones),
+                    Lotes = [.. Lotes.Select(l => l.ToVentaDto())],
+                };
+                resultado = _remisionId is null ? await _kardex.RegistrarVentaLoteAsync(dto) : await _kardex.EditarVentaLoteAsync(dto);
+            }
+            else if (EsVenta)
             {
                 var dto = new VentaDto
                 {
@@ -337,7 +493,9 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         }
 
         var accion = _remisionId is null ? "registrada" : "actualizada";
-        var mensaje = EsVenta
+        var mensaje = EsLote
+            ? $"Venta de lotes {accion}: {resultado.Animales:N0} cabezas por {Formato.Dinero(resultado.TotalVenta)}.\nCosto en libros: {Formato.Dinero(resultado.TotalCostoSistema)}."
+            : EsVenta
             ? $"Venta {accion}: {Formato.Animales(resultado.Animales)} por {Formato.Dinero(resultado.TotalVenta)}.\nCosto en libros: {Formato.Dinero(resultado.TotalCostoSistema)}."
             : $"Baja {accion}: {Formato.Animales(resultado.Animales)}.\nCosto en libros: {Formato.Dinero(resultado.TotalCostoSistema)}.";
         Dialogos.Informar(mensaje, "Salida guardada");
@@ -353,7 +511,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         }
 
         if (!Dialogos.Confirmar(
-                $"Se anulará la salida {NumeroRemision}: los animales vuelven al inventario y se reversan sus asientos del Kardex. " +
+                $"Se anulará la salida {NumeroRemision}: " + (EsLote ? "las cabezas vuelven a sus lotes. " : "los animales vuelven al inventario y se reversan sus asientos del Kardex. ") +
                 "El número del documento queda consumido.\n\n¿Desea continuar?",
                 "Anular salida", destructivo: true))
         {
@@ -378,6 +536,8 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
     private void NotificarComandos()
     {
         AgregarAnimalCommand.NotifyCanExecuteChanged();
+        AgregarLoteCommand.NotifyCanExecuteChanged();
+        QuitarLoteCommand.NotifyCanExecuteChanged();
         QuitarAnimalCommand.NotifyCanExecuteChanged();
         EditarSalidaCommand.NotifyCanExecuteChanged();
         GuardarCommand.NotifyCanExecuteChanged();

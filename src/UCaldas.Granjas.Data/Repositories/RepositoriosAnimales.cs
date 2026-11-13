@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using Microsoft.Data.Sqlite;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Entities;
@@ -82,4 +82,11 @@ internal sealed class GenealogiaRepository(SqliteConnection connection, SqliteTr
 }
 
 internal sealed class LoteRepository(SqliteConnection connection, SqliteTransaction? transaction)
-    : RepositoryBase<LotePoblacion>(connection, transaction), ILoteRepository;
+    : RepositoryBase<LotePoblacion>(connection, transaction), ILoteRepository
+{
+    public Task<LotePoblacion?> GetByCodigoAsync(string codigoLote, CancellationToken ct = default)
+        => UnoAsync<LotePoblacion>("SELECT * FROM LOTE_POBLACION WHERE codigo_lote = @codigoLote", new { codigoLote }, ct);
+
+    public Task<bool> ExisteCodigoAsync(string codigoLote, CancellationToken ct = default)
+        => ExisteAsync("SELECT COUNT(1) FROM LOTE_POBLACION WHERE codigo_lote = @codigoLote", new { codigoLote }, ct);
+}

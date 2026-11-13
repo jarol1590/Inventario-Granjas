@@ -1,4 +1,4 @@
-namespace UCaldas.Granjas.Domain.Entities;
+﻿namespace UCaldas.Granjas.Domain.Entities;
 
 /// <summary>Configuración global del sistema (fila única). Si no existe, es el primer arranque.</summary>
 public class ConfiguracionSistema
@@ -58,6 +58,28 @@ public class Programa
     public string TipoInventario { get; set; } = string.Empty;
 
     public string? Observaciones { get; set; }
+
+    /// <summary>true solo en Bovinos: valorización mensual por edad con la matriz de tarifas (extensión v2.3).</summary>
+    public bool UsaValorizacionBiologica { get; set; }
+
+    /// <summary>UNIDAD (por cabeza) o KG (por peso en báscula): unidad de cobro por omisión del programa (extensión v2.3).</summary>
+    public string UnidadVentaDefault { get; set; } = "UNIDAD";
+}
+
+/// <summary>
+/// Categoría o etapa de un programa SIN valorización biológica con su valor de referencia (extensión v2.3). Va ligada a su
+/// <see cref="CategoriaEtapa"/>; la categoría "General" (<see cref="EsDefault"/>) se crea con el programa y no se puede borrar.
+/// </summary>
+public class TarifaCategoriaPrograma
+{
+    public int Id { get; set; }
+    public int ProgramaId { get; set; }
+    public int CategoriaId { get; set; }
+    public string NombreCategoria { get; set; } = string.Empty;
+    public string UnidadCobro { get; set; } = "UNIDAD";
+    public decimal ValorReferencia { get; set; }
+    public bool EsDefault { get; set; }
+    public bool Activo { get; set; } = true;
 }
 
 /// <summary>Relación N:M entre granjas y programas.</summary>

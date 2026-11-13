@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain.Constants;
+﻿using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Services.Kardex;
 
 namespace UCaldas.Granjas.Services.Consultas;
@@ -58,7 +58,8 @@ public sealed record AnimalSeleccionable(
 
 /// <param name="Desde">Inicio del rango (inclusive).</param>
 /// <param name="Hasta">Fin del rango (inclusive, hasta el final de ese día).</param>
-public sealed record CompraFiltro(int? GranjaId, DateTime Desde, DateTime Hasta, string? Factura = null, bool IncluirAnuladas = false);
+/// <param name="ProgramaId">Programa de la pestaña: de animales individuales (facturas) o de lotes (lotes comprados). Nulo = todos.</param>
+public sealed record CompraFiltro(int? GranjaId, DateTime Desde, DateTime Hasta, string? Factura = null, bool IncluirAnuladas = false, int? ProgramaId = null);
 
 public sealed record CompraListItem(
     int RemisionId,
@@ -70,7 +71,11 @@ public sealed record CompraListItem(
     string GranjaDestino,
     int Cantidad,
     decimal TotalFactura,
-    bool Anulada);
+    bool Anulada,
+    int? LoteId = null,
+    string Identificador = "",
+    string CategoriaEtapa = "",
+    decimal ValorUnitario = 0m);
 
 public sealed record ResumenCompras(int TotalCompras, int AnimalesComprados, decimal ValorTotal);
 
@@ -80,7 +85,8 @@ public sealed record CompraEditable(CompraDto Dto, bool Anulada);
 
 // ---- Salidas y bajas -------------------------------------------------------------------------------------------------
 
-public sealed record SalidaFiltro(int? GranjaId, DateTime Desde, DateTime Hasta, string? Chapeta = null, bool IncluirAnuladas = false);
+/// <param name="ProgramaId">Solo las salidas del programa elegido (animales de sus categorías o lotes suyos). Nulo = todas.</param>
+public sealed record SalidaFiltro(int? GranjaId, DateTime Desde, DateTime Hasta, string? Chapeta = null, bool IncluirAnuladas = false, int? ProgramaId = null);
 
 /// <param name="Clase">VENTA, MUERTE, HURTO, DESCARTE_SANITARIO o TRASLADO.</param>
 /// <param name="Total">Valor de venta para las ventas; costo en libros para bajas y traslados.</param>
@@ -104,6 +110,14 @@ public sealed record SalidaListItem(
 public sealed record ResumenSalidas(decimal RecaudoVentas, int AnimalesRetirados, int BajasPorMuerteHurto);
 
 public sealed record ResultadoSalidas(IReadOnlyList<SalidaListItem> Items, ResumenSalidas Resumen);
+
+/// <summary>Una venta o un traslado de lotes tal como se edita (más su estado y los lotes con su nombre de etapa).</summary>
+public sealed record VentaLoteEditable(VentaLoteDto Dto, bool Anulada, IReadOnlyList<LoteSeleccionable> Lotes);
+
+public sealed record TrasladoLoteEditable(TrasladoLoteDto Dto, bool Anulada, IReadOnlyList<LoteSeleccionable> Lotes);
+
+/// <summary>Un lote de una línea de documento (para mostrarlo en la grilla).</summary>
+public sealed record LoteSeleccionable(int Id, string Codigo, string Etapa, string Ubicacion, int CantidadActual, bool ControlNumerico, decimal ValorUnitario);
 
 public sealed record VentaEditable(VentaDto Dto, bool Anulada, IReadOnlyList<AnimalSeleccionable> Animales);
 
@@ -145,4 +159,5 @@ public sealed record DashboardDatos(
     int SalidasMes,
     IReadOnlyList<PuntoGrafica> PorGranja,
     IReadOnlyList<PuntoGrafica> PorCategoria,
-    IReadOnlyList<PuntoGrafica> MovimientosMes);
+    IReadOnlyList<PuntoGrafica> MovimientosMes,
+    bool EsLotes = false);

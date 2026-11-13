@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
@@ -93,7 +93,9 @@ public sealed partial class InformesViewModel : ViewModelBase, IUsaFiltroGlobal
             if (Categorias.Count == 0)
             {
                 Categorias.Add(new OpcionFiltro(null, "Todas las categorías"));
-                foreach (var c in (await _catalogo.GetCategoriasAsync()).Where(c => c.Nombre != NombresBase.CategoriaSinClasificar))
+                // Las categorías del inventario por categoría son las de la ganadería (valorización biológica).
+                var biologicos = (await _catalogo.GetProgramasAsync()).Where(p => p.UsaValorizacionBiologica).Select(p => p.Id).ToHashSet();
+                foreach (var c in (await _catalogo.GetCategoriasAsync()).Where(c => biologicos.Contains(c.ProgramaId) && c.Nombre != NombresBase.CategoriaSinClasificar))
                 {
                     Categorias.Add(new OpcionFiltro(c.Id, c.Nombre));
                 }

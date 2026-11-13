@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain;
+﻿using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
@@ -198,6 +198,8 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
         Regla.Exigir(
             programa.TipoInventario is TipoInventario.Individual or TipoInventario.Lote,
             "El tipo de inventario debe ser INDIVIDUAL (por chapeta) o LOTE (por población).");
+        var unidad = string.IsNullOrWhiteSpace(programa.UnidadVentaDefault) ? UnidadCobro.Unidad : programa.UnidadVentaDefault.Trim().ToUpperInvariant();
+        Regla.Exigir(UnidadCobro.Todas.Contains(unidad), "La unidad base de venta debe ser UNIDAD (por cabeza) o KG (por kilogramo).");
 
         await using var uow = await fabrica.BeginAsync(ct);
         Regla.Exigir(
@@ -215,15 +217,34 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
             Nombre = nombre,
             TipoInventario = programa.TipoInventario,
             Observaciones = string.IsNullOrWhiteSpace(programa.Observaciones) ? null : programa.Observaciones.Trim(),
+            UnidadVentaDefault = unidad,
+
+            // Un programa nuevo nunca usa la valorización biológica: esa es exclusiva de los bovinos sembrados con el sistema.
+            UsaValorizacionBiologica = false,
         };
 
         if (guardado.Id == 0)
         {
             await uow.Programas.InsertAsync(guardado, ct);
+
+            // Cero fricción: el programa nace con la categoría "General" para poder registrar inventario de inmediato.
+            var general = new CategoriaEtapa { Nombre = NombresBase.CategoriaGeneral, Sexo = Sexo.Ambos, ProgramaId = guardado.Id };
+            await uow.Categorias.InsertAsync(general, ct);
+            await uow.TarifasPrograma.InsertAsync(new TarifaCategoriaPrograma
+            {
+                ProgramaId = guardado.Id,
+                CategoriaId = general.Id,
+                NombreCategoria = NombresBase.CategoriaGeneral,
+                UnidadCobro = unidad,
+                ValorReferencia = 0m,
+                EsDefault = true,
+                Activo = true,
+            }, ct);
         }
         else
         {
-            Regla.Exigir(await uow.Programas.GetByIdAsync(guardado.Id, ct) is not null, "El programa no existe.");
+            var actual = await uow.Programas.GetByIdAsync(guardado.Id, ct) ?? throw Regla.Violada("El programa no existe.");
+            guardado.UsaValorizacionBiologica = actual.UsaValorizacionBiologica;
             await uow.Programas.UpdateAsync(guardado, ct);
         }
 
@@ -239,6 +260,13 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
         Regla.Exigir(
             !await uow.Programas.TieneReferenciasAsync(programaId, ct),
             $"El programa {programa.Nombre} tiene categorías, oficios o lotes asociados y no se puede eliminar.");
+
+        // Las categorías y tarifas de referencia (General y etapas) se van con el programa; ya no hay animales ni lotes que las usen.
+        await uow.TarifasPrograma.EliminarPorProgramaAsync(programaId, ct);
+        foreach (var categoria in await uow.Categorias.GetByProgramaAsync(programaId, ct))
+        {
+            await uow.Categorias.DeleteAsync(categoria.Id, ct);
+        }
 
         await uow.GranjaProgramas.EliminarPorProgramaAsync(programaId, ct);
         await uow.Programas.DeleteAsync(programaId, ct);

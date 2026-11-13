@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain.Entities;
+﻿using UCaldas.Granjas.Domain.Entities;
 
 namespace UCaldas.Granjas.Domain.Abstractions;
 
@@ -82,6 +82,15 @@ public interface ICategoriaRepository : IRepository<CategoriaEtapa>
     Task<CategoriaEtapa?> GetByNombreAsync(int programaId, string nombre, CancellationToken ct = default);
 }
 
+public interface ITarifaProgramaRepository : IRepository<TarifaCategoriaPrograma>
+{
+    Task<IReadOnlyList<TarifaCategoriaPrograma>> GetByProgramaAsync(int programaId, CancellationToken ct = default);
+
+    Task<TarifaCategoriaPrograma?> GetByCategoriaAsync(int categoriaId, CancellationToken ct = default);
+
+    Task EliminarPorProgramaAsync(int programaId, CancellationToken ct = default);
+}
+
 public interface IVigenciaRepository : IRepository<VigenciaValorizacion>
 {
     Task<VigenciaValorizacion?> GetActivaAsync(CancellationToken ct = default);
@@ -135,6 +144,9 @@ public interface IGenealogiaRepository : IRepository<DatosGenealogia>
 
 public interface ILoteRepository : IRepository<LotePoblacion>
 {
+    Task<LotePoblacion?> GetByCodigoAsync(string codigoLote, CancellationToken ct = default);
+
+    Task<bool> ExisteCodigoAsync(string codigoLote, CancellationToken ct = default);
 }
 
 public interface IOficioRepository : IRepository<OficioVenta>

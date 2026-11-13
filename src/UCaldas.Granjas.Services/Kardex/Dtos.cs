@@ -1,4 +1,4 @@
-namespace UCaldas.Granjas.Services.Kardex;
+﻿namespace UCaldas.Granjas.Services.Kardex;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Comandos de entrada del KardexService. Las propiedades RemisionId / AnimalId solo se informan al EDITAR un documento.
@@ -21,7 +21,11 @@ public sealed class NacimientoDto
 
     public string Raza { get; set; } = string.Empty;
 
+    /// <summary>Puede ser 0 en programas sin valorización biológica (la orientación solo aplica a bovinos).</summary>
     public int OrientacionId { get; set; }
+
+    /// <summary>Categoría elegida en un programa sin valorización biológica (p. ej. "General"); nulo en bovinos.</summary>
+    public int? CategoriaId { get; set; }
 
     public decimal PesoAlNacerKg { get; set; }
 
@@ -61,6 +65,9 @@ public sealed class CompraAnimalDto
     public decimal PesoKg { get; set; }
 
     public int OrientacionId { get; set; }
+
+    /// <summary>Categoría elegida en un programa sin valorización biológica (p. ej. "General"); nulo en bovinos.</summary>
+    public int? CategoriaId { get; set; }
 
     public int NumeroPartos { get; set; }
 
@@ -207,3 +214,66 @@ public sealed class TrasladoDto
 }
 
 public sealed record TrasladoResultado(int RemisionId, int Animales, decimal TotalValor);
+
+// ---- Documentos de lotes (venta y traslado; sin asientos en el Kardex) ---------------------------------------------------
+
+public sealed class VentaLoteLineaDto
+{
+    public int LoteId { get; set; }
+
+    /// <summary>Cabezas vendidas (en un lote sin control numérico se vende el lote completo y se ignora).</summary>
+    public int Cantidad { get; set; }
+
+    /// <summary>Peso en báscula: obligatorio cuando el programa se cobra por kilogramo.</summary>
+    public decimal? PesoKg { get; set; }
+
+    /// <summary>Valor total pactado de la línea.</summary>
+    public decimal ValorVenta { get; set; }
+
+    public string? ObservacionesEspecificas { get; set; }
+}
+
+/// <summary>Venta de lotes: Oficio de Venta (un solo programa) → Remisión → Recibo de Caja.</summary>
+public sealed class VentaLoteDto
+{
+    public int? RemisionId { get; set; }
+    public string NumeroOficio { get; set; } = string.Empty;
+    public DateTime FechaOficio { get; set; }
+    public int ProgramaId { get; set; }
+    public string? ObservacionesOficio { get; set; }
+    public string NumeroRemision { get; set; } = string.Empty;
+    public DateTime FechaRemision { get; set; }
+    public string ReciboCaja { get; set; } = string.Empty;
+    public int GranjaOrigenId { get; set; }
+    public string Comprador { get; set; } = string.Empty;
+    public string? Observaciones { get; set; }
+    public List<VentaLoteLineaDto> Lotes { get; set; } = [];
+}
+
+public sealed class TrasladoLoteLineaDto
+{
+    public int LoteId { get; set; }
+
+    /// <summary>Cabezas a trasladar. Si son todas (o el lote no lleva conteo) el lote entero cambia de granja.</summary>
+    public int Cantidad { get; set; }
+
+    /// <summary>Traslado parcial: código del lote que se crea en la granja destino.</summary>
+    public string? CodigoNuevoLote { get; set; }
+
+    /// <summary>Ubicación en la granja destino (opcional en el traslado total).</summary>
+    public string? UbicacionDestino { get; set; }
+
+    public string? ObservacionesEspecificas { get; set; }
+}
+
+/// <summary>Traslado de lotes entre granjas. Solo lleva Remisión.</summary>
+public sealed class TrasladoLoteDto
+{
+    public int? RemisionId { get; set; }
+    public string NumeroRemision { get; set; } = string.Empty;
+    public DateTime FechaTraslado { get; set; }
+    public int GranjaOrigenId { get; set; }
+    public int GranjaDestinoId { get; set; }
+    public string? Observaciones { get; set; }
+    public List<TrasladoLoteLineaDto> Lotes { get; set; } = [];
+}

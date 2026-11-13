@@ -1,4 +1,4 @@
-using UCaldas.Granjas.App.Infraestructura;
+﻿using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Services.Animales;
@@ -121,7 +121,7 @@ public class FormulariosViewModelTests
     // ---- Compra -------------------------------------------------------------------------------------------------------
 
     private static CompraEditorViewModel CrearCompra(EscenarioKardex e, DialogoFalso dialogos)
-        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), new ContextoGlobal(), e.Reloj, dialogos);
+        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), new UCaldas.Granjas.Services.Lotes.LoteService(e.Db.Uow, e.Reloj), new ContextoGlobal(), e.Reloj, dialogos);
 
     private static void LlenarCompra(CompraEditorViewModel vm, string factura, string chapeta, decimal precio)
     {
@@ -257,7 +257,7 @@ public class FormulariosViewModelTests
     // ---- Salida -------------------------------------------------------------------------------------------------------
 
     private static SalidaEditorViewModel CrearSalida(EscenarioKardex e, DialogoFalso dialogos, FormulariosFalso formularios)
-        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), formularios, new ContextoGlobal(), e.Reloj, dialogos);
+        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), new UCaldas.Granjas.Services.Lotes.LoteService(e.Db.Uow, e.Reloj), formularios, new ContextoGlobal(), e.Reloj, dialogos);
 
     [Fact]
     public async Task La_clase_de_salida_decide_si_se_piden_oficio_y_recibo()
@@ -389,7 +389,7 @@ public class FormulariosViewModelTests
     // ---- Traslado -----------------------------------------------------------------------------------------------------
 
     private static TrasladoEditorViewModel CrearTraslado(EscenarioKardex e, DialogoFalso dialogos, FormulariosFalso formularios)
-        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), formularios, new ContextoGlobal(), e.Reloj, dialogos);
+        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), new UCaldas.Granjas.Services.Lotes.LoteService(e.Db.Uow, e.Reloj), formularios, new ContextoGlobal(), e.Reloj, dialogos);
 
     [Fact]
     public async Task El_traslado_propone_origen_y_destino_distintos_y_mueve_los_animales_con_su_valor()

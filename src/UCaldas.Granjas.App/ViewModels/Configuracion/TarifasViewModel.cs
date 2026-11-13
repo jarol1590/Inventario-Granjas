@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
@@ -16,8 +16,19 @@ public sealed record VigenciaItem(int Id, int Anio, bool Activa)
     public string Texto => Activa ? $"Año {Anio} (Activa)" : $"Año {Anio}";
 }
 
+/// <summary>Pestaña de un programa en la pantalla de tarifas: la ganadería usa la matriz por edades; los demás, valores de referencia.</summary>
+public sealed record ProgramaTarifaItem(Programa Programa)
+{
+    public string Titulo => EspecieDePrograma.De(Programa).Titulo;
+
+    public string Icono => EspecieDePrograma.De(Programa).Icono;
+
+    public bool UsaValorizacionBiologica => Programa.UsaValorizacionBiologica;
+}
+
 /// <summary>
-/// Pestaña "Tarifas Valorización": vigencias anuales y matriz editable. Guardar y Activar pasan por la validación de
+/// Pestaña "Tarifas Valorización": una pestaña por programa. La ganadería (valorización biológica) muestra las vigencias anuales
+/// y la matriz editable; los demás programas, la tabla simple de categorías con su valor de referencia. Guardar y Activar pasan por la validación de
 /// solapamientos del servicio, así que una matriz inconsistente no se puede guardar ni activar.
 /// </summary>
 public sealed partial class TarifasViewModel : ViewModelBase, ISeccion
@@ -30,21 +41,39 @@ public sealed partial class TarifasViewModel : ViewModelBase, ISeccion
     private readonly IReloj _reloj;
     private bool _cargando;
     private bool _revirtiendo;
+    private bool _cambiandoPrograma;
 
     public TarifasViewModel(
         IVigenciaService vigencias,
         ICatalogoService catalogo,
         IAgingEngine valorizacion,
         IReloj reloj,
+        ITarifaProgramaService tarifasPrograma,
         IDialogService dialogos)
         : base(dialogos)
     {
+        Simples = new TarifasSimplesViewModel(tarifasPrograma, dialogos);
         _vigencias = vigencias;
         _catalogo = catalogo;
         _valorizacion = valorizacion;
         _reloj = reloj;
         Filas.CollectionChanged += AlCambiarColeccion;
     }
+
+    /// <summary>Una pestaña por programa (tabla PROGRAMA).</summary>
+    public ObservableCollection<ProgramaTarifaItem> ProgramasTarifa { get; } = [];
+
+    /// <summary>Tabla simple de categorías del programa seleccionado cuando no usa valorización biológica.</summary>
+    public TarifasSimplesViewModel Simples { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EsBovino), nameof(NoEsBovino))]
+    private ProgramaTarifaItem? _programaTarifa;
+
+    /// <summary>El programa elegido usa la matriz por edades (si no hay programas se muestra la matriz de siempre).</summary>
+    public bool EsBovino => ProgramaTarifa?.UsaValorizacionBiologica ?? true;
+
+    public bool NoEsBovino => !EsBovino;
 
     public ObservableCollection<VigenciaItem> Vigencias { get; } = [];
 
@@ -81,9 +110,11 @@ public sealed partial class TarifasViewModel : ViewModelBase, ISeccion
     {
         await EjecutarAsync(async () =>
         {
+            // La matriz por edades es solo de los programas con valorización biológica (bovinos).
+            var biologicos = (await _catalogo.GetProgramasAsync()).Where(p => p.UsaValorizacionBiologica).Select(p => p.Id).ToHashSet();
             var categorias = await _catalogo.GetCategoriasAsync();
             Categorias.Clear();
-            foreach (var c in categorias.Where(c => c.Nombre != NombresBase.CategoriaSinClasificar))
+            foreach (var c in categorias.Where(c => biologicos.Contains(c.ProgramaId) && c.Nombre != NombresBase.CategoriaSinClasificar))
             {
                 Categorias.Add(c);
             }
@@ -97,13 +128,95 @@ public sealed partial class TarifasViewModel : ViewModelBase, ISeccion
             }
 
             await RecargarVigenciasAsync(VigenciaSeleccionada?.Id);
+            await CargarProgramasAsync();
         }, "cargar las tarifas");
+    }
+
+    private async Task CargarProgramasAsync()
+    {
+        var previo = ProgramaTarifa?.Programa.Id;
+        var programas = await _catalogo.GetProgramasAsync();
+
+        _cambiandoPrograma = true;
+        try
+        {
+            ProgramasTarifa.Clear();
+            foreach (var p in programas)
+            {
+                ProgramasTarifa.Add(new ProgramaTarifaItem(p));
+            }
+
+            ProgramaTarifa = ProgramasTarifa.FirstOrDefault(p => p.Programa.Id == previo)
+                ?? ProgramasTarifa.FirstOrDefault(p => p.UsaValorizacionBiologica)
+                ?? ProgramasTarifa.FirstOrDefault();
+        }
+        finally
+        {
+            _cambiandoPrograma = false;
+        }
+
+        if (ProgramaTarifa is { UsaValorizacionBiologica: false } actual)
+        {
+            await Simples.CargarAsync(actual.Programa);
+        }
+    }
+
+    partial void OnProgramaTarifaChanged(ProgramaTarifaItem? oldValue, ProgramaTarifaItem? newValue)
+    {
+        if (_cambiandoPrograma || newValue is null)
+        {
+            return;
+        }
+
+        if (!PuedeSalir())
+        {
+            ContextoUi.Diferir(() =>
+            {
+                _cambiandoPrograma = true;
+                try
+                {
+                    ProgramaTarifa = oldValue;
+                }
+                finally
+                {
+                    _cambiandoPrograma = false;
+                }
+            });
+            return;
+        }
+
+        // Los cambios que el usuario aceptó descartar se recargan para que la pestaña no conserve valores sin guardar.
+        if (!newValue.UsaValorizacionBiologica)
+        {
+            _ = EjecutarAsync(() => Simples.CargarAsync(newValue.Programa), "cargar las categorías del programa");
+        }
+        else if (Simples.HayCambios && Simples.Programa is { } anterior)
+        {
+            _ = EjecutarAsync(() => Simples.CargarAsync(anterior), "descartar los cambios");
+        }
+
+        if (HayCambios && VigenciaSeleccionada is { } vigencia)
+        {
+            _ = EjecutarAsync(() => CargarMatrizAsync(vigencia.Id), "descartar los cambios");
+        }
     }
 
     /// <summary>Con cambios sin guardar pregunta antes de abandonar la pestaña.</summary>
     public bool PuedeSalir()
-        => !HayCambios || Dialogos.Confirmar(
-            "Hay cambios sin guardar en la matriz de tarifas.\n\n¿Desea descartarlos y salir?", "Cambios sin guardar", destructivo: true);
+    {
+        if (!HayCambios && !Simples.HayCambios)
+        {
+            return true;
+        }
+
+        if (!Dialogos.Confirmar(
+                "Hay cambios sin guardar en las tarifas.\n\n¿Desea descartarlos y salir?", "Cambios sin guardar", destructivo: true))
+        {
+            return false;
+        }
+
+        return true;
+    }
 
     partial void OnVigenciaSeleccionadaChanged(VigenciaItem? oldValue, VigenciaItem? newValue)
     {

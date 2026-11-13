@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Datos semilla iniciales (se ejecutan una sola vez, al crear la base).
 -- Fuentes: documento v2.0, tabla de precios 2026, notas.docx y mockups de Configuración.
 -- No se siembra CONFIGURACION_SISTEMA: su ausencia indica el primer arranque (crear contraseña).
@@ -7,9 +7,10 @@
 -- Orientaciones: solo existen Lácteo y Carne/Levante (no hay "Doble Propósito").
 INSERT INTO ORIENTACION_PRODUCTIVA (nombre) VALUES ('Lácteo'), ('Carne/Levante');
 
-INSERT INTO PROGRAMA (codigo, nombre, tipo_inventario, observaciones) VALUES
-    ('PRG-GAN', 'Ganadería (Bovinos)', 'INDIVIDUAL', 'Control por semoviente (chapeta)'),
-    ('PRG-AVE', 'Avicultura (Aves)',   'LOTE',       'Control por galpón');
+-- Solo la ganadería bovina usa la valorización biológica mensual (AgingEngine); los demás programas usan valores de referencia.
+INSERT INTO PROGRAMA (codigo, nombre, tipo_inventario, observaciones, usa_valorizacion_biologica, unidad_venta_default) VALUES
+    ('PRG-GAN', 'Ganadería (Bovinos)', 'INDIVIDUAL', 'Control por semoviente (chapeta)', 1, 'UNIDAD'),
+    ('PRG-AVE', 'Avicultura (Aves)',   'LOTE',       'Control por galpón',               0, 'KG');
 
 -- Granjas. La orientación sugerida sirve para proponerla en los traslados:
 -- Tesorito = leche, Montelindo = carne, La Cruz = hato mixto (sin sugerencia).
@@ -72,3 +73,12 @@ WHERE v.anio = 2026;
 -- Firma: valores de relleno. El nombre real de la autoridad se configura en Configuración > Firmas e Identidad.
 INSERT INTO CONFIGURACION_FIRMA (nombre_autoridad, cargo_autoridad, entidad_facultad, telefono, ruta_imagen_firma)
 VALUES ('NOMBRE DE LA AUTORIDAD', 'DECANO(A)', 'FACULTAD DE CIENCIAS AGROPECUARIAS', NULL, NULL);
+
+-- Categoría "General" de los programas que no usan valorización biológica: permite registrar inventario sin configurar tarifas.
+INSERT INTO CATEGORIA_ETAPA (nombre, sexo, programa_id)
+SELECT 'General', 'Ambos', p.id FROM PROGRAMA p WHERE p.usa_valorizacion_biologica = 0;
+
+INSERT INTO TARIFA_CATEGORIA_PROGRAMA (programa_id, categoria_id, nombre_categoria, unidad_cobro, valor_referencia, es_default)
+SELECT p.id, c.id, 'General', p.unidad_venta_default, 0, 1
+FROM PROGRAMA p JOIN CATEGORIA_ETAPA c ON c.programa_id = p.id AND c.nombre = 'General'
+WHERE p.usa_valorizacion_biologica = 0;

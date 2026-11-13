@@ -1,9 +1,10 @@
-<UserControl x:Class="UCaldas.Granjas.App.Vistas.ComprasView"
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.ComprasView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
+      
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
@@ -25,8 +26,8 @@
       </Border>
       <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0" Padding="12,10">
         <StackPanel>
-          <TextBlock Text="Animales Comprados" Style="{StaticResource Texto.KpiEtiqueta}" />
-          <TextBlock Text="{Binding AnimalesComprados}" Style="{StaticResource Texto.KpiValor}" />
+          <TextBlock Text="Unidades Compradas" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding AnimalesComprados, StringFormat=N0}" Style="{StaticResource Texto.KpiValor}" />
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Tarjeta}" Padding="12,10">
@@ -69,15 +70,16 @@
         </Style>
       </DataGrid.RowStyle>
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Número Factura" Binding="{Binding NumeroFactura}" Width="1.2*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Orden Compra" Binding="{Binding OrdenCompra, TargetNullValue='-'}" Width="1.1*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat='dd/MM/yyyy'}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Entidad / Proveedor" Binding="{Binding Proveedor}" Width="1.8*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="NIT" Binding="{Binding Nit, TargetNullValue='-'}" Width="1.1*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Granja" Binding="{Binding GranjaDestino}" Width="1*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}" Width="0.8*" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Total Factura" Binding="{Binding TotalFactura, StringFormat='$#,##0'}" Width="1.2*" ElementStyle="{StaticResource Celda.Derecha}" />
-      </DataGrid.Columns>
+        <DataGridTextColumn Header="Factura" Binding="{Binding NumeroFactura}" Width="1*" MinWidth="82" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Orden" Binding="{Binding OrdenCompra, TargetNullValue='-'}" Width="1*" MinWidth="100" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat='dd/MM/yyyy'}" Width="0.9*" MinWidth="88" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Entidad / Proveedor" Binding="{Binding Proveedor}" Width="1.6*" MinWidth="125" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Granja" Binding="{Binding GranjaDestino}" Width="0.9*" MinWidth="72" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Identificador" Binding="{Binding Identificador}" Width="1.2*" MinWidth="100" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Categoría / Etapa" Binding="{Binding CategoriaEtapa}" Width="1.3*" MinWidth="95" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Cant." Binding="{Binding Cantidad, StringFormat='N0'}" Width="0.6*" MinWidth="52" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Valor Unitario" Binding="{Binding ValorUnitario, StringFormat='$#,##0'}" Width="1.1*" MinWidth="96" ElementStyle="{StaticResource Celda.Derecha}" />
+        <DataGridTextColumn Header="Total" Binding="{Binding TotalFactura, StringFormat='$#,##0'}" Width="1.1*" MinWidth="96" ElementStyle="{StaticResource Celda.Derecha}" />      </DataGrid.Columns>
     </DataGrid>
 
     <UniformGrid Grid.Row="4" Rows="1" Margin="0,14,0,0">

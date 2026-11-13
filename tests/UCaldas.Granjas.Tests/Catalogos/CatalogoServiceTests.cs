@@ -82,27 +82,78 @@ public class CatalogoServiceTests
         (await servicio.GetProgramasDeGranjaAsync(ids.Montelindo)).Select(p => p.Codigo).Should().Equal("PRG-AVE", "PRG-GAN");
     }
 
+    // ---- Razas y líneas por programa ---------------------------------------------------------------------------------
+
+    private static async Task<(CatalogoService Servicio, int Ganaderia, int Aves)> RazasAsync(BaseDeDatosDePrueba db)
+    {
+        var servicio = Crear(db);
+        var programas = await servicio.GetProgramasAsync();
+        return (servicio, programas.Single(p => p.Codigo == "PRG-GAN").Id, programas.Single(p => p.Codigo == "PRG-AVE").Id);
+    }
+
     [Fact]
-    public async Task Las_razas_combinan_las_del_inventario_con_las_comunes_sin_repetirse()
+    public async Task Cada_programa_lista_solo_sus_razas_con_la_de_por_defecto_primero()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();
-        await using (var uow = await db.Uow.BeginAsync())
-        {
-            var ids = await Datos.IdsBaseAsync(uow);
-            var a = Datos.NuevoAnimal("R-1", ids);
-            a.Raza = "Wagyu";
-            var b = Datos.NuevoAnimal("R-2", ids);
-            b.Raza = "holstein"; // ya está entre las comunes, con otra capitalización
-            await uow.Animales.InsertAsync(a);
-            await uow.Animales.InsertAsync(b);
-            await uow.CommitAsync();
-        }
+        var (servicio, ganaderia, aves) = await RazasAsync(db);
 
-        var razas = await Crear(db).GetRazasAsync();
+        var bovinos = (await servicio.GetRazasDeProgramaAsync(ganaderia)).Select(r => r.Nombre).ToList();
+        bovinos.First().Should().Be(NombresBase.RazaPorDefecto);
+        bovinos.Should().Contain("Holstein").And.NotContain("Hy-Line Brown");
+        bovinos.Skip(1).Should().BeInAscendingOrder(StringComparer.OrdinalIgnoreCase);
+        (await servicio.GetRazasDeProgramaAsync(aves)).Select(r => r.Nombre).Should().Contain("Hy-Line Brown").And.NotContain("Holstein");
+        (await servicio.GetRazasDeProgramaAsync(99999)).Should().BeEmpty();
+    }
 
-        razas.Should().Contain("Wagyu").And.Contain("Jersey");
-        razas.Count(r => r.Equals("holstein", StringComparison.OrdinalIgnoreCase)).Should().Be(1);
-        razas.Should().BeInAscendingOrder(StringComparer.OrdinalIgnoreCase);
+    [Fact]
+    public async Task Un_programa_nuevo_nace_con_la_raza_por_defecto_y_al_eliminarlo_se_van_sus_razas()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        var servicio = Crear(db);
+
+        var equinos = await servicio.GuardarProgramaAsync(
+            new Programa { Codigo = "PRG-EQU", Nombre = "Equinos", TipoInventario = TipoInventario.Individual }, []);
+
+        var razas = await servicio.GetRazasDeProgramaAsync(equinos.Id);
+        var unica = razas.Should().ContainSingle().Subject;
+        (unica.Nombre, unica.EsDefault, unica.Activo).Should().Be(("No Especificada / Cruce", true, true));
+
+        await servicio.EliminarProgramaAsync(equinos.Id);
+        (await db.EscalarAsync<long>($"SELECT COUNT(*) FROM RAZA_LINEA_PROGRAMA WHERE programa_id = {equinos.Id}")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Agregar_una_raza_la_normaliza_rechaza_repetidas_y_reactiva_las_inactivas()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        var (servicio, ganaderia, aves) = await RazasAsync(db);
+
+        var nueva = await servicio.AgregarRazaAsync(ganaderia, "  Wagyu ");
+        (nueva.Nombre, nueva.EsDefault, nueva.Activo).Should().Be(("Wagyu", false, true));
+        (await servicio.GetRazasDeProgramaAsync(aves)).Select(r => r.Nombre).Should().NotContain("Wagyu", "las razas son por programa");
+        await servicio.AgregarRazaAsync(aves, "wagyu");   // mismo nombre en otro programa: permitido
+
+        await ((Func<Task>)(() => servicio.AgregarRazaAsync(ganaderia, "WAGYU"))).Should().ThrowAsync<ValidationException>().WithMessage("*Ya existe la raza o línea*");
+        await ((Func<Task>)(() => servicio.AgregarRazaAsync(ganaderia, "  "))).Should().ThrowAsync<ValidationException>().WithMessage("*nombre de la raza*");
+
+        await servicio.CambiarEstadoRazaAsync(nueva.Id, activo: false);
+        (await servicio.GetRazasDeProgramaAsync(ganaderia)).Select(r => r.Nombre).Should().NotContain("Wagyu");
+        (await servicio.GetRazasDeProgramaAsync(ganaderia, soloActivas: false)).Should().Contain(r => r.Nombre == "Wagyu" && !r.Activo);
+
+        var reactivada = await servicio.AgregarRazaAsync(ganaderia, "Wagyu");
+        (reactivada.Id, reactivada.Activo).Should().Be((nueva.Id, true));
+    }
+
+    [Fact]
+    public async Task La_raza_por_defecto_no_se_puede_inactivar()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        var (servicio, ganaderia, _) = await RazasAsync(db);
+        var porDefecto = (await servicio.GetRazasDeProgramaAsync(ganaderia)).Single(r => r.EsDefault);
+
+        await ((Func<Task>)(() => servicio.CambiarEstadoRazaAsync(porDefecto.Id, activo: false))).Should().ThrowAsync<ValidationException>().WithMessage("*por defecto*");
+        await ((Func<Task>)(() => servicio.CambiarEstadoRazaAsync(99999, activo: false))).Should().ThrowAsync<ValidationException>().WithMessage("*no existe*");
+        (await servicio.GetRazasDeProgramaAsync(ganaderia)).Should().Contain(r => r.EsDefault);
     }
 
     // ---- Granjas ----------------------------------------------------------------------------------------------------

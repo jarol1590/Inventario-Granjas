@@ -115,4 +115,7 @@ public static class NombresBase
 
     /// <summary>Categoría que se crea con cada programa sin valorización biológica y que no se puede borrar.</summary>
     public const string CategoriaGeneral = "General";
+
+    /// <summary>Raza o línea que todo programa trae por defecto (no se puede inactivar).</summary>
+    public const string RazaPorDefecto = "No Especificada / Cruce";
 }

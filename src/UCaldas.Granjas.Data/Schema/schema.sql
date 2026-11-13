@@ -85,6 +85,17 @@ CREATE TABLE TARIFA_CATEGORIA_PROGRAMA (
     UNIQUE (programa_id, nombre_categoria)
 );
 
+-- [v2.5] Catálogo de razas (bovinos, equinos...) y líneas genéticas (aves...) por programa. ANIMAL.raza y LOTE_POBLACION.linea_raza
+-- siguen siendo texto (sin FK): una raza inactivada no invalida lo ya registrado. "No Especificada / Cruce" (es_default) no se inactiva.
+CREATE TABLE RAZA_LINEA_PROGRAMA (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    programa_id INTEGER NOT NULL REFERENCES PROGRAMA(id),
+    nombre      TEXT    NOT NULL COLLATE NOCASE,
+    es_default  BOOLEAN NOT NULL DEFAULT 0,
+    activo      BOOLEAN NOT NULL DEFAULT 1,
+    UNIQUE (programa_id, nombre)
+);
+
 -- MATRIZ DE VALORIZACIÓN ANUAL ----------------------------------------------
 
 CREATE TABLE VIGENCIA_VALORIZACION (

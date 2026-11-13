@@ -168,3 +168,18 @@ internal sealed class TarifaProgramaRepository(SqliteConnection connection, Sqli
     public Task EliminarPorProgramaAsync(int programaId, CancellationToken ct = default)
         => EjecutarAsync("DELETE FROM TARIFA_CATEGORIA_PROGRAMA WHERE programa_id = @programaId", new { programaId }, ct);
 }
+
+internal sealed class RazaLineaRepository(SqliteConnection connection, SqliteTransaction? transaction)
+    : RepositoryBase<RazaLineaPrograma>(connection, transaction), IRazaLineaRepository
+{
+    public Task<IReadOnlyList<RazaLineaPrograma>> GetByProgramaAsync(int programaId, CancellationToken ct = default)
+        => ListaAsync<RazaLineaPrograma>(
+            "SELECT * FROM RAZA_LINEA_PROGRAMA WHERE programa_id = @programaId ORDER BY es_default DESC, nombre COLLATE NOCASE", new { programaId }, ct);
+
+    public Task<RazaLineaPrograma?> GetByNombreAsync(int programaId, string nombre, CancellationToken ct = default)
+        => UnoAsync<RazaLineaPrograma>(
+            "SELECT * FROM RAZA_LINEA_PROGRAMA WHERE programa_id = @programaId AND nombre = @nombre", new { programaId, nombre }, ct);
+
+    public Task EliminarPorProgramaAsync(int programaId, CancellationToken ct = default)
+        => EjecutarAsync("DELETE FROM RAZA_LINEA_PROGRAMA WHERE programa_id = @programaId", new { programaId }, ct);
+}

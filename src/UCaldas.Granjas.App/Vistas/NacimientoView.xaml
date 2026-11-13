@@ -61,7 +61,7 @@
       <TextBlock Grid.Row="1" Text="Nombre:" Style="{StaticResource Etiq}" />
       <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
       <TextBlock Grid.Row="1" Grid.Column="2" Text="*Raza:" Style="{StaticResource Etiq}" />
-      <ComboBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" IsEditable="True" ItemsSource="{Binding Razas}" Text="{Binding Raza, UpdateSourceTrigger=PropertyChanged}" />
+      <ComboBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding RazasDisponibles}" SelectedItem="{Binding Raza}" />
 
       <TextBlock Grid.Row="2" Text="*Sexo:" Style="{StaticResource Etiq}" />
       <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">

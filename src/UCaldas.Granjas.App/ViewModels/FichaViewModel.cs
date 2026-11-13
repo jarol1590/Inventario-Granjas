@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Constants;
@@ -47,7 +47,8 @@ public sealed partial class FichaViewModel : DialogViewModelBase
 
     public ObservableCollection<OpcionFiltro> Orientaciones { get; } = [];
 
-    public ObservableCollection<string> Razas { get; } = [];
+    /// <summary>Razas activas del programa del animal (más la actual si es una raza antigua que ya no está en el catálogo).</summary>
+    public ObservableCollection<string> RazasDisponibles { get; } = [];
 
     public ObservableCollection<EventoFicha> Historial { get; } = [];
 
@@ -146,12 +147,6 @@ public sealed partial class FichaViewModel : DialogViewModelBase
                 Orientaciones.Add(new OpcionFiltro(o.Id, o.Nombre));
             }
 
-            Razas.Clear();
-            foreach (var r in await _catalogo.GetRazasAsync())
-            {
-                Razas.Add(r);
-            }
-
             await RecargarFichaAsync();
         }, "abrir la ficha del bovino");
     }
@@ -227,6 +222,7 @@ public sealed partial class FichaViewModel : DialogViewModelBase
     {
         var ficha = await _fichas.ObtenerAsync(_animalId);
         var animal = ficha.Animal;
+        await CargarRazasAsync(animal.CategoriaId, animal.Raza);
 
         _cargando = true;
         try
@@ -268,6 +264,25 @@ public sealed partial class FichaViewModel : DialogViewModelBase
         }
 
         HayCambios = false;
+    }
+
+    private async Task CargarRazasAsync(int categoriaId, string razaActual)
+    {
+        RazasDisponibles.Clear();
+        var programaId = (await _catalogo.GetCategoriasAsync()).FirstOrDefault(c => c.Id == categoriaId)?.ProgramaId;
+        if (programaId is { } id)
+        {
+            foreach (var r in await _catalogo.GetRazasDeProgramaAsync(id))
+            {
+                RazasDisponibles.Add(r.Nombre);
+            }
+        }
+
+        // Una raza antigua que ya no está en el catálogo se sigue mostrando.
+        if (!string.IsNullOrWhiteSpace(razaActual) && !RazasDisponibles.Contains(razaActual, StringComparer.OrdinalIgnoreCase))
+        {
+            RazasDisponibles.Add(razaActual);
+        }
     }
 
     private static string DescribirGenealogia(FichaAnimal ficha)

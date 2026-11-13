@@ -100,7 +100,10 @@
           </DataGridTemplateColumn>
           <DataGridTemplateColumn Header="*Línea / Raza" Width="1.2*" MinWidth="115">
             <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate><TextBox Text="{Binding LineaRaza, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" /></DataTemplate>
+              <DataTemplate>
+                <ComboBox ItemsSource="{Binding DataContext.RazasDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          SelectedItem="{Binding LineaRaza}" />
+              </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
           <DataGridTemplateColumn Header="*Cantidad" Width="0.8*" MinWidth="90">
@@ -187,8 +190,8 @@
           <DataGridTemplateColumn Header="*Raza" Width="1.2*" MinWidth="110">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
-                <ComboBox IsEditable="True" ItemsSource="{Binding DataContext.Razas, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                          Text="{Binding Raza, UpdateSourceTrigger=PropertyChanged}" />
+                <ComboBox ItemsSource="{Binding DataContext.RazasDisponibles, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                          SelectedItem="{Binding Raza}" />
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>

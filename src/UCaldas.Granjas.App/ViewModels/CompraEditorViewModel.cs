@@ -83,7 +83,8 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
 
     private int _categoriaPredeterminada;
 
-    public ObservableCollection<string> Razas { get; } = [];
+    /// <summary>Razas (o líneas, en lotes) activas del programa de la compra, más las antiguas que ya traen las filas.</summary>
+    public ObservableCollection<string> RazasDisponibles { get; } = [];
 
     public ObservableCollection<CompraAnimalFila> Animales { get; } = [];
 
@@ -178,6 +179,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
             var fila = new CompraLoteFila(detalle);
             fila.PropertyChanged += (_, _) => NotificarTotales();
             Lotes.Add(fila);
+            await CargarRazasAsync();
 
             Anulada = lote.Anulado;
             Modo = ModoDocumento.Detalle;
@@ -195,6 +197,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
             ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == _contexto.ProgramaId)
                 ?? Programas.FirstOrDefault(p => p.UsaValorizacionBiologica) ?? Programas.FirstOrDefault();
             await CargarCategoriasAsync();
+            await CargarRazasAsync();
             Modo = ModoDocumento.Nuevo;
             AgregarAnimal();
         }, "preparar el formulario de compra");
@@ -229,6 +232,8 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
                 Animales.Add(new CompraAnimalFila(animal));
             }
 
+            await CargarRazasAsync();
+
             Anulada = editable.Anulada;
             Modo = ModoDocumento.Detalle;
         }, "abrir la compra");
@@ -239,6 +244,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
     {
         var fila = new CompraAnimalFila(null, _orientacionPredeterminada);
         fila.CategoriaId = NoEsBovino ? _categoriaPredeterminada : 0;
+        fila.Raza = RazasDisponibles.FirstOrDefault() ?? string.Empty;
         Animales.Add(fila);
     }
 
@@ -440,12 +446,6 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         {
             Programas.Add(p);
         }
-
-        Razas.Clear();
-        foreach (var r in await _catalogo.GetRazasAsync())
-        {
-            Razas.Add(r);
-        }
     }
 
     partial void OnProgramaSeleccionadoChanged(Programa? value)
@@ -458,11 +458,41 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         _ = EjecutarAsync(async () =>
         {
             await CargarCategoriasAsync();
+            await CargarRazasAsync();
             foreach (var fila in Animales)
             {
                 fila.CategoriaId = NoEsBovino ? _categoriaPredeterminada : 0;
+
+                // La raza de un programa no sirve en otro: vuelve a la opción por defecto del nuevo programa.
+                if (!RazasDisponibles.Contains(fila.Raza, StringComparer.OrdinalIgnoreCase))
+                {
+                    fila.Raza = RazasDisponibles.FirstOrDefault() ?? string.Empty;
+                }
             }
         }, "cargar las categorías del programa");
+    }
+
+    /// <summary>Razas activas del programa elegido; las razas antiguas que ya traen las filas se conservan para mostrarse.</summary>
+    private async Task CargarRazasAsync()
+    {
+        // Se toman antes de vaciar la lista: al quedar sin elementos, los combos de la grilla anulan la raza de sus filas.
+        var antiguas = Animales.Select(a => a.Raza).Concat(Lotes.Select(l => l.LineaRaza)).Where(r => !string.IsNullOrWhiteSpace(r)).ToList();
+        RazasDisponibles.Clear();
+        if (ProgramaSeleccionado is { } programa)
+        {
+            foreach (var r in await _catalogo.GetRazasDeProgramaAsync(programa.Id))
+            {
+                RazasDisponibles.Add(r.Nombre);
+            }
+        }
+
+        foreach (var raza in antiguas)
+        {
+            if (!RazasDisponibles.Contains(raza, StringComparer.OrdinalIgnoreCase))
+            {
+                RazasDisponibles.Add(raza);
+            }
+        }
     }
 
     private async Task CargarCategoriasAsync()

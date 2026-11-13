@@ -1,4 +1,4 @@
-<UserControl x:Class="UCaldas.Granjas.App.Vistas.Configuracion.GranjasProgramasView"
+﻿<UserControl x:Class="UCaldas.Granjas.App.Vistas.Configuracion.GranjasProgramasView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -54,6 +54,33 @@
         </DataGrid.Columns>
       </DataGrid>
       <Button Margin="0,10,0,0" Content="+ Agregar Nuevo Programa" HorizontalAlignment="Left" Command="{Binding AgregarProgramaCommand}" />
+
+      <Line Margin="0,26,0,22" X1="0" X2="1" Stretch="Fill" Stroke="{StaticResource Brush.Borde}" StrokeDashArray="4 3" StrokeThickness="1.5" />
+
+      <TextBlock Text="RAZAS / LÍNEAS POR PROGRAMA" Style="{StaticResource Texto.Titulo}" />
+      <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+        <TextBlock Text="Programa:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,10,0" />
+        <ComboBox Width="260" ItemsSource="{Binding ProgramasDeRazas}" SelectedItem="{Binding ProgramaDeRazas}" DisplayMemberPath="Nombre" />
+        <TextBox Width="260" Margin="30,0,0,0" MaxLength="60" VerticalContentAlignment="Center" ToolTip="Nombre de la nueva raza o línea genética"
+                 Text="{Binding NuevaRaza, UpdateSourceTrigger=PropertyChanged}" />
+        <Button Margin="10,0,0,0" Content="+ Agregar Raza/Línea" Command="{Binding AgregarRazaCommand}" />
+      </StackPanel>
+      <DataGrid Margin="0,12,0,0" ItemsSource="{Binding Razas}" ScrollViewer.VerticalScrollBarVisibility="Auto" MaxHeight="230">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Raza / Línea" Binding="{Binding Nombre}" Width="3*" MinWidth="200" />
+          <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="1*" MinWidth="90" ElementStyle="{StaticResource Celda.Centro}" />
+          <DataGridTemplateColumn Header="Acciones" Width="Auto" MinWidth="110">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Button Content="{Binding TextoAccion}" Style="{StaticResource Boton.Enlace}"
+                        Visibility="{Binding PuedeCambiarEstado, Converter={StaticResource BoolAVisibilidad}}"
+                        Command="{Binding DataContext.CambiarEstadoRazaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

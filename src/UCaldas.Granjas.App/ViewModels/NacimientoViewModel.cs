@@ -66,7 +66,8 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
 
     public bool NoEsBovino => !EsBovino;
 
-    public ObservableCollection<string> Razas { get; } = [];
+    /// <summary>Razas activas del programa elegido (catálogo por programa).</summary>
+    public ObservableCollection<string> RazasDisponibles { get; } = [];
 
     [ObservableProperty]
     private OpcionFiltro? _granjaSeleccionada;
@@ -154,11 +155,6 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
                 Orientaciones.Add(new OpcionFiltro(o.Id, o.Nombre));
             }
 
-            foreach (var r in await _catalogo.GetRazasAsync())
-            {
-                Razas.Add(r);
-            }
-
             foreach (var p in await _catalogo.GetProgramasPorTipoAsync(TipoInventario.Individual))
             {
                 Programas.Add(p);
@@ -167,6 +163,7 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
             ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == _contexto.ProgramaId)
                 ?? Programas.FirstOrDefault(p => p.UsaValorizacionBiologica) ?? Programas.FirstOrDefault();
             await CargarCategoriasAsync();
+            await CargarRazasAsync();
             GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == _contexto.GranjaId) ?? Granjas.FirstOrDefault();
             var sugerida = granjas.FirstOrDefault(g => g.Id == GranjaSeleccionada?.Id)?.OrientacionId;
             OrientacionSeleccionada = Orientaciones.FirstOrDefault(o => o.Id == sugerida) ?? Orientaciones.FirstOrDefault();
@@ -183,12 +180,33 @@ public sealed partial class NacimientoViewModel : DialogViewModelBase
             _ = EjecutarAsync(async () =>
             {
                 await CargarCategoriasAsync();
+                await CargarRazasAsync();
                 await ActualizarVistaPreviaAsync();
             }, "cargar las categorías del programa");
         }
     }
 
     partial void OnCategoriaSeleccionadaChanged(OpcionFiltro? value) => _ = ActualizarVistaPreviaAsync();
+
+    /// <summary>Carga las razas del programa elegido; si la raza escrita no es de ese programa, se vuelve a la opción por defecto.</summary>
+    private async Task CargarRazasAsync()
+    {
+        RazasDisponibles.Clear();
+        if (ProgramaSeleccionado is not { } programa)
+        {
+            return;
+        }
+
+        foreach (var r in await _catalogo.GetRazasDeProgramaAsync(programa.Id))
+        {
+            RazasDisponibles.Add(r.Nombre);
+        }
+
+        if (!RazasDisponibles.Contains(Raza, StringComparer.OrdinalIgnoreCase))
+        {
+            Raza = RazasDisponibles.FirstOrDefault() ?? string.Empty;
+        }
+    }
 
     private async Task CargarCategoriasAsync()
     {

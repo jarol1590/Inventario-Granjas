@@ -26,8 +26,17 @@ public interface ICatalogoService
     /// <summary>Categorías biológicas de un programa (la especie de una pestaña de Animales).</summary>
     Task<IReadOnlyList<CategoriaEtapa>> GetCategoriasDeProgramaAsync(int programaId, CancellationToken ct = default);
 
-    /// <summary>Razas usadas en el inventario más algunas comunes, para autocompletar.</summary>
-    Task<IReadOnlyList<string>> GetRazasAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Razas (o líneas genéticas) del programa para los selectores: la de por defecto primero y luego por nombre.
+    /// Los selectores piden solo las activas; la configuración las pide todas.
+    /// </summary>
+    Task<IReadOnlyList<RazaLineaPrograma>> GetRazasDeProgramaAsync(int programaId, bool soloActivas = true, CancellationToken ct = default);
+
+    /// <summary>Agrega una raza o línea al programa (nombre único sin distinguir mayúsculas); si existía inactiva, la reactiva.</summary>
+    Task<RazaLineaPrograma> AgregarRazaAsync(int programaId, string nombre, CancellationToken ct = default);
+
+    /// <summary>Activa o inactiva una raza. La de por defecto («No Especificada / Cruce») no se puede inactivar.</summary>
+    Task CambiarEstadoRazaAsync(int razaId, bool activo, CancellationToken ct = default);
 
     Task<IReadOnlyList<int>> GetGranjaIdsDeProgramaAsync(int programaId, CancellationToken ct = default);
 
@@ -54,12 +63,6 @@ public interface ICatalogoService
 
 public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoService
 {
-    private static readonly string[] RazasComunes =
-    [
-        "Holstein", "Jersey", "Normando", "Pardo Suizo", "Ayrshire", "Gyr", "Brahman", "Cebú", "Simmental", "Angus",
-        "Romosinuano", "Blanco Orejinegro (BON)", "Criollo", "Cruce",
-    ];
-
     public async Task<IReadOnlyList<Granja>> GetGranjasAsync(bool soloActivas = false, CancellationToken ct = default)
     {
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
@@ -107,16 +110,50 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
         return await uow.Categorias.GetByProgramaAsync(programaId, ct);
     }
 
-    public async Task<IReadOnlyList<string>> GetRazasAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<RazaLineaPrograma>> GetRazasDeProgramaAsync(int programaId, bool soloActivas = true, CancellationToken ct = default)
     {
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
-        var usadas = (await uow.Animales.GetAllAsync(ct)).Select(a => a.Raza);
-        return usadas.Concat(RazasComunes)
-            .Where(r => !string.IsNullOrWhiteSpace(r))
-            .Select(r => r.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(r => r, StringComparer.OrdinalIgnoreCase)
+
+        // La de por defecto primero y luego por nombre con orden de es-CO (SQLite no ordena bien las tildes: «Árabe» iría al final).
+        var orden = StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("es-CO"), ignoreCase: true);
+        return (await uow.Razas.GetByProgramaAsync(programaId, ct))
+            .Where(r => !soloActivas || r.Activo)
+            .OrderByDescending(r => r.EsDefault).ThenBy(r => r.Nombre, orden)
             .ToList();
+    }
+
+    public async Task<RazaLineaPrograma> AgregarRazaAsync(int programaId, string nombre, CancellationToken ct = default)
+    {
+        var limpio = (nombre ?? string.Empty).Trim();
+        Regla.ExigirTexto(limpio, "El nombre de la raza o línea");
+        Regla.Exigir(limpio.Length <= 60, "El nombre de la raza o línea no puede superar los 60 caracteres.");
+
+        await using var uow = await fabrica.BeginAsync(ct);
+        var programa = await uow.Programas.GetByIdAsync(programaId, ct) ?? throw Regla.Violada("El programa no existe.");
+        var existente = await uow.Razas.GetByNombreAsync(programaId, limpio, ct);
+        if (existente is not null)
+        {
+            Regla.Exigir(!existente.Activo, $"Ya existe la raza o línea «{existente.Nombre}» en {programa.Nombre}.");
+            existente.Activo = true;
+            await uow.Razas.UpdateAsync(existente, ct);
+            await uow.CommitAsync(ct);
+            return existente;
+        }
+
+        var nueva = new RazaLineaPrograma { ProgramaId = programaId, Nombre = limpio, EsDefault = false, Activo = true };
+        await uow.Razas.InsertAsync(nueva, ct);
+        await uow.CommitAsync(ct);
+        return nueva;
+    }
+
+    public async Task CambiarEstadoRazaAsync(int razaId, bool activo, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.BeginAsync(ct);
+        var raza = await uow.Razas.GetByIdAsync(razaId, ct) ?? throw Regla.Violada("La raza o línea no existe.");
+        Regla.Exigir(activo || !raza.EsDefault, $"«{raza.Nombre}» es la opción por defecto del programa y no se puede inactivar.");
+        raza.Activo = activo;
+        await uow.Razas.UpdateAsync(raza, ct);
+        await uow.CommitAsync(ct);
     }
 
     public async Task<IReadOnlyList<int>> GetGranjaIdsDeProgramaAsync(int programaId, CancellationToken ct = default)
@@ -240,6 +277,12 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
                 EsDefault = true,
                 Activo = true,
             }, ct);
+
+            // Ningún programa nuevo queda bloqueado por falta de razas: nace con la opción por defecto.
+            await uow.Razas.InsertAsync(new RazaLineaPrograma
+            {
+                ProgramaId = guardado.Id, Nombre = NombresBase.RazaPorDefecto, EsDefault = true, Activo = true,
+            }, ct);
         }
         else
         {
@@ -263,6 +306,7 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
 
         // Las categorías y tarifas de referencia (General y etapas) se van con el programa; ya no hay animales ni lotes que las usen.
         await uow.TarifasPrograma.EliminarPorProgramaAsync(programaId, ct);
+        await uow.Razas.EliminarPorProgramaAsync(programaId, ct);
         foreach (var categoria in await uow.Categorias.GetByProgramaAsync(programaId, ct))
         {
             await uow.Categorias.DeleteAsync(categoria.Id, ct);

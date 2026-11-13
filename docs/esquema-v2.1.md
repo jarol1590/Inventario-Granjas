@@ -1,4 +1,4 @@
-﻿# Esquema de base de datos v2.1 (con las ampliaciones v2.2 y v2.3)
+﻿# Esquema de base de datos v2.1 (con las ampliaciones v2.2 a v2.5)
 
 Base: el esquema "definitivo" v2.0 de `contexto_y_plan_de_desarrollo_ia.md` (§4). La versión implementada
 (`PRAGMA user_version = 2`, script `src/UCaldas.Granjas.Data/Schema/schema.sql`) agrega las extensiones de abajo.
@@ -44,6 +44,14 @@ La migración da «General» (categoría y tarifa) a cada programa sin valorizac
 | LOTE_POBLACION | `operaciones` (cambios de etapa, desdobles, bajas, ventas y traslados; solo informativo: ya no bloquea la corrección de la compra; la anulación se rechaza únicamente si el lote fue desdoblado, vendido o trasladado) y `anulado` (compra anulada). La migración marca `operaciones = 1` en los lotes con mortandad, desdoble o cantidad distinta de la inicial |
 | REMISION_DETALLE | `lote_destino_id` (lote creado por un traslado parcial de lotes) |
 
+## Ampliación v2.5 (`user_version = 5`, `Schema/migracion_v5.sql`)
+
+| Tabla | Cambio |
+|---|---|
+| RAZA_LINEA_PROGRAMA (nueva) | `programa_id`, `nombre` (único por programa, sin distinguir mayúsculas), `es_default` («No Especificada / Cruce»: se crea con el programa y no se inactiva), `activo`. Catálogo de razas (bovinos, equinos...) y líneas genéticas (aves...) de los selectores. `ANIMAL.raza` y `LOTE_POBLACION.linea_raza` siguen siendo texto |
+
+La migración da la raza por defecto a cada programa, siembra las razas bovinas (programa con valorización biológica) y las líneas avícolas (`PRG-AVE`), y agrega sin duplicar las razas distintas ya usadas por animales y lotes.
+
 ## Restricciones agregadas
 
 No cambian los datos; hacen que la base misma haga cumplir las reglas del negocio.
@@ -63,7 +71,7 @@ No cambian los datos; hacen que la base misma haga cumplir las reglas del negoci
 - **Dinero:** `DECIMAL(12,2)` en SQLite, `decimal` en C#. Los totales se suman en C#, nunca con `SUM()` de SQL (coma flotante).
 - **Signo del libro:** `costo_asociado` es positivo en compras, nacimientos y entradas por traslado; negativo en ventas, bajas y salidas por traslado; ± en valorizaciones. Las entradas y valorizaciones usan `granja_destino_id`; las salidas, `granja_origen_id`. Un traslado genera dos filas por animal (−valor en origen, +valor en destino).
 - **Inmutabilidad:** `AnimalRepository.UpdateAsync` nunca toca `valor_compra_origen`, `fecha_registro` ni `clase_entrada`; el valor de compra solo cambia con `ActualizarValorCompraOrigenAsync` (corrección de factura al editar una compra).
-- **Versionado:** `PRAGMA user_version`. `DatabaseInitializer` (`VersionEsquemaActual = 2`): versión 0 (base vacía) → crea el esquema y las semillas en una sola transacción; versión 1 → aplica `Schema/migracion_v2.sql` (también en una transacción) y sube a 2; cualquier otra versión se rechaza sin tocar datos. Al restaurar un respaldo `SqliteDatabaseMaintenance.ReemplazarBaseAsync` vuelve a pasar por el inicializador, así que un respaldo de una versión anterior se migra solo.
+- **Versionado:** `PRAGMA user_version`. `DatabaseInitializer` (`VersionEsquemaActual = 5`): versión 0 (base vacía) → crea el esquema y las semillas en una sola transacción; versiones 1 a 4 → aplican en cadena las migraciones que falten (`migracion_v2.sql` … `migracion_v5.sql`, todas en una transacción); cualquier otra versión se rechaza sin tocar datos. Al restaurar un respaldo `SqliteDatabaseMaintenance.ReemplazarBaseAsync` vuelve a pasar por el inicializador, así que un respaldo de una versión anterior se migra solo.
 - **Hashes de contraseña:** `PBKDF2-SHA256$<iteraciones>$<sal Base64>$<hash Base64>` (200.000 iteraciones, sal propia de 16 bytes, hash de 32 bytes, comparación en tiempo constante). Lo usan `password_hash`, `respuesta_hash` y `recovery_key_hash`.
 
 ## Migración v1 → v2 (`Schema/migracion_v2.sql`)

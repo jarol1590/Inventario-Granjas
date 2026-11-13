@@ -20,6 +20,7 @@ internal sealed class UnitOfWork : IUnitOfWork
     private IVigenciaRepository? _vigencias;
     private ITarifaRepository? _tarifas;
     private ITarifaProgramaRepository? _tarifasPrograma;
+    private IRazaLineaRepository? _razas;
     private IAnimalRepository? _animales;
     private IGenealogiaRepository? _genealogias;
     private ILoteRepository? _lotes;
@@ -51,6 +52,7 @@ internal sealed class UnitOfWork : IUnitOfWork
     public ITarifaRepository Tarifas => _tarifas ??= new TarifaRepository(_connection, _transaction);
 
     public ITarifaProgramaRepository TarifasPrograma => _tarifasPrograma ??= new TarifaProgramaRepository(_connection, _transaction);
+    public IRazaLineaRepository Razas => _razas ??= new RazaLineaRepository(_connection, _transaction);
 
     public IAnimalRepository Animales => _animales ??= new AnimalRepository(_connection, _transaction);
 

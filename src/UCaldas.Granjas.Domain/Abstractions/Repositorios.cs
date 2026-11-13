@@ -91,6 +91,16 @@ public interface ITarifaProgramaRepository : IRepository<TarifaCategoriaPrograma
     Task EliminarPorProgramaAsync(int programaId, CancellationToken ct = default);
 }
 
+public interface IRazaLineaRepository : IRepository<RazaLineaPrograma>
+{
+    /// <summary>Razas y líneas del programa: la de por defecto primero y luego por nombre.</summary>
+    Task<IReadOnlyList<RazaLineaPrograma>> GetByProgramaAsync(int programaId, CancellationToken ct = default);
+
+    Task<RazaLineaPrograma?> GetByNombreAsync(int programaId, string nombre, CancellationToken ct = default);
+
+    Task EliminarPorProgramaAsync(int programaId, CancellationToken ct = default);
+}
+
 public interface IVigenciaRepository : IRepository<VigenciaValorizacion>
 {
     Task<VigenciaValorizacion?> GetActivaAsync(CancellationToken ct = default);

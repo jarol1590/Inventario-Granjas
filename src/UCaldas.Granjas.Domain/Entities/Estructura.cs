@@ -82,6 +82,19 @@ public class TarifaCategoriaPrograma
     public bool Activo { get; set; } = true;
 }
 
+/// <summary>
+/// Raza (bovinos, equinos...) o línea genética (aves...) disponible en los formularios de un programa (extensión v2.5).
+/// <see cref="EsDefault"/> = «No Especificada / Cruce»: se crea con el programa y no se puede inactivar.
+/// </summary>
+public class RazaLineaPrograma
+{
+    public int Id { get; set; }
+    public int ProgramaId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public bool EsDefault { get; set; }
+    public bool Activo { get; set; } = true;
+}
+
 /// <summary>Relación N:M entre granjas y programas.</summary>
 public class GranjaPrograma
 {

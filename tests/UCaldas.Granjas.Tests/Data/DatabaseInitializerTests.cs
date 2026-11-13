@@ -10,11 +10,11 @@ public class DatabaseInitializerTests
     [
         "ANIMAL", "CATEGORIA_ETAPA", "CONFIGURACION_FIRMA", "CONFIGURACION_SISTEMA", "DATOS_GENEALOGIA", "GRANJA",
         "GRANJA_PROGRAMA", "LOTE_POBLACION", "MOVIMIENTO_INVENTARIO", "OFICIO_VENTA", "ORIENTACION_PRODUCTIVA",
-        "PROGRAMA", "REMISION", "REMISION_DETALLE", "TABLA_VALORIZACION_BASE", "TARIFA_CATEGORIA_PROGRAMA", "VIGENCIA_VALORIZACION",
+        "PROGRAMA", "RAZA_LINEA_PROGRAMA", "REMISION", "REMISION_DETALLE", "TABLA_VALORIZACION_BASE", "TARIFA_CATEGORIA_PROGRAMA", "VIGENCIA_VALORIZACION",
     ];
 
     [Fact]
-    public async Task Crea_las_17_tablas_del_esquema()
+    public async Task Crea_las_18_tablas_del_esquema()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();
 
@@ -135,9 +135,17 @@ public class DatabaseInitializerTests
 
     // ---- Migración de la versión 1 (esquema v2.1) a la 2 (v2.2) ----------------------------------------------------
 
+    /// <summary>Deja la base como la dejaba la versión 4: sin el catálogo de razas y líneas por programa de la v2.5.</summary>
+    private static async Task DegradarAVersion4Async(BaseDeDatosDePrueba db)
+    {
+        await db.EjecutarAsync("DROP TABLE RAZA_LINEA_PROGRAMA");
+        await db.EjecutarAsync("PRAGMA user_version = 4");
+    }
+
     /// <summary>Deja la base como la dejaba la versión 3: sin los documentos de lotes de la v2.4.</summary>
     private static async Task DegradarAVersion3Async(BaseDeDatosDePrueba db)
     {
+        await DegradarAVersion4Async(db);
         await db.EjecutarAsync("ALTER TABLE REMISION_DETALLE DROP COLUMN lote_destino_id");
         await db.EjecutarAsync("ALTER TABLE LOTE_POBLACION DROP COLUMN operaciones");
         await db.EjecutarAsync("ALTER TABLE LOTE_POBLACION DROP COLUMN anulado");
@@ -250,6 +258,58 @@ public class DatabaseInitializerTests
         (await db.EscalarAsync<long>("SELECT operaciones FROM LOTE_POBLACION WHERE codigo_lote = 'L-CON-BAJAS'")).Should().Be(1);
         (await db.EscalarAsync<long>("SELECT COUNT(*) FROM LOTE_POBLACION WHERE anulado = 0")).Should().Be(2);
         (await db.EscalarAsync<long>("SELECT COUNT(*) FROM pragma_table_info('REMISION_DETALLE') WHERE name = 'lote_destino_id'")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_4_se_migra_al_catalogo_de_razas_y_conserva_las_ya_usadas()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await using (var uow = await db.Uow.BeginAsync())
+        {
+            var ids = await Datos.IdsBaseAsync(uow);
+            var animal = Datos.NuevoAnimal("R-1", ids);
+            animal.Raza = "Wagyu";
+            await uow.Animales.InsertAsync(animal);
+            await uow.CommitAsync();
+        }
+
+        const string columnas = "(codigo_lote, programa_id, granja_id, etapa_id, clase_entrada, ubicacion, linea_raza, fecha_nacimiento_ingreso, cantidad_inicial, cantidad_actual, valor_contable_unitario, valor_total_contable)";
+        await db.EjecutarAsync("INSERT INTO LOTE_POBLACION " + columnas +
+            " SELECT 'L-1', p.id, (SELECT MIN(id) FROM GRANJA), c.id, 'COMPRA', 'G1', 'Isa Brown', '2026-10-01 00:00:00', 10, 10, 10, 100 " +
+            "FROM PROGRAMA p JOIN CATEGORIA_ETAPA c ON c.programa_id = p.id AND c.nombre = 'General' WHERE p.codigo = 'PRG-AVE'");
+        await DegradarAVersion4Async(db);
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        await using var lectura = await db.Uow.OpenReadOnlyAsync();
+        var programas = await lectura.Programas.GetAllAsync();
+        var gan = programas.Single(p => p.Codigo == "PRG-GAN");
+        var ave = programas.Single(p => p.Codigo == "PRG-AVE");
+        var razasGan = (await lectura.Razas.GetByProgramaAsync(gan.Id)).Select(r => r.Nombre).ToList();
+        razasGan.First().Should().Be("No Especificada / Cruce", "la de por defecto va primero");
+        razasGan.Should().Contain(["Holstein", "Normando", "Criollo", "Wagyu"]);
+        var razasAve = (await lectura.Razas.GetByProgramaAsync(ave.Id)).Select(r => r.Nombre).ToList();
+        razasAve.Should().Contain(["Hy-Line Brown", "Ross", "Cobb", "Lohmann", "Isa Brown"]).And.NotContain("Holstein");
+        (await lectura.Razas.GetByProgramaAsync(gan.Id)).Count(r => r.EsDefault).Should().Be(1);
+
+        // Idempotente.
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM RAZA_LINEA_PROGRAMA WHERE es_default = 1")).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Una_base_nueva_trae_las_razas_sembradas_por_programa()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await using var uow = await db.Uow.OpenReadOnlyAsync();
+        var programas = await uow.Programas.GetAllAsync();
+
+        var gan = await uow.Razas.GetByProgramaAsync(programas.Single(p => p.Codigo == "PRG-GAN").Id);
+        gan.Should().HaveCount(14).And.Contain(r => r.Nombre == "Holstein");
+        gan.Where(r => r.EsDefault).Select(r => r.Nombre).Should().Equal(["No Especificada / Cruce"]);
+        (await uow.Razas.GetByProgramaAsync(programas.Single(p => p.Codigo == "PRG-AVE").Id)).Select(r => r.Nombre)
+            .Should().BeEquivalentTo(["No Especificada / Cruce", "Hy-Line Brown", "Ross", "Cobb", "Lohmann"]);
     }
 
     [Fact]

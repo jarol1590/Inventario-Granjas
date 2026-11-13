@@ -15,6 +15,7 @@ public interface IUnitOfWork : IAsyncDisposable
     IVigenciaRepository Vigencias { get; }
     ITarifaRepository Tarifas { get; }
     ITarifaProgramaRepository TarifasPrograma { get; }
+    IRazaLineaRepository Razas { get; }
     IAnimalRepository Animales { get; }
     IGenealogiaRepository Genealogias { get; }
     ILoteRepository Lotes { get; }

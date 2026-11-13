@@ -17,9 +17,10 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
     /// <summary>
     /// Versión del esquema (<c>PRAGMA user_version</c>). 1 = esquema v2.1; 2 = esquema v2.2 (recuperación de contraseña en
     /// <c>CONFIGURACION_SISTEMA</c> y huecos de la matriz 2026 completados); 3 = esquema v2.3 (programas generalizados, tarifas de referencia
-    /// por categoría y módulo de lotes); 4 = esquema v2.4 (documentos de lotes y edición de su compra).
+    /// por categoría y módulo de lotes); 4 = esquema v2.4 (documentos de lotes y edición de su compra); 5 = esquema v2.5 (catálogo de
+    /// razas y líneas por programa).
     /// </summary>
-    public const int VersionEsquemaActual = 4;
+    public const int VersionEsquemaActual = 5;
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -38,7 +39,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
             return;
         }
 
-        if (version is not (0 or 1 or 2 or 3))
+        if (version is not (0 or 1 or 2 or 3 or 4))
         {
             throw new InvalidOperationException(
                 $"La base de datos tiene una versión de esquema desconocida ({version}); se esperaba {VersionEsquemaActual}. " +
@@ -49,7 +50,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
         await using var transaction = connection.BeginTransaction();
         if (version == 0)
         {
-            // Base nueva: el esquema ya incluye la v2.4 y las semillas llevan la matriz completa.
+            // Base nueva: el esquema ya incluye la v2.5 y las semillas llevan la matriz completa.
             await connection.ExecuteAsync(new CommandDefinition(LeerScript("schema.sql"), transaction: transaction, cancellationToken: ct));
             await connection.ExecuteAsync(new CommandDefinition(LeerScript("seed.sql"), transaction: transaction, cancellationToken: ct));
         }
@@ -66,7 +67,12 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
                 await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v3.sql"), transaction: transaction, cancellationToken: ct));
             }
 
-            await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v4.sql"), transaction: transaction, cancellationToken: ct));
+            if (version <= 3)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v4.sql"), transaction: transaction, cancellationToken: ct));
+            }
+
+            await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v5.sql"), transaction: transaction, cancellationToken: ct));
         }
 
         await connection.ExecuteAsync(new CommandDefinition(

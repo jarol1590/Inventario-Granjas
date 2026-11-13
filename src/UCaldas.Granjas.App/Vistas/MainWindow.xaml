@@ -4,7 +4,7 @@
         Title="Inventario Sistema Granjas"
         Icon="/Recursos/Imagenes/SistemaGranjas.ico"
         FontFamily="{StaticResource Fuente.Base}"
-        Width="1220" Height="800" MinWidth="1060" MinHeight="680"
+        Width="1220" Height="880" MinWidth="1060" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource Brush.Fondo}"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">

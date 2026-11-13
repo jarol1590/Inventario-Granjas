@@ -40,6 +40,9 @@ public sealed partial class NuevoLoteViewModel : DialogViewModelBase
 
     public ObservableCollection<OpcionFiltro> Etapas { get; } = [];
 
+    /// <summary>Líneas / razas activas del programa del lote (catálogo por programa).</summary>
+    public ObservableCollection<string> RazasDisponibles { get; } = [];
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EsNacimiento))]
     private bool _esCompra = true;
@@ -113,10 +116,26 @@ public sealed partial class NuevoLoteViewModel : DialogViewModelBase
                 Etapas.Add(new OpcionFiltro(c.Id, c.Nombre));
             }
 
+            await CargarRazasAsync();
             GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == _granjaInicialId) ?? Granjas.FirstOrDefault();
             EtapaSeleccionada = Etapas.FirstOrDefault();
             await ActualizarValorAsync();
         }, "preparar el formulario de lotes");
+
+    /// <summary>Carga las líneas / razas del programa del lote y deja elegida la opción por defecto.</summary>
+    private async Task CargarRazasAsync()
+    {
+        RazasDisponibles.Clear();
+        foreach (var r in await _catalogo.GetRazasDeProgramaAsync(_programa.Id))
+        {
+            RazasDisponibles.Add(r.Nombre);
+        }
+
+        if (!RazasDisponibles.Contains(LineaRaza, StringComparer.OrdinalIgnoreCase))
+        {
+            LineaRaza = RazasDisponibles.FirstOrDefault() ?? string.Empty;
+        }
+    }
 
     partial void OnEtapaSeleccionadaChanged(OpcionFiltro? value) => _ = ActualizarValorAsync();
 
@@ -369,6 +388,9 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
 
     public ObservableCollection<OpcionFiltro> Etapas { get; } = [];
 
+    /// <summary>Líneas / razas activas del programa del lote (más la actual si es antigua y ya no está en el catálogo).</summary>
+    public ObservableCollection<string> RazasDisponibles { get; } = [];
+
     /// <summary>Un lote con la compra anulada no se edita.</summary>
     public bool EsEditable => !Lote.Anulado;
 
@@ -403,6 +425,17 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
                 foreach (var etapa in await _catalogo.GetCategoriasDeProgramaAsync(Lote.ProgramaId))
                 {
                     Etapas.Add(new OpcionFiltro(etapa.Id, etapa.Nombre));
+                }
+
+                RazasDisponibles.Clear();
+                foreach (var raza in await _catalogo.GetRazasDeProgramaAsync(Lote.ProgramaId))
+                {
+                    RazasDisponibles.Add(raza.Nombre);
+                }
+
+                if (!string.IsNullOrWhiteSpace(Lote.LineaRaza) && !RazasDisponibles.Contains(Lote.LineaRaza, StringComparer.OrdinalIgnoreCase))
+                {
+                    RazasDisponibles.Add(Lote.LineaRaza);
                 }
 
                 GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == Lote.GranjaId);

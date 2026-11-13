@@ -82,3 +82,22 @@ INSERT INTO TARIFA_CATEGORIA_PROGRAMA (programa_id, categoria_id, nombre_categor
 SELECT p.id, c.id, 'General', p.unidad_venta_default, 0, 1
 FROM PROGRAMA p JOIN CATEGORIA_ETAPA c ON c.programa_id = p.id AND c.nombre = 'General'
 WHERE p.usa_valorizacion_biologica = 0;
+
+-- Razas y líneas por programa: la raza por defecto en cada programa, las razas bovinas y las líneas avícolas comunes.
+INSERT INTO RAZA_LINEA_PROGRAMA (programa_id, nombre, es_default)
+SELECT id, 'No Especificada / Cruce', 1 FROM PROGRAMA;
+
+INSERT INTO RAZA_LINEA_PROGRAMA (programa_id, nombre)
+SELECT p.id, r.nombre
+FROM PROGRAMA p,
+     (SELECT 'Holstein' AS nombre UNION ALL SELECT 'Jersey' UNION ALL SELECT 'Normando' UNION ALL SELECT 'Pardo Suizo'
+      UNION ALL SELECT 'Ayrshire' UNION ALL SELECT 'Gyr' UNION ALL SELECT 'Brahman' UNION ALL SELECT 'Cebú'
+      UNION ALL SELECT 'Simmental' UNION ALL SELECT 'Angus' UNION ALL SELECT 'Romosinuano'
+      UNION ALL SELECT 'Blanco Orejinegro (BON)' UNION ALL SELECT 'Criollo') r
+WHERE p.usa_valorizacion_biologica = 1;
+
+INSERT INTO RAZA_LINEA_PROGRAMA (programa_id, nombre)
+SELECT p.id, l.nombre
+FROM PROGRAMA p,
+     (SELECT 'Hy-Line Brown' AS nombre UNION ALL SELECT 'Ross' UNION ALL SELECT 'Cobb' UNION ALL SELECT 'Lohmann') l
+WHERE p.codigo = 'PRG-AVE';

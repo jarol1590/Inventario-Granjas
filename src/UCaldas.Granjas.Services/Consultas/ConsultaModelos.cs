@@ -127,7 +127,8 @@ public sealed record BajaEditable(BajaDto Dto, bool Anulada, IReadOnlyList<Anima
 
 /// <param name="GranjaId">Granja de origen o de destino.</param>
 /// <param name="Texto">Número de remisión o chapeta amarilla (contiene).</param>
-public sealed record TrasladoFiltro(int? GranjaId, DateTime Desde, DateTime Hasta, string? Texto = null, bool IncluirAnulados = false);
+public sealed record TrasladoFiltro(
+    int? GranjaId, DateTime Desde, DateTime Hasta, string? Texto = null, bool IncluirAnulados = false, int? ProgramaId = null);
 
 public sealed record TrasladoListItem(
     int RemisionId,

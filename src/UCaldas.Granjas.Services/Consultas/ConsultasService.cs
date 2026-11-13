@@ -455,25 +455,36 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
 
         var granjas = (await uow.Granjas.GetAllAsync(ct)).ToDictionary(g => g.Id, g => g.Nombre);
         var animales = (await uow.Animales.GetAllAsync(ct)).ToDictionary(a => a.Id, a => a.ChapetaAmarilla);
+        var lotes = (await uow.Lotes.GetAllAsync(ct)).ToDictionary(l => l.Id, l => l.CodigoLote);
         var detalles = (await uow.RemisionDetalles.GetAllAsync(ct)).ToLookup(d => d.RemisionId);
         var texto = filtro.Texto?.Trim();
+        var delPrograma = await FiltroDeProgramaAsync(uow, filtro.ProgramaId, detalles, ct);
 
         bool CoincideTexto(Remision r)
             => string.IsNullOrEmpty(texto)
                || r.NumeroRemision.Contains(texto, StringComparison.OrdinalIgnoreCase)
-               || detalles[r.Id].Any(d => d.AnimalId is { } id && animales.TryGetValue(id, out var c) && c.Contains(texto, StringComparison.OrdinalIgnoreCase));
+               || detalles[r.Id].Any(d =>
+                   (d.AnimalId is { } id && animales.TryGetValue(id, out var c) && c.Contains(texto, StringComparison.OrdinalIgnoreCase))
+                   || (d.LoteId is { } loteId && lotes.TryGetValue(loteId, out var codigo) && codigo.Contains(texto, StringComparison.OrdinalIgnoreCase)));
 
         var items = (await uow.Remisiones.GetAllAsync(ct))
             .Where(r => r.TipoMovimiento == TipoRemision.Traslado
                         && (filtro.IncluirAnulados || !r.Anulada)
                         && EnRango(r.FechaRemision, filtro.Desde, filtro.Hasta)
                         && (filtro.GranjaId is null || r.GranjaOrigenId == filtro.GranjaId || r.GranjaDestinoId == filtro.GranjaId)
+                        && delPrograma(r)
                         && CoincideTexto(r))
             .OrderByDescending(r => r.FechaRemision).ThenByDescending(r => r.Id)
-            .Select(r => new TrasladoListItem(
-                r.Id, r.NumeroRemision, r.FechaRemision,
-                granjas.GetValueOrDefault(r.GranjaOrigenId ?? 0, "—"), granjas.GetValueOrDefault(r.GranjaDestinoId ?? 0, "—"),
-                detalles[r.Id].Count(), r.Anulada))
+            .Select(r =>
+            {
+                // En un traslado de lotes la cantidad son cabezas; en uno de animales, una por línea.
+                var lineas = detalles[r.Id].ToList();
+                var cabezas = lineas.Any(d => d.LoteId is not null) ? lineas.Sum(d => d.Cantidad) : lineas.Count;
+                return new TrasladoListItem(
+                    r.Id, r.NumeroRemision, r.FechaRemision,
+                    granjas.GetValueOrDefault(r.GranjaOrigenId ?? 0, "—"), granjas.GetValueOrDefault(r.GranjaDestinoId ?? 0, "—"),
+                    cabezas, r.Anulada);
+            })
             .ToList();
 
         var vigentes = items.Where(i => !i.Anulado).ToList();

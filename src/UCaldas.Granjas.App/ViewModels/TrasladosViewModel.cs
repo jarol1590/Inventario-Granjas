@@ -74,7 +74,8 @@ public sealed partial class TrasladosViewModel : ViewModelBase, IUsaFiltroGlobal
                 Rango.Desde,
                 Rango.Hasta,
                 string.IsNullOrWhiteSpace(Texto) ? null : Texto.Trim(),
-                IncluirAnulados));
+                IncluirAnulados,
+                _contexto.ProgramaId));
             if (version != _version)
             {
                 return;

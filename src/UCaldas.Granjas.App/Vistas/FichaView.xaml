@@ -72,7 +72,7 @@
                 ToolTip="El cierre mensual actualiza su categoría pero conserva su valor contable." />
       <StackPanel Orientation="Horizontal" Margin="28,0,0,0" Visibility="{Binding EsHembra, Converter={StaticResource BoolAVisibilidad}}">
         <TextBlock Text="Partos:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,8,0" />
-        <TextBox Width="60" Text="{Binding NumeroPartos, UpdateSourceTrigger=LostFocus}" HorizontalContentAlignment="Center"
+        <TextBox Width="60" Text="{Binding NumeroPartos, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
                  ToolTip="Número de partos de la hembra (define si le aplica la tarifa de vaca)." />
       </StackPanel>
     </StackPanel>

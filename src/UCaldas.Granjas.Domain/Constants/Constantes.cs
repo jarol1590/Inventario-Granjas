@@ -99,6 +99,9 @@ public static class EstadoLote
 /// <summary>Nombres de datos base sembrados que el código necesita reconocer.</summary>
 public static class NombresBase
 {
+    /// <summary>Edad mínima (meses) para registrar partos en una hembra; coincide con el inicio de «Vacas General» en la matriz.</summary>
+    public const int EdadMinimaConPartosMeses = 14;
+
     public const string OrientacionLactea = "Lácteo";
     public const string OrientacionCarne = "Carne/Levante";
 

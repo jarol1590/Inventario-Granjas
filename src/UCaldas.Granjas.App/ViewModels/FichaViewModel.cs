@@ -171,9 +171,10 @@ public sealed partial class FichaViewModel : DialogViewModelBase
             return;
         }
 
+        ResultadoActualizacionFicha? resultado = null;
         var guardado = await EjecutarAsync(async () =>
         {
-            await _animales.ActualizarAsync(new AnimalEdicionDto
+            resultado = await _animales.ActualizarAsync(new AnimalEdicionDto
             {
                 AnimalId = _animalId,
                 ChapetaAmarilla = ChapetaAmarilla,
@@ -194,11 +195,30 @@ public sealed partial class FichaViewModel : DialogViewModelBase
 
         if (guardado)
         {
-            Dialogos.Informar(
-                "Los datos de la ficha se guardaron.\n\nSi cambió la orientación o la fecha de nacimiento, el valor contable se recalcula " +
-                "en el próximo cierre de valorización mensual.",
-                "Ficha actualizada");
+            Dialogos.Informar(MensajeDeGuardado(resultado), "Ficha actualizada");
         }
+    }
+
+    private static string MensajeDeGuardado(ResultadoActualizacionFicha? r)
+    {
+        const string basico = "Los datos de la ficha se guardaron.";
+        if (r is not { Recalculado: true })
+        {
+            return r is { SinTarifa: true }
+                ? basico + "\n\nNingún valor de la matriz activa aplica a este animal: queda «Sin clasificar» y conserva su valor contable."
+                : basico;
+        }
+
+        var cultura = System.Globalization.CultureInfo.GetCultureInfo("es-CO");
+        var texto = $"{basico}\n\nCategoría: {r.CategoriaNueva}" +
+            (r.CategoriaNueva != r.CategoriaAnterior ? $" (antes {r.CategoriaAnterior})" : string.Empty) +
+            $"\nValor contable: {r.ValorNuevo.ToString("C0", cultura)}";
+        if (r.Delta != 0m)
+        {
+            texto += $" (antes {r.ValorAnterior.ToString("C0", cultura)}; variación {r.Delta.ToString("+$#,##0;-$#,##0", cultura)})";
+        }
+
+        return r.Delta != 0m ? texto + "\n\nLa variación ya quedó registrada en el Kardex." : texto;
     }
 
     [RelayCommand]

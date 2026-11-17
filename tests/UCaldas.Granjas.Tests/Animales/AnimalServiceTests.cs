@@ -55,19 +55,85 @@ public class AnimalServiceTests
     }
 
     [Fact]
-    public async Task El_cambio_de_orientacion_o_nacimiento_queda_para_el_proximo_cierre()
+    public async Task El_cambio_de_orientacion_recalcula_al_instante_y_deja_el_delta_en_el_Kardex()
     {
         await using var e = await EscenarioKardex.CrearAsync("2026-11-30");
         await e.AltaVacaAsync("A-1", valor: 6_000_000m);
         var dto = await EdicionDeAsync(e, "A-1");
         dto.OrientacionId = e.Ids.Carne;
 
+        var resultado = await Crear(e).ActualizarAsync(dto);
+
+        resultado.Recalculado.Should().BeTrue();
+        (resultado.ValorAnterior, resultado.ValorNuevo, resultado.Delta).Should().Be((6_000_000m, 4_000_000m, -2_000_000m));
+        (await e.AnimalAsync("A-1")).ValorContableActual.Should().Be(4_000_000m, "la ficha aplica la tarifa de carne de inmediato");
+        (await e.Db.EscalarAsync<decimal>("SELECT costo_asociado FROM MOVIMIENTO_INVENTARIO WHERE tipo_movimiento = 'Valorizacion'"))
+            .Should().Be(-2_000_000m, "una corrección a la baja también queda en el libro");
+        await e.AsegurarInvarianteAsync();
+
+        // El cierre mensual ya no encuentra diferencia: no duplica el movimiento.
+        await e.Aging.ValorizarAlCorteAsync(Datos.F("2026-11-30"));
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM MOVIMIENTO_INVENTARIO WHERE tipo_movimiento = 'Valorizacion'")).Should().Be(1);
+        await e.AsegurarInvarianteAsync();
+    }
+
+    [Theory]
+    [InlineData("2024-01-10")] // 34 meses
+    [InlineData("2025-03-10")] // 20 meses
+    public async Task Pasar_una_novilla_de_0_a_1_parto_la_vuelve_Vaca_y_viceversa(string nacimiento)
+    {
+        await using var e = await EscenarioKardex.CrearAsync("2026-11-30");
+        await e.AltaDirectaAsync(Datos.Animal(e.Ids, "N-1", Sexo.Hembra, nacimiento, NombresBase.CategoriaNovillaVientre, 3_200_000m, partos: 0, registro: "2026-06-01"));
+        var dto = await EdicionDeAsync(e, "N-1");
+
+        dto.NumeroPartos = 1;
+        var aVaca = await Crear(e).ActualizarAsync(dto);
+        aVaca.CategoriaNueva.Should().Be(NombresBase.CategoriaVacasGeneral);
+        (await e.AnimalAsync("N-1")).ValorContableActual.Should().Be(6_000_000m);
+
+        dto.NumeroPartos = 0;
+        var aNovilla = await Crear(e).ActualizarAsync(dto);
+        aNovilla.CategoriaNueva.Should().Be(NombresBase.CategoriaNovillaVientre);
+        (await e.AnimalAsync("N-1")).ValorContableActual.Should().Be(3_200_000m);
+        await e.AsegurarInvarianteAsync();
+    }
+
+    [Fact]
+    public async Task Guardar_sin_cambiar_de_valor_ni_de_categoria_no_genera_movimiento()
+    {
+        await using var e = await EscenarioKardex.CrearAsync("2026-11-30");
+        await e.AltaVacaAsync("A-1", valor: 6_000_000m);
+        var dto = await EdicionDeAsync(e, "A-1");
+        dto.OrientacionId = e.Ids.Carne;
         await Crear(e).ActualizarAsync(dto);
 
-        (await e.AnimalAsync("A-1")).ValorContableActual.Should().Be(6_000_000m, "todavía no se ha valorizado");
-        await e.Aging.ValorizarAlCorteAsync(Datos.F("2026-11-30"));
-        (await e.AnimalAsync("A-1")).ValorContableActual.Should().Be(4_000_000m, "el cierre aplica la tarifa de carne");
-        await e.AsegurarInvarianteAsync();
+        dto.Nombre = "Solo el nombre";
+        var resultado = await Crear(e).ActualizarAsync(dto);
+
+        resultado.Recalculado.Should().BeFalse();
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM MOVIMIENTO_INVENTARIO WHERE tipo_movimiento = 'Valorizacion'")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Un_animal_exento_solo_actualiza_la_categoria_y_uno_que_salio_no_se_recalcula()
+    {
+        await using var e = await EscenarioKardex.CrearAsync("2026-11-30");
+        await e.AltaVacaAsync("A-1", valor: 6_000_000m);
+        var exento = await EdicionDeAsync(e, "A-1");
+        exento.OrientacionId = e.Ids.Carne;
+        exento.ExentoValorizacion = true;
+
+        var resultado = await Crear(e).ActualizarAsync(exento);
+
+        (await e.AnimalAsync("A-1")).ValorContableActual.Should().Be(6_000_000m);
+        resultado.Delta.Should().Be(0m);
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM MOVIMIENTO_INVENTARIO WHERE tipo_movimiento = 'Valorizacion'")).Should().Be(0);
+
+        await e.AltaVacaAsync("A-2", valor: 6_000_000m);
+        await e.Kardex.RegistrarBajaAsync(await e.BajaAsync("REM-B-2", ClaseSalida.Muerte, null, "A-2"));
+        var salido = await EdicionDeAsync(e, "A-2");
+        salido.OrientacionId = e.Ids.Carne;
+        (await Crear(e).ActualizarAsync(salido)).Recalculado.Should().BeFalse();
     }
 
     [Fact]
@@ -110,11 +176,12 @@ public class AnimalServiceTests
         await Rechaza(d => d.Raza = "", "*raza es obligatorio*");
         await Rechaza(d => d.FechaNacimiento = Datos.F("2026-11-07"), "*no puede ser futura*");
         await Rechaza(d => d.FechaNacimiento = default, "*es obligatoria*");
-        await Rechaza(d => d.FechaNacimiento = Datos.F("2026-10-23"), "*posterior a la fecha de compra*");
+        await Rechaza(d => { d.FechaNacimiento = Datos.F("2026-10-23"); d.NumeroPartos = 0; }, "*posterior a la fecha de compra*");
         await Rechaza(d => d.PesoActualKg = -1, "*peso no puede ser negativo*");
         await Rechaza(d => d.NumeroPartos = -1, "*partos no puede ser negativo*");
         await Rechaza(d => { d.Sexo = Sexo.Macho; d.NumeroPartos = 1; }, "*macho no puede tener partos*");
         await Rechaza(d => d.OrientacionId = 999, "*orientación productiva no existe*");
+        await Rechaza(d => { d.FechaNacimiento = Datos.F("2025-10-10"); d.NumeroPartos = 1; }, "*menos de 14 meses no puede tener partos*"); // 12 meses
         await ((Func<Task>)(() => servicio.ActualizarAsync(new AnimalEdicionDto { AnimalId = 9999, ChapetaAmarilla = "X", Sexo = Sexo.Hembra, FechaNacimiento = Datos.F("2026-01-01"), Raza = "H", OrientacionId = 1 })))
             .Should().ThrowAsync<ValidationException>().WithMessage("*animal no existe*");
     }

@@ -34,13 +34,24 @@ public sealed class AnimalEdicionDto
     public string? MadreIdentificacion { get; set; }
 }
 
+/// <summary>Efecto del guardado de la ficha sobre la categoría y el valor contable (recalculados al instante).</summary>
+public sealed record ResultadoActualizacionFicha(
+    bool Recalculado, string CategoriaAnterior, string CategoriaNueva, decimal ValorAnterior, decimal ValorNuevo, bool SinTarifa)
+{
+    public decimal Delta => ValorNuevo - ValorAnterior;
+
+    public static ResultadoActualizacionFicha SinCambios(string categoria, decimal valor)
+        => new(false, categoria, categoria, valor, valor, false);
+}
+
 public interface IAnimalService
 {
     /// <summary>
-    /// Corrige los datos de la ficha. La ubicación solo cambia con un traslado, y el valor contable lo recalcula el
-    /// próximo cierre de valorización: ninguno de los dos se modifica aquí.
+    /// Corrige los datos de la ficha. La ubicación solo cambia con un traslado. Si el animal está Disponible y es de un
+    /// programa con valorización biológica, la categoría y el valor contable se recalculan en la misma transacción y la
+    /// diferencia queda como movimiento «Valorizacion» fechado hoy.
     /// </summary>
-    Task ActualizarAsync(AnimalEdicionDto dto, CancellationToken ct = default);
+    Task<ResultadoActualizacionFicha> ActualizarAsync(AnimalEdicionDto dto, CancellationToken ct = default);
 
     /// <summary>Categoría y valor que la matriz activa asignaría hoy (para mostrar al registrar un nacimiento).</summary>
     Task<ResultadoValorizacion> PrevisualizarValoracionAsync(
@@ -49,7 +60,7 @@ public interface IAnimalService
 
 public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging, IReloj reloj) : IAnimalService
 {
-    public async Task ActualizarAsync(AnimalEdicionDto dto, CancellationToken ct = default)
+    public async Task<ResultadoActualizacionFicha> ActualizarAsync(AnimalEdicionDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
         var chapeta = (dto.ChapetaAmarilla ?? string.Empty).Trim();
@@ -60,6 +71,9 @@ public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging
         Regla.Exigir(dto.PesoActualKg >= 0, "El peso no puede ser negativo.");
         Regla.Exigir(dto.NumeroPartos >= 0, "El número de partos no puede ser negativo.");
         Regla.Exigir(dto.NumeroPartos == 0 || dto.Sexo == Sexo.Hembra, "Un macho no puede tener partos.");
+        Regla.Exigir(
+            dto.NumeroPartos == 0 || aging.CalcularEdadMeses(dto.FechaNacimiento, reloj.Hoy) >= NombresBase.EdadMinimaConPartosMeses,
+            $"Un animal de menos de {NombresBase.EdadMinimaConPartosMeses} meses no puede tener partos.");
 
         await using var uow = await fabrica.BeginAsync(ct);
         var animal = await uow.Animales.GetByIdAsync(dto.AnimalId, ct) ?? throw Regla.Violada("El animal no existe.");
@@ -71,6 +85,9 @@ public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging
         {
             Regla.Exigir(dto.FechaNacimiento.Date <= compra.Date, "La fecha de nacimiento no puede ser posterior a la fecha de compra.");
         }
+
+        var categoriaAnteriorId = animal.CategoriaId;
+        var valorAnterior = animal.ValorContableActual;
 
         animal.ChapetaAmarilla = chapeta;
         animal.ChapetaRoja = Normalizar(dto.ChapetaRoja);
@@ -86,7 +103,51 @@ public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging
 
         // UpdateAsync nunca toca valor_compra_origen, fecha_registro ni clase_entrada (inmutables).
         await uow.Animales.UpdateAsync(animal, ct);
+
+        var resultado = await RecalcularValoracionAsync(uow, animal, categoriaAnteriorId, valorAnterior, ct);
         await uow.CommitAsync(ct);
+        return resultado;
+    }
+
+    /// <summary>Mismas reglas que el cierre mensual del AgingEngine, pero a la fecha de hoy y solo para este animal.</summary>
+    private async Task<ResultadoActualizacionFicha> RecalcularValoracionAsync(
+        IUnitOfWork uow, Animal animal, int categoriaAnteriorId, decimal valorAnterior, CancellationToken ct)
+    {
+        var categorias = await uow.Categorias.GetAllAsync(ct);
+        var nombreAnterior = categorias.FirstOrDefault(c => c.Id == categoriaAnteriorId)?.Nombre ?? string.Empty;
+        if (animal.Estado != EstadoAnimal.Disponible)
+        {
+            return ResultadoActualizacionFicha.SinCambios(nombreAnterior, valorAnterior);
+        }
+
+        var calculo = await aging.DeterminarAsync(uow, animal, reloj.Hoy, ct);
+        if (calculo.NoBiologico)
+        {
+            return ResultadoActualizacionFicha.SinCambios(nombreAnterior, valorAnterior);
+        }
+
+        var nuevoValor = !calculo.SinTarifa && !animal.ExentoValorizacion ? calculo.Valor!.Value : valorAnterior;
+        var delta = nuevoValor - valorAnterior;
+        var cambiaCategoria = calculo.CategoriaId != categoriaAnteriorId;
+        if (delta == 0m && !cambiaCategoria)
+        {
+            return new ResultadoActualizacionFicha(false, nombreAnterior, nombreAnterior, valorAnterior, valorAnterior, calculo.SinTarifa);
+        }
+
+        await uow.Animales.ActualizarValoracionAsync(animal.Id, calculo.CategoriaId, nuevoValor, ct);
+        if (delta != 0m)
+        {
+            await uow.Movimientos.InsertAsync(new MovimientoInventario
+            {
+                AnimalId = animal.Id,
+                TipoMovimiento = TipoMovimiento.Valorizacion,
+                FechaMovimiento = reloj.Hoy,
+                GranjaDestinoId = animal.GranjaId,
+                CostoAsociado = delta,
+            }, ct);
+        }
+
+        return new ResultadoActualizacionFicha(true, nombreAnterior, calculo.CategoriaNombre, valorAnterior, nuevoValor, calculo.SinTarifa);
     }
 
     public async Task<ResultadoValorizacion> PrevisualizarValoracionAsync(

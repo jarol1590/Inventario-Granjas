@@ -105,7 +105,7 @@ public class DatabaseInitializerTests
         reproductor.ValorEstandar.Should().Be(7_000_000m);
 
         var vacas = tarifas.Where(t => t.CategoriaId == ids.Categoria(NombresBase.CategoriaVacasGeneral)).ToList();
-        vacas.Should().OnlyContain(t => t.RequierePartos && t.EdadMinimaMeses == 24 && t.EdadMaximaMeses == 999);
+        vacas.Should().OnlyContain(t => t.RequierePartos && t.EdadMinimaMeses == 14 && t.EdadMaximaMeses == 999);
         vacas.Single(t => t.OrientacionId == ids.Lacteo).ValorEstandar.Should().Be(6_000_000m);
         vacas.Single(t => t.OrientacionId == ids.Carne).ValorEstandar.Should().Be(4_000_000m);
 
@@ -296,6 +296,22 @@ public class DatabaseInitializerTests
         // Idempotente.
         await new DatabaseInitializer(db.Conexiones).InitializeAsync();
         (await db.EscalarAsync<long>("SELECT COUNT(*) FROM RAZA_LINEA_PROGRAMA WHERE es_default = 1")).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_5_baja_las_vacas_con_parto_de_24_a_14_meses_sin_pisar_lo_editado()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        const string vacasLacteo = "categoria_id = (SELECT id FROM CATEGORIA_ETAPA WHERE nombre = 'Vacas General') AND requiere_partos = 1";
+        await db.EjecutarAsync($"UPDATE TABLA_VALORIZACION_BASE SET edad_minima_meses = 24 WHERE {vacasLacteo}");
+        await db.EjecutarAsync($"UPDATE TABLA_VALORIZACION_BASE SET edad_minima_meses = 30 WHERE {vacasLacteo} AND valor_estandar = 4000000");
+        await db.EjecutarAsync("PRAGMA user_version = 5");
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await db.EscalarAsync<long>($"SELECT edad_minima_meses FROM TABLA_VALORIZACION_BASE WHERE {vacasLacteo} AND valor_estandar = 6000000")).Should().Be(14);
+        (await db.EscalarAsync<long>($"SELECT edad_minima_meses FROM TABLA_VALORIZACION_BASE WHERE {vacasLacteo} AND valor_estandar = 4000000")).Should().Be(30, "lo que el usuario editó se respeta");
     }
 
     [Fact]

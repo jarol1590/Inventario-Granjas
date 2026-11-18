@@ -1,0 +1,118 @@
+<UserControl x:Class="UCaldas.Granjas.PrototipoRemisiones.Vistas.DetalleRemisionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <StackPanel Margin="4">
+    <Border Background="{StaticResource Brush.Primario}" CornerRadius="6" Padding="15,12" Margin="0,0,0,12">
+      <DockPanel>
+        <Border DockPanel.Dock="Right" Background="{StaticResource Brush.InfoFondo}" CornerRadius="4" Padding="10,4" VerticalAlignment="Center">
+          <TextBlock Text="ESTADO: PAGADA (RECIBO SP-828)" Foreground="{StaticResource Brush.Exito}" FontWeight="Medium" FontSize="12" />
+        </Border>
+        <StackPanel>
+          <TextBlock Text="DETALLE DE REMISIÓN N° REM-410" Foreground="White" FontSize="16" FontWeight="Medium" />
+          <TextBlock Text="Documento soporte de movimiento comercial e inventario — Universidad de Caldas" Foreground="White" FontSize="12" Opacity="0.85" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,12">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
+          <TextBlock Text="Tipo de operación" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Text="VENTA DE SEMOVIENTES" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" />
+        </StackPanel>
+        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,10">
+          <TextBlock Text="Oficio de venta asociado" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Foreground="{StaticResource Brush.Texto}" Text="OF-123 (10/11/2026)" FontWeight="Medium" />
+        </StackPanel>
+        <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
+          <TextBlock Text="Fecha de remisión" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Foreground="{StaticResource Brush.Texto}" Text="17/11/2026" FontWeight="Medium" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,10">
+          <TextBlock Text="Programa productivo" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Foreground="{StaticResource Brush.Texto}" Text="Ganado Lácteo" FontWeight="Medium" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,10">
+          <TextBlock Text="Granja de origen" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Foreground="{StaticResource Brush.Texto}" Text="Granja Tesorito" FontWeight="Medium" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
+          <TextBlock Text="Recibo de caja vinculado" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Text="Recibo No. 828 SP" FontWeight="Medium" Foreground="{StaticResource Brush.Exito}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2">
+          <TextBlock Text="Cliente / comprador" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Foreground="{StaticResource Brush.Texto}" Text="Agropecuaria El Ruiz — NIT: 890.441.220-4 (Tel: 8854321)" FontWeight="Medium" />
+        </StackPanel>
+        <StackPanel Grid.Row="2" Grid.Column="2">
+          <TextBlock Text="Impacto en inventario" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBlock Text="✓ Descargado de Kardex" FontWeight="Medium" Foreground="{StaticResource Brush.Exito}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Style="{StaticResource Tarjeta}" Padding="0">
+      <Grid Grid.IsSharedSizeScope="True">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" /><RowDefinition Height="32" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Ítems incluidos en la remisión" Style="{StaticResource Texto.Seccion}" Margin="14,12,14,10" />
+
+        <Border Grid.Row="1" Background="{StaticResource Brush.PrimarioClaro}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" MinWidth="120" SharedSizeGroup="e0" /><ColumnDefinition Width="*" MinWidth="260" /><ColumnDefinition Width="Auto" MinWidth="90" SharedSizeGroup="e2" />
+              <ColumnDefinition Width="Auto" MinWidth="70" SharedSizeGroup="e3" /><ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="e4" /><ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="e5" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Cód. / Chapeta" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="1" Text="Descripción" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="2" Text="Unidad" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="3" Text="Cant." Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="4" Text="Valor unitario" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="5" Text="Subtotal" Style="{StaticResource Encab}" />
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="2" BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1" Padding="0,9">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" MinWidth="120" SharedSizeGroup="e0" /><ColumnDefinition Width="*" MinWidth="260" /><ColumnDefinition Width="Auto" MinWidth="90" SharedSizeGroup="e2" />
+              <ColumnDefinition Width="Auto" MinWidth="70" SharedSizeGroup="e3" /><ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="e4" /><ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="e5" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="CHP-0412" Style="{StaticResource CelNegrita}" />
+            <TextBlock Grid.Column="1" Text="Vaca General — Holstein (Orientación Lácteo)" Style="{StaticResource Cel}" />
+            <TextBlock Grid.Column="2" Text="Cabeza" Style="{StaticResource Cel}" />
+            <TextBlock Grid.Column="3" Text="1" Style="{StaticResource Cel}" />
+            <TextBlock Grid.Column="4" Text="$ 6.000.000" Style="{StaticResource Cel}" />
+            <TextBlock Grid.Column="5" Text="$ 6.000.000" Style="{StaticResource CelNegrita}" />
+          </Grid>
+        </Border>
+
+        <DockPanel Grid.Row="3" Margin="14,12">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <TextBlock Foreground="{StaticResource Brush.Texto}" Text="TOTAL REMISIÓN:" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <TextBlock Text="$ 6.000.000" FontSize="17" FontWeight="Medium" Foreground="{StaticResource Brush.Primario}" />
+          </StackPanel>
+          <TextBlock Text="Observaciones: Semoviente entregado en báscula de Granja Tesorito." Style="{StaticResource Texto.Suave}" FontSize="12" VerticalAlignment="Center" />
+        </DockPanel>
+      </Grid>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+      <Button Content="🧾  VER RECIBO DE CAJA (SP-828)" Style="{StaticResource Boton.Primario}" Padding="15,9" Margin="0,0,10,0" />
+      <Button Content="🖨️  IMPRIMIR REMISIÓN" Padding="15,9" Margin="0,0,10,0" />
+      <Button Content="CERRAR" Padding="16,9" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

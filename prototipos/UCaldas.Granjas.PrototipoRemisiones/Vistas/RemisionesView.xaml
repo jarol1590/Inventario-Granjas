@@ -1,0 +1,220 @@
+<UserControl x:Class="UCaldas.Granjas.PrototipoRemisiones.Vistas.RemisionesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="200" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Menú lateral del módulo -->
+    <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource Brush.Borde}" BorderThickness="1" CornerRadius="6" Margin="0,0,12,0">
+      <DockPanel Margin="10,14">
+        <TextBlock DockPanel.Dock="Top" Text="Menú" Style="{StaticResource Texto.Seccion}" Margin="6,0,0,12" />
+        <Button DockPanel.Dock="Bottom" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,8" Content="🚪  Salir" />
+        <StackPanel>
+          <Button HorizontalContentAlignment="Left" Background="{StaticResource Brush.InfoFondo}" Foreground="{StaticResource Brush.Primario}" BorderThickness="0" Padding="10,9" Margin="0,0,0,4" FontWeight="Medium" Content="🚚  Remisiones" />
+          <Button HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,9" Margin="0,0,0,4" Content="📄  Oficios" />
+          <Button HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,9" Margin="0,0,0,4" Content="🧾  Recibos Caja" />
+          <Button HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,9" Margin="0,0,0,4" Content="📊  Boletines" />
+          <Button HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,9" Margin="0,0,0,4" Content="🗂️  Catálogos" />
+          <Button HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="10,9" Margin="0,0,0,4" Content="⚙️  Configuración" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Column="1">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- Módulos principales -->
+      <UniformGrid Grid.Row="0" Columns="3" Margin="0,0,0,12">
+        <Button Content="🐄  SISTEMA GRANJAS" Height="36" FontWeight="Medium" Margin="0,0,6,0" />
+        <Button Content="📦  SUMINISTROS E INSUMOS" Height="36" FontWeight="Medium" Margin="0,0,6,0" />
+        <Button Content="🛒  REMISIONES" Height="36" Style="{StaticResource Boton.Primario}" />
+      </UniformGrid>
+
+      <!-- Filtros globales -->
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+        <TextBlock Text="Granja" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox Width="190" SelectedIndex="0" Margin="0,0,28,0">
+          <ComboBoxItem Content="Todas las Granjas" />
+          <ComboBoxItem Content="Granja Tesorito" />
+          <ComboBoxItem Content="Granja Montelindo" />
+          <ComboBoxItem Content="Granja La Cruz" />
+        </ComboBox>
+        <TextBlock Text="Programa" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox Width="220" SelectedIndex="0">
+          <ComboBoxItem Content="Todos los Programas" />
+          <ComboBoxItem Content="Ganado Lácteo" />
+          <ComboBoxItem Content="Ganado Doble Propósito" />
+          <ComboBoxItem Content="Avicultura" />
+          <ComboBoxItem Content="Piscicultura" />
+          <ComboBoxItem Content="Porcicultura" />
+          <ComboBoxItem Content="Hortalizas Clima Frío" />
+        </ComboBox>
+      </StackPanel>
+
+      <!-- KPI -->
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+        <Border Style="{StaticResource Tarjeta}" Width="270" Margin="0,0,10,0">
+          <StackPanel>
+            <TextBlock Text="Remisiones emitidas (mes)" Style="{StaticResource Texto.KpiEtiqueta}" HorizontalAlignment="Center" />
+            <TextBlock Text="24" Style="{StaticResource Texto.KpiValor}" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Tarjeta}" Width="270">
+          <StackPanel>
+            <TextBlock Text="Total Ventas (mes)" Style="{StaticResource Texto.KpiEtiqueta}" HorizontalAlignment="Center" />
+            <TextBlock Text="$18.450.000" Style="{StaticResource Texto.KpiValor}" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Filtros locales -->
+      <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,10">
+        <TextBlock Text="Tipo de operación" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox Width="110" SelectedIndex="0" Margin="0,0,24,0">
+          <ComboBoxItem Content="Todas" />
+          <ComboBoxItem Content="VENTA" />
+          <ComboBoxItem Content="TRASLADO" />
+          <ComboBoxItem Content="COMPRA" />
+        </ComboBox>
+        <TextBlock Text="Estado" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox Width="150" SelectedIndex="0" Margin="0,0,24,0">
+          <ComboBoxItem Content="Todas" />
+          <ComboBoxItem Content="Pagada" />
+          <ComboBoxItem Content="Pen.Recibo SP" />
+          <ComboBoxItem Content="Traslado Interno" />
+        </ComboBox>
+        <TextBlock Text="🔍 Buscar" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBox Width="170" ToolTip="N° de remisión, oficio, cliente..." />
+      </StackPanel>
+
+      <!-- Tabla -->
+      <Border Grid.Row="4" Style="{StaticResource Tarjeta}" Padding="0" VerticalAlignment="Top">
+        <Grid Grid.IsSharedSizeScope="True">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <Border Grid.Row="0" Background="{StaticResource Brush.Primario}" CornerRadius="5,5,0,0">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c0" />
+                <ColumnDefinition Width="Auto" MinWidth="85" SharedSizeGroup="c1" />
+                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c2" />
+                <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="c3" />
+                <ColumnDefinition Width="Auto" MinWidth="140" SharedSizeGroup="c4" />
+                <ColumnDefinition Width="*" MinWidth="110" />
+                <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="c6" />
+                <ColumnDefinition Width="Auto" MinWidth="75" SharedSizeGroup="c7" />
+                <ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="c8" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="N° Remisión" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="1" Text="Fecha" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="2" Text="Tipo" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="3" Text="Oficio" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="4" Text="Programa" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="5" Text="Cliente / Granja destino" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="6" Text="Valor Total" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="7" Text="Recibo SP" Style="{StaticResource Encab}" />
+              <TextBlock Grid.Column="8" Text="Estado" Style="{StaticResource Encab}" />
+            </Grid>
+          </Border>
+
+          <StackPanel Grid.Row="1">
+            <Border Height="30" BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c0" /><ColumnDefinition Width="Auto" MinWidth="85" SharedSizeGroup="c1" /><ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c2" />
+                  <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="c3" /><ColumnDefinition Width="Auto" MinWidth="140" SharedSizeGroup="c4" /><ColumnDefinition Width="*" MinWidth="110" />
+                  <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="c6" /><ColumnDefinition Width="Auto" MinWidth="75" SharedSizeGroup="c7" /><ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="c8" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="REM-410" Style="{StaticResource CelNegrita}" />
+                <TextBlock Grid.Column="1" Text="17/11/2026" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="2" Text="VENTA" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="3" Text="OF-123" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="4" Text="Ganado Lácteo" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="5" Text="Agropecuaria El Ruiz" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="6" Text="$6.000.000" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="7" Text="SP-828" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="8" Text="Pagada" Style="{StaticResource CelNegrita}" Foreground="{StaticResource Brush.Exito}" />
+              </Grid>
+            </Border>
+            <Border Height="30" Background="{StaticResource Brush.FilaAlterna}" BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c0" /><ColumnDefinition Width="Auto" MinWidth="85" SharedSizeGroup="c1" /><ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c2" />
+                  <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="c3" /><ColumnDefinition Width="Auto" MinWidth="140" SharedSizeGroup="c4" /><ColumnDefinition Width="*" MinWidth="110" />
+                  <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="c6" /><ColumnDefinition Width="Auto" MinWidth="75" SharedSizeGroup="c7" /><ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="c8" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="REM-411" Style="{StaticResource CelNegrita}" />
+                <TextBlock Grid.Column="1" Text="17/11/2026" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="2" Text="VENTA" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="3" Text="OF-124" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="4" Text="Hortalizas Clima Frío" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="5" Text="Fruver" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="6" Text="$420.000" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="7" Text="-" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="8" Text="Pen.Recibo SP" Style="{StaticResource CelNegrita}" Foreground="{StaticResource Brush.Advertencia}" />
+              </Grid>
+            </Border>
+            <Border Height="30" BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c0" /><ColumnDefinition Width="Auto" MinWidth="85" SharedSizeGroup="c1" /><ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c2" />
+                  <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="c3" /><ColumnDefinition Width="Auto" MinWidth="140" SharedSizeGroup="c4" /><ColumnDefinition Width="*" MinWidth="110" />
+                  <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="c6" /><ColumnDefinition Width="Auto" MinWidth="75" SharedSizeGroup="c7" /><ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="c8" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="REM-412" Style="{StaticResource CelNegrita}" />
+                <TextBlock Grid.Column="1" Text="16/11/2026" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="2" Text="TRASLADO" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="3" Text="N/A" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="4" Text="Avicultura" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="5" Text="Destino: Granja Montelindo" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="6" Text="$1.500.000" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="7" Text="N/A" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="8" Text="Traslado Interno" Style="{StaticResource Cel}" />
+              </Grid>
+            </Border>
+            <Border Height="30" Background="{StaticResource Brush.FilaAlterna}" BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c0" /><ColumnDefinition Width="Auto" MinWidth="85" SharedSizeGroup="c1" /><ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="c2" />
+                  <ColumnDefinition Width="Auto" MinWidth="60" SharedSizeGroup="c3" /><ColumnDefinition Width="Auto" MinWidth="140" SharedSizeGroup="c4" /><ColumnDefinition Width="*" MinWidth="110" />
+                  <ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="c6" /><ColumnDefinition Width="Auto" MinWidth="75" SharedSizeGroup="c7" /><ColumnDefinition Width="Auto" MinWidth="125" SharedSizeGroup="c8" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="REM-409" Style="{StaticResource CelNegrita}" />
+                <TextBlock Grid.Column="1" Text="15/11/2026" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="2" Text="COMPRA" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="3" Text="N/A" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="4" Text="Ganado Lácteo" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="5" Text="Hacienda La Palma" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="6" Text="$3.200.000" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="7" Text="N/A" Style="{StaticResource Cel}" />
+                <TextBlock Grid.Column="8" Text="Ingreso Inventario" Style="{StaticResource Cel}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Botones -->
+      <UniformGrid Grid.Row="5" Columns="4" Margin="0,14,0,0">
+        <Button Content="+ NUEVA REMISIÓN" Style="{StaticResource Boton.Primario}" Height="38" Margin="0,0,6,0" />
+        <Button Content="🧾  GENERAR RECIBO CAJA" Height="38" Margin="0,0,6,0" />
+        <Button Content="👁️  VER DETALLE" Height="38" Margin="0,0,6,0" />
+        <Button Content="🖨️  IMPRIMIR REMISIÓN" Height="38" />
+      </UniformGrid>
+    </Grid>
+  </Grid>
+</UserControl>

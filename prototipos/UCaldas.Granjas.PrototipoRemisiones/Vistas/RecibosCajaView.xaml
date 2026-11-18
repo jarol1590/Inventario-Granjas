@@ -1,0 +1,125 @@
+<UserControl x:Class="UCaldas.Granjas.PrototipoRemisiones.Vistas.RecibosCajaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <StackPanel Margin="4">
+    <DockPanel Margin="0,0,0,14">
+      <Button DockPanel.Dock="Right" Content="➕  NUEVO RECIBO DE CAJA (SP)" Style="{StaticResource Boton.Primario}" Padding="15,9" VerticalAlignment="Center" />
+      <StackPanel>
+        <TextBlock Text="Recibos de Caja Emitidos (consecutivo SP)" Style="{StaticResource Texto.Titulo}" />
+        <TextBlock Text="Soporte de recaudo por ventas (1 recibo de caja SP por cada remisión de venta)." Style="{StaticResource Texto.Suave}" FontSize="12" Margin="0,2,0,0" />
+      </StackPanel>
+    </DockPanel>
+
+    <UniformGrid Columns="3" Margin="0,0,0,14">
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0">
+        <StackPanel>
+          <TextBlock Text="Recaudado por consignación (Davivienda)" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="$ 16.250.000" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Margin="5,0">
+        <StackPanel>
+          <TextBlock Text="Recaudado en efectivo / cheque" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="$ 2.200.000" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Margin="10,0,0,0">
+        <StackPanel>
+          <TextBlock Text="Último consecutivo emitido" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="Recibo No. 828 SP" Style="{StaticResource Texto.KpiValor}" Foreground="{StaticResource Brush.Exito}" />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <Border Style="{StaticResource Tarjeta}" Padding="10" Margin="0,0,0,12">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Forma de pago:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox Width="190" SelectedIndex="0" Margin="0,0,18,0">
+          <ComboBoxItem Content="Todas las formas" />
+          <ComboBoxItem Content="Consignación Bancaria" />
+          <ComboBoxItem Content="Efectivo / Cheque" />
+        </ComboBox>
+        <TextBlock Text="🔍 Buscar:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBox Width="280" ToolTip="N° recibo SP, remisión, oficio o cliente..." />
+      </StackPanel>
+    </Border>
+
+    <Border Style="{StaticResource Tarjeta}" Padding="0">
+      <Grid Grid.IsSharedSizeScope="True">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="36" /><RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource Brush.Primario}" CornerRadius="5,5,0,0">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b0" /><ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="b1" /><ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b2" />
+              <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="b3" /><ColumnDefinition Width="*" MinWidth="200" /><ColumnDefinition Width="Auto" MinWidth="190" SharedSizeGroup="b5" /><ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="b6" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Recibo No." Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="1" Text="Fecha" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="2" Text="Remisión" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="3" Text="Oficio" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="4" Text="Recibí de (cliente)" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="5" Text="Forma de pago" Style="{StaticResource Encab}" />
+            <TextBlock Grid.Column="6" Text="Total pagado" Style="{StaticResource Encab}" HorizontalAlignment="Right" />
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="1">
+          <Border BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1" Padding="0,10">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b0" /><ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="b1" /><ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b2" />
+                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="b3" /><ColumnDefinition Width="*" MinWidth="200" /><ColumnDefinition Width="Auto" MinWidth="190" SharedSizeGroup="b5" /><ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="b6" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="828 SP" Style="{StaticResource CelNegrita}" Foreground="{StaticResource Brush.Exito}" />
+              <TextBlock Grid.Column="1" Text="17/11/2026" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="2" Text="REM-410" Style="{StaticResource CelNegrita}" />
+              <TextBlock Grid.Column="3" Text="OF-123" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="4" Text="Agropecuaria El Ruiz" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="5" Text="Consignación Davivienda" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="6" Text="$ 6.000.000" Style="{StaticResource CelDerecha}" />
+            </Grid>
+          </Border>
+          <Border BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1" Padding="0,10" Background="{StaticResource Brush.FilaAlterna}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b0" /><ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="b1" /><ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b2" />
+                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="b3" /><ColumnDefinition Width="*" MinWidth="200" /><ColumnDefinition Width="Auto" MinWidth="190" SharedSizeGroup="b5" /><ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="b6" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="827 SP" Style="{StaticResource CelNegrita}" Foreground="{StaticResource Brush.Exito}" />
+              <TextBlock Grid.Column="1" Text="14/11/2026" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="2" Text="REM-408" Style="{StaticResource CelNegrita}" />
+              <TextBlock Grid.Column="3" Text="OF-123" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="4" Text="Inversiones Caldas S.A.S" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="5" Text="Consignación Davivienda" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="6" Text="$ 4.000.000" Style="{StaticResource CelDerecha}" />
+            </Grid>
+          </Border>
+          <Border BorderBrush="{StaticResource Brush.BordeSuave}" BorderThickness="0,0,0,1" Padding="0,10">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b0" /><ColumnDefinition Width="Auto" MinWidth="100" SharedSizeGroup="b1" /><ColumnDefinition Width="Auto" MinWidth="95" SharedSizeGroup="b2" />
+                <ColumnDefinition Width="Auto" MinWidth="80" SharedSizeGroup="b3" /><ColumnDefinition Width="*" MinWidth="200" /><ColumnDefinition Width="Auto" MinWidth="190" SharedSizeGroup="b5" /><ColumnDefinition Width="Auto" MinWidth="130" SharedSizeGroup="b6" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="826 SP" Style="{StaticResource CelNegrita}" Foreground="{StaticResource Brush.Exito}" />
+              <TextBlock Grid.Column="1" Text="13/11/2026" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="2" Text="REM-406" Style="{StaticResource CelNegrita}" />
+              <TextBlock Grid.Column="3" Text="OF-124" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="4" Text="Distribuidora Hortícola Manizales" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="5" Text="Efectivo" Style="{StaticResource Cel}" />
+              <TextBlock Grid.Column="6" Text="$ 850.000" Style="{StaticResource CelDerecha}" />
+            </Grid>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+      <Button Content="👁️  ABRIR RECIBO SELECCIONADO" Padding="14,9" Margin="0,0,10,0" />
+      <Button Content="🖨️  REIMPRIMIR RECIBO SP" Style="{StaticResource Boton.Primario}" Padding="15,9" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

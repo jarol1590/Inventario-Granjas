@@ -1,0 +1,64 @@
+<UserControl x:Class="UCaldas.Granjas.PrototipoRemisiones.Vistas.NuevoOficioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <StackPanel Margin="4" MaxWidth="620" HorizontalAlignment="Left">
+    <Border Background="{StaticResource Brush.Primario}" CornerRadius="6" Padding="15,10" Margin="0,0,0,12">
+      <DockPanel>
+        <Border DockPanel.Dock="Right" Background="{StaticResource Brush.InfoFondo}" CornerRadius="4" Padding="8,2" VerticalAlignment="Center">
+          <TextBlock Text="SOLO VENTAS" Foreground="{StaticResource Brush.Primario}" FontSize="11" FontWeight="Medium" />
+        </Border>
+        <TextBlock Text="CREAR NUEVO OFICIO DE VENTA  ·  ventana «Nuevo oficio»" Foreground="White" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <Border Background="{StaticResource Brush.InfoFondo}" BorderBrush="{StaticResource Brush.PrimarioClaro}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+      <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Brush.Primario}" FontSize="12"
+                 Text="ℹ️ Nota: este oficio aplicará únicamente para remisiones de VENTA del programa seleccionado abajo. No se podrán mezclar productos o animales de otros programas." />
+    </Border>
+
+    <Border Style="{StaticResource Tarjeta}">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,12">
+          <TextBlock Text="* Número de oficio" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBox Text="OF-125" FontWeight="Medium" />
+        </StackPanel>
+        <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,12">
+          <TextBlock Text="* Fecha del oficio" Style="{StaticResource Campo.Etiqueta}" />
+          <DatePicker SelectedDate="2026-11-17" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,12">
+          <TextBlock Text="* Programa productivo exclusivo" Style="{StaticResource Campo.Etiqueta}" />
+          <ComboBox SelectedIndex="0">
+            <ComboBoxItem Content="Ganado Lácteo" />
+            <ComboBoxItem Content="Avicultura" />
+            <ComboBoxItem Content="Piscicultura" />
+            <ComboBoxItem Content="Porcicultura" />
+            <ComboBoxItem Content="Hortalizas Clima Frío" />
+            <ComboBoxItem Content="Frutales Clima Cálido" />
+            <ComboBoxItem Content="Plátano" />
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2">
+          <TextBlock Text="Observaciones / Autorización" Style="{StaticResource Campo.Etiqueta}" />
+          <TextBox Text="Autorización de venta expedida por Dirección de Granjas." TextWrapping="Wrap" AcceptsReturn="True" MinHeight="70" VerticalScrollBarVisibility="Auto" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+      <Button Content="💾  GUARDAR OFICIO DE VENTA" Style="{StaticResource Boton.Primario}" Padding="16,9" Margin="0,0,10,0" />
+      <Button Content="CANCELAR" Padding="14,9" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

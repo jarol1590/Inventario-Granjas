@@ -235,13 +235,11 @@ public class ProgramasYLotesViewModelsTests
         vm.Etapas.Select(x => x.Nombre).Should().Equal("General", "Cría", "Postura");
 
         vm.CodigoLote = "L-AVE-01";
-        vm.Ubicacion = "Galpón 1";
         vm.LineaRaza = "Hy-Line Brown";
         vm.EtapaSeleccionada = vm.Etapas.Single(x => x.Nombre == "Cría");
         vm.Cantidad = 1000;
         vm.PrecioUnitario = 15_000m;
         vm.Factura = "FAC-1";
-        vm.OrdenCompra = "OC-1";
         vm.Proveedor = "Incubadora";
         await vm.GuardarCommand.ExecuteAsync(null);
 
@@ -262,7 +260,7 @@ public class ProgramasYLotesViewModelsTests
         vm.EtapaSeleccionada = vm.Etapas.Single(x => x.Nombre == "Postura");
         await Esperar.HastaAsync(() => Task.FromResult(vm.ValorInicialTexto.Contains("40.000")));
 
-        await vm.GuardarCommand.ExecuteAsync(null);   // faltan el código, la ubicación...
+        await vm.GuardarCommand.ExecuteAsync(null);   // falta el código...
         dialogos.UltimaAdvertencia.Should().Contain("código");
         vm.SinControlNumerico = true;
         vm.LlevaConteo.Should().BeFalse();
@@ -273,7 +271,7 @@ public class ProgramasYLotesViewModelsTests
     {
         await using var e = await CrearLotesAsync();
         var (uno, _) = await LoteBaseAsync(e);
-        await e.Lotes.RegistrarBajaAsync(uno, 58, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Lotes.RegistrarBajaAsync(uno, 58, "Mortalidad", Datos.F("2026-11-05"), null);
         var dialogos = new DialogoFalso();
         var shell = new LotesViewModel(e.Lotes, e.Catalogo, e.Tarifas, e.Reloj, dialogos);
 
@@ -289,8 +287,8 @@ public class ProgramasYLotesViewModelsTests
 
         tab.Texto = "no-existe";
         tab.Lotes.Should().BeEmpty();
-        tab.Texto = "galpón";
-        tab.Lotes.Should().ContainSingle("busca también por ubicación");
+        tab.Texto = "l-1";
+        tab.Lotes.Should().ContainSingle("busca por el código del lote");
         tab.EstadoSeleccionado = tab.Estados.Single(s => s.Valor == EstadoLote.Finalizado);
         tab.Lotes.Should().BeEmpty();
         tab.EstadoSeleccionado = tab.Estados[0];
@@ -314,8 +312,8 @@ public class ProgramasYLotesViewModelsTests
         var id = await e.Lotes.RegistrarNuevoLoteAsync(new NuevoLoteDto
         {
             ProgramaId = e.Aves.Id, GranjaId = e.Ids.Montelindo, EtapaId = etapa, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = "L-1",
-            Ubicacion = "Galpón 1", LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-11-02"), Cantidad = 1000, PrecioUnitarioFactura = 15_000m,
-            Factura = "F", OrdenCompra = "O", Proveedor = "P",
+            LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-11-02"), Cantidad = 1000, PrecioUnitarioFactura = 15_000m,
+            Factura = "F", Proveedor = "P",
         });
         return (id, await e.Lotes.ObtenerAsync(id));
     }
@@ -369,7 +367,6 @@ public class ProgramasYLotesViewModelsTests
         desdoble.EsDesdoble = true;
         desdoble.Cantidad = 300;
         desdoble.CodigoNuevoLote = "L-1B";
-        desdoble.UbicacionNueva = "Galpón 2";
         await desdoble.GuardarCommand.ExecuteAsync(null);
         (await e.Lotes.ListarAsync(e.Aves.Id)).Should().HaveCount(2);
     }
@@ -386,7 +383,7 @@ public class ProgramasYLotesViewModelsTests
     {
         await using var e = await CrearLotesAsync();
         var (id, _) = await LoteBaseAsync(e);
-        await e.Lotes.RegistrarBajaAsync(id, 12, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Lotes.RegistrarBajaAsync(id, 12, "Mortalidad", Datos.F("2026-11-05"), null);
 
         var ficha = await FichaAsync(e, id);
 
@@ -394,7 +391,7 @@ public class ProgramasYLotesViewModelsTests
         (ficha.Entrada, ficha.GranjaSeleccionada!.Nombre, ficha.EtapaSeleccionada!.Nombre, ficha.EstadoTexto).Should().Be(("Compra", "Montelindo", "Cría", "Activo"));
         (ficha.CantidadInicial, ficha.Bajas, ficha.PoblacionActualTexto).Should().Be((1000, 12, "988"));
         (ficha.ValorCompra, ficha.ValorContable, ficha.ValorTotalTexto).Should().Be(("$15.000", 15_000m, "$14.820.000"));
-        ficha.Anotaciones.Should().Contain("Mortandad: 12 cabezas");
+        ficha.Anotaciones.Should().Contain("Mortalidad: 12 cabezas");
         (ficha.HayCambios, ficha.EsEditable, ficha.EsCompra).Should().Be((false, true, true));
     }
 
@@ -409,7 +406,6 @@ public class ProgramasYLotesViewModelsTests
         ficha.CierreSolicitado += cierres.Add;
 
         ficha.GuardarCambiosCommand.CanExecute(null).Should().BeFalse("no hay cambios");
-        ficha.Ubicacion = "Galpón 7";
         ficha.Anotaciones = "Revisar ventilación";
         ficha.HayCambios.Should().BeTrue();
         ficha.GuardarCambiosCommand.CanExecute(null).Should().BeTrue();
@@ -419,7 +415,7 @@ public class ProgramasYLotesViewModelsTests
         dialogos.Informaciones.Should().ContainSingle();
         (ficha.HayCambios, ficha.HuboCambios).Should().Be((false, true));
         var guardado = (await e.Lotes.ObtenerAsync(id)).Lote;
-        (guardado.Ubicacion, guardado.Observaciones).Should().Be(("Galpón 7", "Revisar ventilación"));
+        guardado.Observaciones.Should().Be("Revisar ventilación");
         (guardado.CantidadActual, guardado.ValorTotalContable).Should().Be((1000, 15_000_000m), "no se tocó la población ni el valor");
 
         ficha.CodigoLote = "";
@@ -470,7 +466,7 @@ public class ProgramasYLotesViewModelsTests
         var ficha = await FichaAsync(e, id);
 
         ficha.EsEditable.Should().BeFalse();
-        ficha.Ubicacion = "Otro";
+        ficha.Anotaciones = "Otro";
         ficha.GuardarCambiosCommand.CanExecute(null).Should().BeFalse();
     }
 
@@ -497,7 +493,7 @@ public class ProgramasYLotesViewModelsTests
 
         (vm.EsLote, vm.EsIndividual, vm.Modo, vm.Titulo).Should().Be((true, false, ModoDocumento.Detalle, "Detalle de la compra F"));
         vm.NoEsBovino.Should().BeTrue();
-        (vm.NumeroOrden, vm.Proveedor, vm.GranjaSeleccionada!.Nombre).Should().Be(("O", "P", "Montelindo"));
+        (vm.NumeroOrden, vm.Proveedor, vm.GranjaSeleccionada!.Nombre).Should().Be(("", "P", "Montelindo"), "la compra de un lote no lleva orden de compra");
         var fila = vm.Lotes.Single();
         (fila.Codigo, fila.Etapa, fila.Cantidad, fila.PrecioUnitario, fila.PuedeCorregirCantidad).Should().Be(("L-1", "Cría", 1000, 15_000m, true));
         vm.TotalTexto.Should().Be("$15.000.000");
@@ -521,7 +517,7 @@ public class ProgramasYLotesViewModelsTests
     {
         var (vm, dialogos, e, id) = await CompraDeLoteAsync();
         await using var _ = e;
-        await e.Lotes.RegistrarBajaAsync(id, 10, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Lotes.RegistrarBajaAsync(id, 10, "Mortalidad", Datos.F("2026-11-05"), null);
         await vm.InicializarLoteAsync(id);
         vm.EditarCompraCommand.Execute(null);
 
@@ -552,7 +548,7 @@ public class ProgramasYLotesViewModelsTests
     {
         var (vm, dialogos, e, id) = await CompraDeLoteAsync();
         await using var _ = e;
-        await e.Lotes.DesdoblarAsync(id, 300, "L-1B", "Galpón 2");
+        await e.Lotes.DesdoblarAsync(id, 300, "L-1B");
         await vm.InicializarLoteAsync(id);
         vm.EditarCompraCommand.Execute(null);
         dialogos.RespuestaPedir = "motivo";

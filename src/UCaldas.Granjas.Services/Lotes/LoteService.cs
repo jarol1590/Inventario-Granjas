@@ -36,7 +36,6 @@ public sealed class NuevoLoteDto
     public string ClaseEntrada { get; set; } = string.Empty;
 
     public string CodigoLote { get; set; } = string.Empty;
-    public string Ubicacion { get; set; } = string.Empty;
     public string LineaRaza { get; set; } = string.Empty;
     public DateTime FechaIngreso { get; set; }
 
@@ -49,7 +48,6 @@ public sealed class NuevoLoteDto
     public decimal PrecioUnitarioFactura { get; set; }
 
     public string? Factura { get; set; }
-    public string? OrdenCompra { get; set; }
     public string? Proveedor { get; set; }
 
     /// <summary>Nacimiento: acta de incubación/parición o chapeta de la madre (opcional).</summary>
@@ -63,11 +61,9 @@ public sealed class EditarCompraLoteDto
 {
     public int LoteId { get; set; }
     public string Factura { get; set; } = string.Empty;
-    public string OrdenCompra { get; set; } = string.Empty;
     public string Proveedor { get; set; } = string.Empty;
     public DateTime FechaIngreso { get; set; }
     public int GranjaId { get; set; }
-    public string Ubicacion { get; set; } = string.Empty;
     public string LineaRaza { get; set; } = string.Empty;
     public int Cantidad { get; set; }
     public decimal PrecioUnitarioFactura { get; set; }
@@ -79,12 +75,10 @@ public sealed class ActualizarLoteDto
 {
     public int LoteId { get; set; }
     public string CodigoLote { get; set; } = string.Empty;
-    public string Ubicacion { get; set; } = string.Empty;
     public string LineaRaza { get; set; } = string.Empty;
     public DateTime FechaIngreso { get; set; }
     public string? OrigenReferencia { get; set; }
     public string? Proveedor { get; set; }
-    public string? OrdenCompra { get; set; }
     public string? Observaciones { get; set; }
 
     // Población y valorización (el valor de compra nunca se cambia desde la ficha).
@@ -103,8 +97,9 @@ public sealed record CambioEtapaResultado(decimal ValorAnteriorLote, decimal Val
 
 /// <summary>
 /// Inventario de animales vivos manejados en grupo (aves, peces, cerdos). Los valores salen de los valores de referencia
-/// por etapa (<see cref="TarifaCategoriaPrograma"/>). IMPORTANTE: todavía no escribe en el Kardex (<c>MOVIMIENTO_INVENTARIO</c>);
-/// cada operación deja una línea en las observaciones del lote mientras se define cómo se asentarán los lotes.
+/// por etapa (<see cref="TarifaCategoriaPrograma"/>). En el libro (<c>MOVIMIENTO_INVENTARIO</c>) solo asienta, con fecha, las
+/// valorizaciones por cambio de etapa y las bajas (mortalidad / hurto); compras, ventas y traslados de lotes salen de sus
+/// documentos. Cada operación además deja una línea en las observaciones del lote.
 /// </summary>
 public interface ILoteService
 {
@@ -122,7 +117,7 @@ public interface ILoteService
     Task EditarCompraAsync(EditarCompraLoteDto dto, CancellationToken ct = default);
 
     /// <summary>
-    /// Corrige los datos descriptivos del lote (código, ubicación, línea/raza, fecha de ingreso, origen, proveedor y anotaciones).
+    /// Corrige los datos descriptivos del lote (código, línea/raza, fecha de ingreso, origen, proveedor y anotaciones).
     /// No toca la granja, la etapa, las cantidades ni los valores. Un lote con la compra anulada no se edita.
     /// </summary>
     Task ActualizarDatosAsync(ActualizarLoteDto dto, CancellationToken ct = default);
@@ -130,19 +125,19 @@ public interface ILoteService
     /// <summary>Anula la compra de un lote sin operaciones: el lote deja de contar y su código y factura quedan consumidos.</summary>
     Task AnularCompraAsync(int loteId, string? motivo, CancellationToken ct = default);
 
-    /// <summary>Promueve todo el lote a otra etapa (y opcionalmente a otra ubicación) y recalcula su valor.</summary>
-    Task<CambioEtapaResultado> CambiarEtapaAsync(int loteId, int nuevaEtapaId, string? nuevaUbicacion, CancellationToken ct = default);
+    /// <summary>Promueve todo el lote a otra etapa, recalcula su valor y asienta la valorización en el libro.</summary>
+    Task<CambioEtapaResultado> CambiarEtapaAsync(int loteId, int nuevaEtapaId, CancellationToken ct = default);
 
     /// <summary>Divide el lote: descuenta cabezas del origen y crea otro lote con el mismo costo unitario. Devuelve el id del nuevo lote.</summary>
-    Task<int> DesdoblarAsync(int loteId, int cantidad, string codigoNuevoLote, string ubicacionNueva, CancellationToken ct = default);
+    Task<int> DesdoblarAsync(int loteId, int cantidad, string codigoNuevoLote, CancellationToken ct = default);
 
-    /// <summary>Mortandad o descarte parcial. Si no queda ninguna cabeza el lote pasa a Finalizado.</summary>
+    /// <summary>Mortalidad, hurto o descarte parcial (asienta la baja con fecha en el libro). Si no queda ninguna cabeza el lote pasa a Finalizado.</summary>
     Task RegistrarBajaAsync(int loteId, int cantidad, string causa, DateTime fecha, string? observaciones, CancellationToken ct = default);
 }
 
 public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILoteService
 {
-    public static readonly IReadOnlyList<string> CausasDeBaja = ["Mortandad", "Hurto", "Descarte sanitario"];
+    public static readonly IReadOnlyList<string> CausasDeBaja = ["Mortalidad", "Hurto", "Descarte sanitario"];
 
     public async Task<IReadOnlyList<LoteDetalle>> ListarAsync(int programaId, bool incluirAnulados = false, CancellationToken ct = default)
     {
@@ -170,7 +165,6 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         ArgumentNullException.ThrowIfNull(dto);
         var codigo = (dto.CodigoLote ?? string.Empty).Trim();
         Regla.ExigirTexto(codigo, "El código del lote");
-        Regla.ExigirTexto(dto.Ubicacion, "La ubicación (galpón, estanque o corral)");
         Regla.ExigirTexto(dto.LineaRaza, "La línea o raza");
         Regla.Exigir(dto.ClaseEntrada is ClaseEntrada.Compra or ClaseEntrada.Nacimiento, "El ingreso debe ser por compra o por nacimiento / cría propia.");
         Regla.Exigir(dto.FechaIngreso != default && dto.FechaIngreso.Date <= reloj.Hoy, "La fecha de ingreso es obligatoria y no puede ser futura.");
@@ -182,8 +176,7 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         var esCompra = dto.ClaseEntrada == ClaseEntrada.Compra;
         if (esCompra)
         {
-            Regla.ExigirTexto(dto.Factura, "El número de factura o remisión de compra");
-            Regla.ExigirTexto(dto.OrdenCompra, "La orden de compra");
+            Regla.ExigirTexto(dto.Factura, "El número de factura de compra");
             Regla.ExigirTexto(dto.Proveedor, "El proveedor");
             Regla.Exigir(dto.PrecioUnitarioFactura > 0, "El precio de factura debe ser mayor que cero.");
         }
@@ -210,11 +203,10 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
             GranjaId = granja.Id,
             EtapaId = etapa.Id,
             ClaseEntrada = dto.ClaseEntrada,
-            Ubicacion = dto.Ubicacion.Trim(),
+            Ubicacion = string.Empty,   // la ubicación ya no se captura (columna conservada por compatibilidad)
             LineaRaza = dto.LineaRaza.Trim(),
             OrigenReferencia = Limpio(esCompra ? dto.Factura : dto.OrigenReferencia),
             Proveedor = esCompra ? Limpio(dto.Proveedor) : null,
-            OrdenCompra = esCompra ? Limpio(dto.OrdenCompra) : null,
             FechaNacimientoIngreso = dto.FechaIngreso.Date,
             ControlNumericoPoblacion = dto.ControlNumericoPoblacion,
             CantidadInicial = cantidad,
@@ -231,13 +223,13 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         return lote.Id;
     }
 
-    public async Task<CambioEtapaResultado> CambiarEtapaAsync(int loteId, int nuevaEtapaId, string? nuevaUbicacion, CancellationToken ct = default)
+    public async Task<CambioEtapaResultado> CambiarEtapaAsync(int loteId, int nuevaEtapaId, CancellationToken ct = default)
     {
         await using var uow = await fabrica.BeginAsync(ct);
         var lote = await ObtenerActivoAsync(uow, loteId, ct);
         var etapa = await uow.Categorias.GetByIdAsync(nuevaEtapaId, ct) ?? throw Regla.Violada("La etapa no existe.");
         Regla.Exigir(etapa.ProgramaId == lote.ProgramaId, "La etapa elegida no pertenece al programa del lote.");
-        Regla.Exigir(etapa.Id != lote.EtapaId || !string.IsNullOrWhiteSpace(nuevaUbicacion), "Elija otra etapa o indique la nueva ubicación.");
+        Regla.Exigir(etapa.Id != lote.EtapaId, "Elija una etapa distinta de la actual.");
 
         var anterior = lote.ValorTotalContable;
         var referencia = (await uow.TarifasPrograma.GetByCategoriaAsync(etapa.Id, ct))?.ValorReferencia ?? 0m;
@@ -249,30 +241,38 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
             lote.ValorContableUnitario = referencia;
         }
 
-        var etapaAnterior = lote.EtapaId;
+        var etapaAnterior = await uow.Categorias.GetByIdAsync(lote.EtapaId, ct);
         lote.EtapaId = etapa.Id;
-        if (!string.IsNullOrWhiteSpace(nuevaUbicacion))
-        {
-            lote.Ubicacion = nuevaUbicacion.Trim();
-        }
-
         lote.ValorTotalContable = Total(lote);
         lote.Operaciones++;
-        if (etapa.Id != etapaAnterior)
-        {
-            lote.Observaciones = Anotar(lote.Observaciones, $"Cambio de etapa a «{etapa.Nombre}»");
-        }
+        lote.Observaciones = Anotar(lote.Observaciones, $"Cambio de etapa a «{etapa.Nombre}»");
 
         await uow.Lotes.UpdateAsync(lote, ct);
+
+        // Valorización automática: el ajuste (valor unitario nuevo − anterior) × cantidad queda en el libro con su signo.
+        var delta = lote.ValorTotalContable - anterior;
+        if (delta != 0m)
+        {
+            await uow.Movimientos.InsertAsync(new MovimientoInventario
+            {
+                LoteId = lote.Id,
+                TipoMovimiento = TipoMovimiento.Valorizacion,
+                FechaMovimiento = reloj.Hoy,
+                GranjaDestinoId = lote.GranjaId,
+                CostoAsociado = delta,
+                Cantidad = lote.CantidadActual,
+                Observaciones = $"Valorización por cambio de etapa: {etapaAnterior?.Nombre ?? "—"} -> {etapa.Nombre}",
+            }, ct);
+        }
+
         await uow.CommitAsync(ct);
         return new CambioEtapaResultado(anterior, lote.ValorTotalContable, sinReferencia);
     }
 
-    public async Task<int> DesdoblarAsync(int loteId, int cantidad, string codigoNuevoLote, string ubicacionNueva, CancellationToken ct = default)
+    public async Task<int> DesdoblarAsync(int loteId, int cantidad, string codigoNuevoLote, CancellationToken ct = default)
     {
         var codigo = (codigoNuevoLote ?? string.Empty).Trim();
         Regla.ExigirTexto(codigo, "El código del nuevo lote");
-        Regla.ExigirTexto(ubicacionNueva, "La nueva ubicación");
 
         await using var uow = await fabrica.BeginAsync(ct);
         var origen = await ObtenerActivoAsync(uow, loteId, ct);
@@ -288,7 +288,7 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
             GranjaId = origen.GranjaId,
             EtapaId = origen.EtapaId,
             ClaseEntrada = ClaseEntrada.Desdoble,
-            Ubicacion = ubicacionNueva.Trim(),
+            Ubicacion = string.Empty,
             LineaRaza = origen.LineaRaza,
             OrigenReferencia = origen.CodigoLote,
             FechaNacimientoIngreso = origen.FechaNacimientoIngreso,
@@ -317,7 +317,7 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
 
     public async Task RegistrarBajaAsync(int loteId, int cantidad, string causa, DateTime fecha, string? observaciones, CancellationToken ct = default)
     {
-        Regla.Exigir(CausasDeBaja.Contains(causa), "Elija la causa de la baja: mortandad, hurto o descarte sanitario.");
+        Regla.Exigir(CausasDeBaja.Contains(causa), "Elija la causa de la baja: mortalidad, hurto o descarte sanitario.");
         Regla.Exigir(fecha != default && fecha.Date <= reloj.Hoy, "La fecha de la baja es obligatoria y no puede ser futura.");
 
         await using var uow = await fabrica.BeginAsync(ct);
@@ -327,6 +327,7 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         Regla.Exigir(cantidad > 0, "La cantidad de bajas debe ser mayor que cero.");
         Regla.Exigir(cantidad <= lote.CantidadActual, $"No se pueden dar de baja {cantidad:N0} cabezas: el lote solo tiene {lote.CantidadActual:N0}.");
 
+        var costoBaja = cantidad * lote.ValorContableUnitario;
         lote.CantidadActual -= cantidad;
         lote.MortandadAcumulada += cantidad;
         lote.Operaciones++;
@@ -339,16 +340,26 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         var nota = $"{causa}: {cantidad:N0} cabezas" + (string.IsNullOrWhiteSpace(observaciones) ? string.Empty : $" ({observaciones.Trim()})");
         lote.Observaciones = Anotar(lote.Observaciones, nota, fecha);
         await uow.Lotes.UpdateAsync(lote, ct);
+
+        // La baja queda en el libro con la fecha en que ocurrió: de ahí sale la mortalidad mensual del Kardex de lotes.
+        await uow.Movimientos.InsertAsync(new MovimientoInventario
+        {
+            LoteId = lote.Id,
+            TipoMovimiento = causa == "Hurto" ? TipoMovimiento.Hurto : TipoMovimiento.Muerte,
+            FechaMovimiento = fecha.Date,
+            GranjaOrigenId = lote.GranjaId,
+            CostoAsociado = -costoBaja,
+            Cantidad = cantidad,
+            Observaciones = causa + (string.IsNullOrWhiteSpace(observaciones) ? string.Empty : $": {observaciones.Trim()}"),
+        }, ct);
         await uow.CommitAsync(ct);
     }
 
     public async Task EditarCompraAsync(EditarCompraLoteDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
-        Regla.ExigirTexto(dto.Factura, "El número de factura o remisión de compra");
-        Regla.ExigirTexto(dto.OrdenCompra, "La orden de compra");
+        Regla.ExigirTexto(dto.Factura, "El número de factura de compra");
         Regla.ExigirTexto(dto.Proveedor, "El proveedor");
-        Regla.ExigirTexto(dto.Ubicacion, "La ubicación (galpón, estanque o corral)");
         Regla.ExigirTexto(dto.LineaRaza, "La línea o raza");
         Regla.Exigir(dto.PrecioUnitarioFactura > 0, "El precio de factura debe ser mayor que cero.");
         Regla.Exigir(dto.FechaIngreso != default && dto.FechaIngreso.Date <= reloj.Hoy, "La fecha de ingreso es obligatoria y no puede ser futura.");
@@ -367,11 +378,9 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         Regla.Exigir(!lote.ControlNumericoPoblacion || dto.Cantidad > 0, "La cantidad inicial debe ser mayor que cero.");
 
         lote.OrigenReferencia = dto.Factura.Trim();
-        lote.OrdenCompra = dto.OrdenCompra.Trim();
         lote.Proveedor = dto.Proveedor.Trim();
         lote.FechaNacimientoIngreso = dto.FechaIngreso.Date;
         lote.GranjaId = granja.Id;
-        lote.Ubicacion = dto.Ubicacion.Trim();
         lote.LineaRaza = dto.LineaRaza.Trim();
         lote.Observaciones = Limpio(dto.Observaciones);
         if (cambiaCantidad)
@@ -400,7 +409,6 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         ArgumentNullException.ThrowIfNull(dto);
         var codigo = (dto.CodigoLote ?? string.Empty).Trim();
         Regla.ExigirTexto(codigo, "El código del lote");
-        Regla.ExigirTexto(dto.Ubicacion, "La ubicación (galpón, estanque o corral)");
         Regla.ExigirTexto(dto.LineaRaza, "La línea o raza");
         Regla.Exigir(dto.FechaIngreso != default && dto.FechaIngreso.Date <= reloj.Hoy, "La fecha de ingreso es obligatoria y no puede ser futura.");
 
@@ -410,21 +418,18 @@ public sealed class LoteService(IUnitOfWorkFactory fabrica, IReloj reloj) : ILot
         if (lote.ClaseEntrada == ClaseEntrada.Compra)
         {
             Regla.ExigirTexto(dto.Proveedor, "El proveedor");
-            Regla.ExigirTexto(dto.OrdenCompra, "La orden de compra");
         }
 
         var otro = await uow.Lotes.GetByCodigoAsync(codigo, ct);
         Regla.Exigir(otro is null || otro.Id == lote.Id, $"Ya existe un lote con el código {codigo}.");
 
         lote.CodigoLote = codigo;
-        lote.Ubicacion = dto.Ubicacion.Trim();
         lote.LineaRaza = dto.LineaRaza.Trim();
         lote.FechaNacimientoIngreso = dto.FechaIngreso.Date;
         lote.OrigenReferencia = Limpio(dto.OrigenReferencia);
         if (lote.ClaseEntrada == ClaseEntrada.Compra)
         {
             lote.Proveedor = dto.Proveedor!.Trim();
-            lote.OrdenCompra = dto.OrdenCompra!.Trim();
         }
 
         // Población y valorización.

@@ -18,7 +18,24 @@ public class AnimalServiceTests
             AnimalId = a.Id, ChapetaAmarilla = a.ChapetaAmarilla, ChapetaRoja = a.ChapetaRoja, Nombre = a.Nombre, Sexo = a.Sexo,
             FechaNacimiento = a.FechaNacimiento, Raza = a.Raza, PesoActualKg = a.PesoActualKg, OrientacionId = a.OrientacionId,
             NumeroPartos = a.NumeroPartos, ExentoValorizacion = a.ExentoValorizacion, MadreIdentificacion = a.MadreIdentificacion,
+            Observaciones = a.Observaciones,
         };
+    }
+
+    [Fact]
+    public async Task Guarda_las_observaciones_de_la_ficha_y_las_limpia_a_nulo_cuando_quedan_vacias()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        await e.AltaVacaAsync("O-1");
+        var dto = await EdicionDeAsync(e, "O-1");
+
+        dto.Observaciones = "  Cojera en la pata izquierda ";
+        await Crear(e).ActualizarAsync(dto);
+        (await e.AnimalAsync("O-1")).Observaciones.Should().Be("Cojera en la pata izquierda");
+
+        dto.Observaciones = "   ";
+        await Crear(e).ActualizarAsync(dto);
+        (await e.AnimalAsync("O-1")).Observaciones.Should().BeNull();
     }
 
     [Fact]

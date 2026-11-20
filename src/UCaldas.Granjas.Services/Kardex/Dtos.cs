@@ -1,4 +1,6 @@
-﻿namespace UCaldas.Granjas.Services.Kardex;
+﻿using UCaldas.Granjas.Domain.Constants;
+
+namespace UCaldas.Granjas.Services.Kardex;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Comandos de entrada del KardexService. Las propiedades RemisionId / AnimalId solo se informan al EDITAR un documento.
@@ -77,13 +79,13 @@ public sealed class CompraAnimalDto
     public string? Observaciones { get; set; }
 }
 
-/// <summary>Compra de uno o varios animales amparada por una factura / remisión del proveedor.</summary>
+/// <summary>Compra de uno o varios animales amparada por una factura del proveedor.</summary>
 public sealed class CompraDto
 {
     /// <summary>Solo al editar.</summary>
     public int? RemisionId { get; set; }
 
-    /// <summary>Número de factura / remisión de compra: se guarda como número de la remisión.</summary>
+    /// <summary>Número de factura de compra: se guarda como número de la remisión.</summary>
     public string NumeroFactura { get; set; } = string.Empty;
 
     public string? OrdenCompra { get; set; }
@@ -151,6 +153,11 @@ public sealed class VentaDto
     public string? Observaciones { get; set; }
 
     public List<VentaAnimalDto> Animales { get; set; } = [];
+    /// <summary>Comprador (convenio o cliente) de una venta hecha desde el módulo Remisiones (v2.8).</summary>
+    public DatosComercialesDto? Comercial { get; set; }
+
+    /// <summary>Recibo de Caja SP que se graba o corrige en la misma transacción (módulo Remisiones, v2.8).</summary>
+    public ReciboCajaDto? Recibo { get; set; }
 }
 
 public sealed class BajaAnimalDto
@@ -211,6 +218,11 @@ public sealed class TrasladoDto
     public string? Observaciones { get; set; }
 
     public List<TrasladoAnimalDto> Animales { get; set; } = [];
+    /// <summary>Comprador (convenio o cliente) de una venta hecha desde el módulo Remisiones (v2.8).</summary>
+    public DatosComercialesDto? Comercial { get; set; }
+
+    /// <summary>Recibo de Caja SP que se graba o corrige en la misma transacción (módulo Remisiones, v2.8).</summary>
+    public ReciboCajaDto? Recibo { get; set; }
 }
 
 public sealed record TrasladoResultado(int RemisionId, int Animales, decimal TotalValor);
@@ -248,6 +260,11 @@ public sealed class VentaLoteDto
     public string Comprador { get; set; } = string.Empty;
     public string? Observaciones { get; set; }
     public List<VentaLoteLineaDto> Lotes { get; set; } = [];
+    /// <summary>Comprador (convenio o cliente) de una venta hecha desde el módulo Remisiones (v2.8).</summary>
+    public DatosComercialesDto? Comercial { get; set; }
+
+    /// <summary>Recibo de Caja SP que se graba o corrige en la misma transacción (módulo Remisiones, v2.8).</summary>
+    public ReciboCajaDto? Recibo { get; set; }
 }
 
 public sealed class TrasladoLoteLineaDto
@@ -259,9 +276,6 @@ public sealed class TrasladoLoteLineaDto
 
     /// <summary>Traslado parcial: código del lote que se crea en la granja destino.</summary>
     public string? CodigoNuevoLote { get; set; }
-
-    /// <summary>Ubicación en la granja destino (opcional en el traslado total).</summary>
-    public string? UbicacionDestino { get; set; }
 
     public string? ObservacionesEspecificas { get; set; }
 }
@@ -276,4 +290,101 @@ public sealed class TrasladoLoteDto
     public int GranjaDestinoId { get; set; }
     public string? Observaciones { get; set; }
     public List<TrasladoLoteLineaDto> Lotes { get; set; } = [];
+    /// <summary>Comprador (convenio o cliente) de una venta hecha desde el módulo Remisiones (v2.8).</summary>
+    public DatosComercialesDto? Comercial { get; set; }
+
+    /// <summary>Recibo de Caja SP que se graba o corrige en la misma transacción (módulo Remisiones, v2.8).</summary>
+    public ReciboCajaDto? Recibo { get; set; }
 }
+// ---- Módulo Remisiones (v2.8): comprador, recibo de caja y líneas de producto ---------------------------------------------
+
+/// <summary>Comprador de una venta: un convenio institucional o un cliente particular.</summary>
+public sealed class DatosComercialesDto
+{
+    /// <summary><see cref="TipoComprador.Convenio"/> u <see cref="TipoComprador.Otro"/>.</summary>
+    public string TipoComprador { get; set; } = Domain.Constants.TipoComprador.Convenio;
+
+    public int? ConvenioId { get; set; }
+
+    public int? ClienteId { get; set; }
+}
+
+/// <summary>
+/// Recibo de Caja SP de una remisión. En una venta el total sale de las líneas menos el descuento; en un traslado el
+/// recibo es interno y <see cref="TotalPagado"/> es el valor contable (o 0) que se asienta.
+/// </summary>
+public sealed class ReciboCajaDto
+{
+    public DateTime Fecha { get; set; }
+
+    /// <summary>Ver <see cref="Domain.Constants.FormaPago"/>.</summary>
+    public string FormaPago { get; set; } = Domain.Constants.FormaPago.Consignacion;
+
+    public string? BancoConsignacion { get; set; }
+
+    public bool EsEfectivo { get; set; }
+
+    public string? Cheque1Num { get; set; }
+
+    public string? Cheque2Num { get; set; }
+
+    public string? Observaciones { get; set; }
+
+    /// <summary>Solo ventas: porcentaje de descuento (0 a 100) sobre el subtotal.</summary>
+    public decimal DescuentoPorcentaje { get; set; }
+
+    /// <summary>Solo traslados internos.</summary>
+    public decimal TotalPagado { get; set; }
+}
+
+public sealed class LineaProductoDto
+{
+    /// <summary>Producto del catálogo; nulo = ítem libre con su descripción.</summary>
+    public int? ProductoId { get; set; }
+
+    public string Descripcion { get; set; } = string.Empty;
+
+    public string UnidadMedida { get; set; } = string.Empty;
+
+    public decimal Cantidad { get; set; }
+
+    public decimal ValorUnitario { get; set; }
+}
+
+/// <summary>
+/// Venta o traslado de productos (hortalizas, huevos, leche...): sin animales ni lotes y sin movimientos de inventario.
+/// En una venta exige oficio abierto del programa; en un traslado, granja destino distinta del origen y sin oficio.
+/// </summary>
+public sealed class RemisionProductosDto
+{
+    public int? RemisionId { get; set; }
+
+    /// <summary><see cref="TipoRemision.Venta"/> o <see cref="TipoRemision.Traslado"/>.</summary>
+    public string Tipo { get; set; } = TipoRemision.Venta;
+
+    public int ProgramaId { get; set; }
+
+    /// <summary>Solo ventas: número de un oficio existente (el del programa elegido).</summary>
+    public string? NumeroOficio { get; set; }
+
+    public string NumeroRemision { get; set; } = string.Empty;
+
+    public DateTime Fecha { get; set; }
+
+    public int GranjaOrigenId { get; set; }
+
+    public int? GranjaDestinoId { get; set; }
+
+    /// <summary>Nombre del comprador (se completa con el convenio o cliente elegido).</summary>
+    public string? Comprador { get; set; }
+
+    public string? Observaciones { get; set; }
+
+    public DatosComercialesDto? Comercial { get; set; }
+
+    public ReciboCajaDto Recibo { get; set; } = new();
+
+    public List<LineaProductoDto> Lineas { get; set; } = [];
+}
+
+public sealed record ProductosResultado(int RemisionId, int Lineas, decimal Total);

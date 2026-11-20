@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Entities;
 
@@ -45,6 +45,11 @@ internal sealed class MovimientoRepository(SqliteConnection connection, SqliteTr
         => ListaAsync<MovimientoInventario>(
             "SELECT * FROM MOVIMIENTO_INVENTARIO WHERE animal_id = @animalId ORDER BY fecha_movimiento, id",
             new { animalId }, ct);
+
+    public Task<IReadOnlyList<MovimientoInventario>> GetByLoteAsync(int loteId, CancellationToken ct = default)
+        => ListaAsync<MovimientoInventario>(
+            "SELECT * FROM MOVIMIENTO_INVENTARIO WHERE lote_id = @loteId ORDER BY fecha_movimiento, id",
+            new { loteId }, ct);
 
     public Task<IReadOnlyList<MovimientoInventario>> GetByRemisionAsync(int remisionId, CancellationToken ct = default)
         => ListaAsync<MovimientoInventario>(

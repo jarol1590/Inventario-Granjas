@@ -46,6 +46,21 @@ public static class TipoRemision
     public const string Baja = "BAJA";
 }
 
+/// <summary>Valores de <c>RECIBO_CAJA.forma_pago</c> (extensión v2.8).</summary>
+public static class FormaPago
+{
+    public const string Consignacion = "CONSIGNACION";
+    public const string EfectivoCheque = "EFECTIVO_CHEQUE";
+    public const string TrasladoInterno = "TRASLADO_INTERNO";
+}
+
+/// <summary>Valores de <c>REMISION.tipo_comprador</c> (extensión v2.8).</summary>
+public static class TipoComprador
+{
+    public const string Convenio = "CONVENIO";
+    public const string Otro = "OTRO";
+}
+
 /// <summary>Valores de <c>REMISION.clase_salida</c>.</summary>
 public static class ClaseSalida
 {

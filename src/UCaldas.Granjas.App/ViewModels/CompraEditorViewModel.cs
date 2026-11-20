@@ -161,7 +161,7 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
 
             EsLote = true;
             NumeroFactura = lote.OrigenReferencia ?? string.Empty;
-            NumeroOrden = lote.OrdenCompra ?? string.Empty;
+            NumeroOrden = string.Empty;   // la compra de un lote no lleva orden de compra
             FechaCompra = lote.FechaNacimientoIngreso;
             GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == lote.GranjaId);
             Proveedor = lote.Proveedor ?? string.Empty;
@@ -336,11 +336,9 @@ public sealed partial class CompraEditorViewModel : DialogViewModelBase
         {
             LoteId = loteId,
             Factura = NumeroFactura,
-            OrdenCompra = NumeroOrden,
             Proveedor = Proveedor,
             FechaIngreso = FechaCompra ?? default,
             GranjaId = granjaId,
-            Ubicacion = fila.Ubicacion,
             LineaRaza = fila.LineaRaza,
             Cantidad = fila.Cantidad,
             PrecioUnitarioFactura = fila.PrecioUnitario,

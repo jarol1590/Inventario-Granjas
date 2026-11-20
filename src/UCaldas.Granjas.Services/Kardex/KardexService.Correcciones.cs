@@ -3,6 +3,8 @@ using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 
+using UCaldas.Granjas.Services.Comercial;
+
 namespace UCaldas.Granjas.Services.Kardex;
 
 /// <summary>
@@ -22,6 +24,14 @@ public sealed partial class KardexService
 
         if (await AnularDocumentoDeLotesAsync(uow, remisionId, motivo, ct))
         {
+            await ReciboCajaRegla.AnularDeRemisionAsync(uow, remisionId, ct);
+            await uow.CommitAsync(ct);
+            return;
+        }
+
+        if (await AnularDocumentoDeProductosAsync(uow, remisionId, motivo, ct))
+        {
+            await ReciboCajaRegla.AnularDeRemisionAsync(uow, remisionId, ct);
             await uow.CommitAsync(ct);
             return;
         }
@@ -72,6 +82,7 @@ public sealed partial class KardexService
         remision.Anulada = true;
         remision.Observaciones = string.IsNullOrWhiteSpace(remision.Observaciones) ? nota : $"{nota} | {remision.Observaciones}";
         await uow.Remisiones.UpdateAsync(remision, ct);
+        await ReciboCajaRegla.AnularDeRemisionAsync(uow, remision.Id, ct);
 
         await uow.CommitAsync(ct);
     }
@@ -232,6 +243,7 @@ public sealed partial class KardexService
     {
         ArgumentNullException.ThrowIfNull(dto);
         Regla.Exigir(dto.RemisionId is not null, "Falta indicar la venta que se va a editar.");
+        dto.ReciboCaja = ReciboParaValidar(dto.ReciboCaja, dto.Recibo);
         validador.ValidarVenta(dto, reloj.Hoy);
         var finales = IndexarPorId(dto.Animales, a => a.AnimalId);
 
@@ -249,7 +261,7 @@ public sealed partial class KardexService
             ? []
             : await CargarAnimalesDisponiblesAsync(uow, nuevosIds, remision.GranjaOrigenId!.Value, "vender", ct);
         var todos = doc.Animales.Values.Where(a => finales.ContainsKey(a.Id)).Concat(animalesNuevos).ToList();
-        var oficio = await ObtenerOCrearOficioAsync(uow, dto, todos, ct);
+        var oficio = await ObtenerOCrearOficioAsync(uow, dto, todos, ct, remision.OficioId);
 
         foreach (var id in doc.Animales.Keys.Except(finales.Keys).ToList())
         {
@@ -287,6 +299,7 @@ public sealed partial class KardexService
         }
 
         var resultado = await ResumirSalidaAsync(uow, remision.Id, oficio.Id, ct);
+        await GuardarReciboAsync(uow, remision, oficio.ProgramaId, dto.Comercial, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return resultado;
     }
@@ -467,6 +480,7 @@ public sealed partial class KardexService
 
         var lineas = await uow.RemisionDetalles.GetByRemisionAsync(remision.Id, ct);
         var resultado = new TrasladoResultado(remision.Id, lineas.Count, lineas.Sum(d => d.CostoSistemaLibros));
+        await GuardarReciboAsync(uow, remision, null, null, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return resultado;
     }

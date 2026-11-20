@@ -28,6 +28,11 @@ internal sealed class UnitOfWork : IUnitOfWork
     private IRemisionRepository? _remisiones;
     private IRemisionDetalleRepository? _remisionDetalles;
     private IMovimientoRepository? _movimientos;
+    private IConvenioRepository? _convenios;
+    private IClienteRepository? _clientes;
+    private ICatalogoProductoRepository? _productos;
+    private IConfiguracionRemisionesRepository? _configuracionRemisiones;
+    private IReciboCajaRepository? _recibos;
 
     public UnitOfWork(SqliteConnection connection, SqliteTransaction? transaction)
     {
@@ -67,6 +72,16 @@ internal sealed class UnitOfWork : IUnitOfWork
     public IRemisionDetalleRepository RemisionDetalles => _remisionDetalles ??= new RemisionDetalleRepository(_connection, _transaction);
 
     public IMovimientoRepository Movimientos => _movimientos ??= new MovimientoRepository(_connection, _transaction);
+
+    public IConvenioRepository Convenios => _convenios ??= new ConvenioRepository(_connection, _transaction);
+
+    public IClienteRepository Clientes => _clientes ??= new ClienteRepository(_connection, _transaction);
+
+    public ICatalogoProductoRepository Productos => _productos ??= new CatalogoProductoRepository(_connection, _transaction);
+
+    public IConfiguracionRemisionesRepository ConfiguracionRemisiones => _configuracionRemisiones ??= new ConfiguracionRemisionesRepository(_connection, _transaction);
+
+    public IReciboCajaRepository Recibos => _recibos ??= new ReciboCajaRepository(_connection, _transaction);
 
     public async Task CommitAsync(CancellationToken ct = default)
     {

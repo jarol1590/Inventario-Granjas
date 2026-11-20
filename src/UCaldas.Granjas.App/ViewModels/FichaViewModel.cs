@@ -77,6 +77,9 @@ public sealed partial class FichaViewModel : DialogViewModelBase
     private string _madreIdentificacion = string.Empty;
 
     [ObservableProperty]
+    private string _observaciones = string.Empty;
+
+    [ObservableProperty]
     private decimal _pesoActualKg;
 
     [ObservableProperty]
@@ -155,7 +158,7 @@ public sealed partial class FichaViewModel : DialogViewModelBase
     {
         base.OnPropertyChanged(e);
         if (!_cargando && e.PropertyName is nameof(ChapetaAmarilla) or nameof(ChapetaRoja) or nameof(Nombre) or nameof(EsHembra)
-            or nameof(FechaNacimiento) or nameof(Raza) or nameof(MadreIdentificacion) or nameof(PesoActualKg)
+            or nameof(FechaNacimiento) or nameof(Raza) or nameof(MadreIdentificacion) or nameof(Observaciones) or nameof(PesoActualKg)
             or nameof(OrientacionSeleccionada) or nameof(NumeroPartos) or nameof(ExentoValorizacion))
         {
             HayCambios = true;
@@ -188,6 +191,7 @@ public sealed partial class FichaViewModel : DialogViewModelBase
                 NumeroPartos = EsHembra ? NumeroPartos : 0,
                 ExentoValorizacion = ExentoValorizacion,
                 MadreIdentificacion = Vacio(MadreIdentificacion),
+                Observaciones = Vacio(Observaciones),
             });
             HuboCambios = true;
             await RecargarFichaAsync();
@@ -254,6 +258,7 @@ public sealed partial class FichaViewModel : DialogViewModelBase
             FechaNacimiento = animal.FechaNacimiento;
             Raza = animal.Raza;
             MadreIdentificacion = animal.MadreIdentificacion ?? string.Empty;
+            Observaciones = animal.Observaciones ?? string.Empty;
             PesoActualKg = animal.PesoActualKg;
             OrientacionSeleccionada = Orientaciones.FirstOrDefault(o => o.Id == animal.OrientacionId);
             NumeroPartos = animal.NumeroPartos;

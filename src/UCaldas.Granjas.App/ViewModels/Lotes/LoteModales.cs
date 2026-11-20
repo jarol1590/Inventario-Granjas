@@ -63,9 +63,6 @@ public sealed partial class NuevoLoteViewModel : DialogViewModelBase
     private string _codigoLote = string.Empty;
 
     [ObservableProperty]
-    private string _ubicacion = string.Empty;
-
-    [ObservableProperty]
     private string _lineaRaza = string.Empty;
 
     [ObservableProperty]
@@ -86,9 +83,6 @@ public sealed partial class NuevoLoteViewModel : DialogViewModelBase
 
     [ObservableProperty]
     private string _factura = string.Empty;
-
-    [ObservableProperty]
-    private string _ordenCompra = string.Empty;
 
     [ObservableProperty]
     private string _proveedor = string.Empty;
@@ -173,14 +167,12 @@ public sealed partial class NuevoLoteViewModel : DialogViewModelBase
             EtapaId = etapa,
             ClaseEntrada = EsCompra ? ClaseEntrada.Compra : ClaseEntrada.Nacimiento,
             CodigoLote = CodigoLote,
-            Ubicacion = Ubicacion,
             LineaRaza = LineaRaza,
             FechaIngreso = FechaIngreso ?? default,
             ControlNumericoPoblacion = !SinControlNumerico,
             Cantidad = Cantidad,
             PrecioUnitarioFactura = PrecioUnitario,
             Factura = Factura,
-            OrdenCompra = OrdenCompra,
             Proveedor = Proveedor,
             OrigenReferencia = OrigenReferencia,
             Observaciones = Observaciones,
@@ -207,14 +199,13 @@ public sealed partial class CambioEtapaDesdobleViewModel : DialogViewModelBase
         _lotes = lotes;
         _catalogo = catalogo;
         _lote = lote;
-        _ubicacionNueva = lote.Lote.Ubicacion;
     }
 
     public override string Titulo => $"Cambiar etapa / desdoblar — {_lote.Lote.CodigoLote}";
 
     public override double Ancho => 640;
 
-    public string Resumen => $"Lote {_lote.Lote.CodigoLote} · Etapa actual: {_lote.EtapaNombre} · Ubicación: {_lote.Lote.Ubicacion} · " +
+    public string Resumen => $"Lote {_lote.Lote.CodigoLote} · Etapa actual: {_lote.EtapaNombre} · " +
         (_lote.Lote.ControlNumericoPoblacion ? $"{_lote.Lote.CantidadActual:N0} cabezas" : "sin control numérico");
 
     /// <summary>El desdoble por cantidades solo existe en lotes con conteo.</summary>
@@ -234,9 +225,6 @@ public sealed partial class CambioEtapaDesdobleViewModel : DialogViewModelBase
 
     [ObservableProperty]
     private OpcionFiltro? _etapaDestino;
-
-    [ObservableProperty]
-    private string _ubicacionNueva;
 
     [ObservableProperty]
     private int _cantidad;
@@ -267,7 +255,7 @@ public sealed partial class CambioEtapaDesdobleViewModel : DialogViewModelBase
             }
 
             CambioEtapaResultado? resultado = null;
-            if (!await EjecutarAsync(async () => resultado = await _lotes.CambiarEtapaAsync(_lote.Lote.Id, etapa, UbicacionNueva), "cambiar la etapa") || resultado is null)
+            if (!await EjecutarAsync(async () => resultado = await _lotes.CambiarEtapaAsync(_lote.Lote.Id, etapa), "cambiar la etapa") || resultado is null)
             {
                 return;
             }
@@ -284,7 +272,7 @@ public sealed partial class CambioEtapaDesdobleViewModel : DialogViewModelBase
             return;
         }
 
-        if (await EjecutarAsync(() => _lotes.DesdoblarAsync(_lote.Lote.Id, Cantidad, CodigoNuevoLote, UbicacionNueva), "desdoblar el lote"))
+        if (await EjecutarAsync(() => _lotes.DesdoblarAsync(_lote.Lote.Id, Cantidad, CodigoNuevoLote), "desdoblar el lote"))
         {
             Dialogos.Informar($"Se crearon el lote {CodigoNuevoLote.Trim()} con {Cantidad:N0} cabezas; el saldo financiero total no cambia.", "Desdoble");
             Cerrar(true);
@@ -292,7 +280,7 @@ public sealed partial class CambioEtapaDesdobleViewModel : DialogViewModelBase
     }
 }
 
-/// <summary>Registro rápido de mortandad, hurto o descarte sanitario.</summary>
+/// <summary>Registro rápido de mortalidad, hurto o descarte sanitario.</summary>
 public sealed partial class BajaLoteViewModel : DialogViewModelBase
 {
     private readonly ILoteService _lotes;
@@ -307,7 +295,7 @@ public sealed partial class BajaLoteViewModel : DialogViewModelBase
         _causa = LoteService.CausasDeBaja[0];
     }
 
-    public override string Titulo => $"Mortandad / baja — {_lote.Lote.CodigoLote}";
+    public override string Titulo => $"Mortalidad / baja — {_lote.Lote.CodigoLote}";
 
     public override double Ancho => 560;
 
@@ -394,7 +382,7 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
     /// <summary>Un lote con la compra anulada no se edita.</summary>
     public bool EsEditable => !Lote.Anulado;
 
-    /// <summary>Proveedor y orden de compra solo existen en los lotes que entraron por compra.</summary>
+    /// <summary>El proveedor solo existe en los lotes que entraron por compra.</summary>
     public bool EsCompra => Lote.ClaseEntrada == ClaseEntrada.Compra;
 
     /// <summary>Las cantidades solo se editan en lotes con control numérico de población.</summary>
@@ -456,9 +444,6 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
     private string _codigoLote = string.Empty;
 
     [ObservableProperty]
-    private string _ubicacion = string.Empty;
-
-    [ObservableProperty]
     private string _lineaRaza = string.Empty;
 
     [ObservableProperty]
@@ -469,9 +454,6 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
 
     [ObservableProperty]
     private string _proveedor = string.Empty;
-
-    [ObservableProperty]
-    private string _ordenCompra = string.Empty;
 
     [ObservableProperty]
     private string _anotaciones = string.Empty;
@@ -522,8 +504,8 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (!_cargando && e.PropertyName is nameof(CodigoLote) or nameof(Ubicacion) or nameof(LineaRaza) or nameof(FechaIngreso)
-            or nameof(OrigenReferencia) or nameof(Proveedor) or nameof(OrdenCompra) or nameof(Anotaciones)
+        if (!_cargando && e.PropertyName is nameof(CodigoLote) or nameof(LineaRaza) or nameof(FechaIngreso)
+            or nameof(OrigenReferencia) or nameof(Proveedor) or nameof(Anotaciones)
             or nameof(GranjaSeleccionada) or nameof(EtapaSeleccionada) or nameof(CantidadInicial) or nameof(Bajas) or nameof(ValorContable))
         {
             HayCambios = true;
@@ -545,12 +527,10 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
             {
                 LoteId = _loteId,
                 CodigoLote = CodigoLote,
-                Ubicacion = Ubicacion,
                 LineaRaza = LineaRaza,
                 FechaIngreso = FechaIngreso ?? default,
                 OrigenReferencia = OrigenReferencia,
                 Proveedor = Proveedor,
-                OrdenCompra = OrdenCompra,
                 Observaciones = Anotaciones,
                 GranjaId = granjaId,
                 EtapaId = etapaId,
@@ -589,12 +569,10 @@ public sealed partial class FichaLoteViewModel : DialogViewModelBase
         try
         {
             CodigoLote = Lote.CodigoLote;
-            Ubicacion = Lote.Ubicacion;
             LineaRaza = Lote.LineaRaza;
             FechaIngreso = Lote.FechaNacimientoIngreso;
             OrigenReferencia = Lote.OrigenReferencia ?? string.Empty;
             Proveedor = Lote.Proveedor ?? string.Empty;
-            OrdenCompra = Lote.OrdenCompra ?? string.Empty;
             Anotaciones = Lote.Observaciones ?? string.Empty;
             CantidadInicial = Lote.CantidadInicial;
             Bajas = Lote.MortandadAcumulada;

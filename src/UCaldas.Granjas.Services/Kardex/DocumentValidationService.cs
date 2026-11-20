@@ -58,7 +58,7 @@ public sealed class DocumentValidationService : IDocumentValidationService
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        Regla.ExigirTexto(dto.NumeroFactura, "El número de factura / remisión de compra");
+        Regla.ExigirTexto(dto.NumeroFactura, "El número de factura de compra");
         ExigirFechaPasada(dto.FechaCompra, hoy, "La fecha de compra");
         Regla.Exigir(dto.GranjaDestinoId > 0, "Seleccione la granja destino de la compra.");
         Regla.ExigirTexto(dto.Proveedor, "El proveedor");

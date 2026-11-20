@@ -20,6 +20,12 @@ public interface IKardexService
     /// <summary>Registra una cría: <c>clase_entrada = NACIMIENTO</c>, <c>valor_compra_origen = 0</c>, categoría y valor iniciales de la matriz.</summary>
     Task<NacimientoResultado> RegistrarNacimientoAsync(NacimientoDto dto, CancellationToken ct = default);
 
+    /// <summary>Venta o traslado de productos (sin animales ni lotes) con su Recibo de Caja SP en la misma transacción.</summary>
+    Task<ProductosResultado> RegistrarRemisionProductosAsync(RemisionProductosDto dto, CancellationToken ct = default);
+
+    /// <summary>Corrige una remisión de productos y su recibo (conserva el número del recibo).</summary>
+    Task<ProductosResultado> EditarRemisionProductosAsync(RemisionProductosDto dto, CancellationToken ct = default);
+
     /// <summary>Registra una compra individual o masiva: el precio de factura queda como <c>valor_compra_origen</c> (inmutable).</summary>
     Task<CompraResultado> RegistrarCompraAsync(CompraDto dto, CancellationToken ct = default);
 

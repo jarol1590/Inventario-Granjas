@@ -8,6 +8,11 @@ public class OficioVenta
     public int ProgramaId { get; set; }
     public DateTime FechaOficio { get; set; }
     public string? Observaciones { get; set; }
+
+    /// <summary>Un oficio cerrado no admite remisiones nuevas; se puede reabrir (extensión v2.8).</summary>
+    public bool Cerrado { get; set; }
+
+    public DateTime? FechaCierre { get; set; }
 }
 
 /// <summary>
@@ -43,6 +48,20 @@ public class Remision
 
     /// <summary>Documento anulado: conserva su número pero revirtió todos sus efectos (extensión v2.1).</summary>
     public bool Anulada { get; set; }
+
+    /// <summary>Programa de la remisión: el del oficio en una venta, el elegido en un traslado (extensión v2.8).</summary>
+    public int? ProgramaId { get; set; }
+
+    /// <summary>CONVENIO u OTRO (solo ventas; extensión v2.8).</summary>
+    public string? TipoComprador { get; set; }
+
+    public int? ConvenioId { get; set; }
+    public int? ClienteId { get; set; }
+
+    public decimal Subtotal { get; set; }
+    public decimal DescuentoPorcentaje { get; set; }
+    public decimal ValorDescuento { get; set; }
+    public decimal Total { get; set; }
 }
 
 /// <summary>Línea de una remisión: un animal (o lote) con su peso, valor de la transacción y costo en libros.</summary>
@@ -78,6 +97,15 @@ public class RemisionDetalle
 
     /// <summary>Orientación después del traslado (extensión v2.1).</summary>
     public int? OrientacionDestinoId { get; set; }
+
+    /// <summary>Línea de producto (hortalizas, huevos...) en lugar de animal o lote (extensión v2.8).</summary>
+    public int? ProductoId { get; set; }
+
+    public string? DescripcionItem { get; set; }
+    public string? UnidadMedida { get; set; }
+
+    /// <summary>Cantidad de la línea de producto (admite decimales: kg, cubetas).</summary>
+    public decimal? CantidadProducto { get; set; }
 }
 
 /// <summary>
@@ -98,4 +126,7 @@ public class MovimientoInventario
 
     /// <summary>1 en animales; N en lotes (extensión v2.3).</summary>
     public int Cantidad { get; set; } = 1;
+
+    /// <summary>Motivo del asiento (extensión v2.7); p. ej. «Valorización por cambio de etapa» en un lote.</summary>
+    public string? Observaciones { get; set; }
 }

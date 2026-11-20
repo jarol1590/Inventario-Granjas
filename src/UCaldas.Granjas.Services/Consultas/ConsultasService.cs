@@ -400,7 +400,6 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
                     LoteId = d.LoteId!.Value,
                     Cantidad = d.Cantidad,
                     CodigoNuevoLote = parcial ? lotes[d.LoteDestinoId!.Value].CodigoLote : null,
-                    UbicacionDestino = d.LoteDestinoId is { } dest && lotes.TryGetValue(dest, out var l) ? l.Ubicacion : null,
                 };
             }).ToList(),
         };
@@ -415,7 +414,7 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
             .Where(d => d.LoteId is not null && lotes.ContainsKey(d.LoteId.Value))
             .Select(d => lotes[d.LoteId!.Value])
             .Select(l => new LoteSeleccionable(
-                l.Id, l.CodigoLote, etapas.GetValueOrDefault(l.EtapaId, "—"), l.Ubicacion, l.CantidadActual, l.ControlNumericoPoblacion, l.ValorContableUnitario))
+                l.Id, l.CodigoLote, etapas.GetValueOrDefault(l.EtapaId, "—"), l.CantidadActual, l.ControlNumericoPoblacion, l.ValorContableUnitario))
             .ToList();
     }
 
@@ -550,7 +549,7 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
             return await DashboardDeLotesAsync(uow, granjas, categorias.Values.Where(c => c.ProgramaId == idPrograma).OrderBy(c => c.Id).ToList(), idPrograma, granjaId, mes, ct);
         }
 
-        var individuales = (await uow.Programas.GetAllAsync(ct)).Where(p => p.TipoInventario == TipoInventario.Individual).Select(p => p.Id).ToHashSet();
+        var individuales = (await uow.Programas.GetAllAsync(ct)).Where(p => p.TipoInventario == TipoInventario.Individual && p.ManejaInventarioAnimal).Select(p => p.Id).ToHashSet();
         var animales = await uow.Animales.GetAllAsync(ct);
         var movimientos = await uow.Movimientos.GetAllAsync(ct);
 
@@ -594,7 +593,7 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
     /// <summary>
     /// Tablero de un programa por lotes. Las barras son cabezas vivas (un lote sin conteo suma 1) por etapa y por granja. Los
     /// movimientos del mes salen de los documentos (compra y nacimiento = ingreso del lote; venta y traslado = remisiones);
-    /// la mortandad no tiene registro fechado y por eso no aparece.
+    /// la mortalidad no tiene registro fechado y por eso no aparece.
     /// </summary>
     private static async Task<DashboardDatos> DashboardDeLotesAsync(
         IUnitOfWork uow, List<Granja> granjas, List<CategoriaEtapa> etapas, int programaId, int? granjaId, DateTime mes, CancellationToken ct)

@@ -41,7 +41,7 @@ La migración da «General» (categoría y tarifa) a cada programa sin valorizac
 
 | Tabla | Cambio |
 |---|---|
-| LOTE_POBLACION | `operaciones` (cambios de etapa, desdobles, bajas, ventas y traslados; solo informativo: ya no bloquea la corrección de la compra; la anulación se rechaza únicamente si el lote fue desdoblado, vendido o trasladado) y `anulado` (compra anulada). La migración marca `operaciones = 1` en los lotes con mortandad, desdoble o cantidad distinta de la inicial |
+| LOTE_POBLACION | `operaciones` (cambios de etapa, desdobles, bajas, ventas y traslados; solo informativo: ya no bloquea la corrección de la compra; la anulación se rechaza únicamente si el lote fue desdoblado, vendido o trasladado) y `anulado` (compra anulada). La migración marca `operaciones = 1` en los lotes con mortalidad, desdoble o cantidad distinta de la inicial |
 | REMISION_DETALLE | `lote_destino_id` (lote creado por un traslado parcial de lotes) |
 
 ## Ampliación v2.5 (`user_version = 5`, `Schema/migracion_v5.sql`)
@@ -93,3 +93,9 @@ Nunca borra datos y no pisa lo que el usuario haya editado:
 | VIGENCIA 2026 (activa) | 10 tarifas: las 9 de la tabla de precios oficial 2026 (suman $25.710.000) más "Levante, Macho, 12–17 meses" ($1.200.000); la fila de Novilla Vientre (ambas orientaciones) cubre de 12 a 999 meses. Así no quedan edades sin tarifa. |
 | CONFIGURACION_FIRMA | Valores de relleno; el nombre real se configura en la aplicación |
 | CONFIGURACION_SISTEMA | Sin fila: su ausencia es el primer arranque (crear contraseña) |
+
+## v2.7
+
+- `ANIMAL.observaciones TEXT` (nullable): anotaciones libres editables en la ficha; salen en el inventario físico-financiero (columna I) y en el inventario físico individual.
+- `MOVIMIENTO_INVENTARIO.observaciones TEXT` (nullable) e índice `ix_movimiento_lote`: motivo de los asientos de lotes (valorización por cambio de etapa, bajas por mortalidad o hurto).
+- `LOTE_POBLACION.ubicacion` y `orden_compra` ya no se capturan: se guardan vacía/nula (la columna sigue NOT NULL por compatibilidad).

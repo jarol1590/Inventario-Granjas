@@ -22,10 +22,8 @@
       <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,20,10" ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaSeleccionada}" DisplayMemberPath="Nombre" />
       <TextBlock Grid.Row="1" Grid.Column="2" Text="*Etapa inicial:" Style="{StaticResource Etiq}" />
       <ComboBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding Etapas}" SelectedItem="{Binding EtapaSeleccionada}" DisplayMemberPath="Nombre" />
-      <TextBlock Grid.Row="2" Text="*Ubicación:" Style="{StaticResource Etiq}" />
-      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,20,10" Text="{Binding Ubicacion, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" ToolTip="Galpón, estanque o corral" />
-      <TextBlock Grid.Row="2" Grid.Column="2" Text="*Línea / raza:" Style="{StaticResource Etiq}" />
-      <ComboBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding RazasDisponibles}" SelectedItem="{Binding LineaRaza}" />
+      <TextBlock Grid.Row="2" Text="*Línea / raza:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,0,20,10" ItemsSource="{Binding RazasDisponibles}" SelectedItem="{Binding LineaRaza}" />
       <CheckBox Grid.Row="3" Grid.ColumnSpan="4" Margin="0,0,0,10" IsChecked="{Binding SinControlNumerico}"
                 Content="Sin control numérico de población (p. ej. estanque piscícola: no se lleva conteo de individuos)" />
     </Grid>
@@ -44,14 +42,12 @@
           <ColumnDefinition Width="140" /><ColumnDefinition Width="*" /><ColumnDefinition Width="130" /><ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-        <TextBlock Text="*Factura / remisión:" Style="{StaticResource Etiq}" />
+        <TextBlock Text="*Factura:" Style="{StaticResource Etiq}" />
         <TextBox Grid.Column="1" Margin="0,0,20,10" Text="{Binding Factura, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" />
-        <TextBlock Grid.Column="2" Text="*Orden de compra:" Style="{StaticResource Etiq}" />
-        <TextBox Grid.Column="3" Margin="0,0,0,10" Text="{Binding OrdenCompra, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" />
-        <TextBlock Grid.Row="1" Text="*Proveedor:" Style="{StaticResource Etiq}" />
-        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,20,10" Text="{Binding Proveedor, UpdateSourceTrigger=PropertyChanged}" MaxLength="120" />
-        <TextBlock Grid.Row="1" Grid.Column="2" Text="*Precio factura ($):" Style="{StaticResource Etiq}" ToolTip="Por cabeza; por el lote entero si no lleva conteo." />
-        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" HorizontalContentAlignment="Right"
+        <TextBlock Grid.Column="2" Text="*Proveedor:" Style="{StaticResource Etiq}" />
+        <TextBox Grid.Column="3" Margin="0,0,0,10" Text="{Binding Proveedor, UpdateSourceTrigger=PropertyChanged}" MaxLength="120" />
+        <TextBlock Grid.Row="1" Text="*Precio factura ($):" Style="{StaticResource Etiq}" ToolTip="Por cabeza; por el lote entero si no lleva conteo." />
+        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,20,10" HorizontalContentAlignment="Right"
                  Text="{Binding PrecioUnitario, StringFormat='#,##0', UpdateSourceTrigger=LostFocus}" />
       </Grid>
     </StackPanel>

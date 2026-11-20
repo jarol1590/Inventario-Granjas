@@ -41,9 +41,9 @@ public class DashboardDeLotesTests
     private static Task<int> LoteAsync(Entorno s, string codigo, int granja, int etapa, int cantidad, string clase = ClaseEntrada.Compra, bool sinConteo = false)
         => s.Lotes.RegistrarNuevoLoteAsync(new NuevoLoteDto
         {
-            ProgramaId = s.Aves.Id, GranjaId = granja, EtapaId = etapa, ClaseEntrada = clase, CodigoLote = codigo, Ubicacion = "G1", LineaRaza = "Hy",
+            ProgramaId = s.Aves.Id, GranjaId = granja, EtapaId = etapa, ClaseEntrada = clase, CodigoLote = codigo, LineaRaza = "Hy",
             FechaIngreso = Datos.F("2026-11-02"), ControlNumericoPoblacion = !sinConteo, Cantidad = cantidad, PrecioUnitarioFactura = 10_000m,
-            Factura = clase == ClaseEntrada.Compra ? "F-" + codigo : null, OrdenCompra = clase == ClaseEntrada.Compra ? "OC" : null,
+            Factura = clase == ClaseEntrada.Compra ? "F-" + codigo : null, 
             Proveedor = clase == ClaseEntrada.Compra ? "P" : null,
         });
 
@@ -72,7 +72,7 @@ public class DashboardDeLotesTests
         await LoteAsync(s, "L-3", ids.Montelindo, s.Postura, 200);
         await LoteAsync(s, "L-4", ids.Montelindo, s.Postura, 0, sinConteo: true);       // sin conteo: suma 1
         var baja = await LoteAsync(s, "L-5", ids.Montelindo, s.Cria, 50);
-        await s.Lotes.RegistrarBajaAsync(baja, 50, "Mortandad", Datos.F("2026-11-05"), null);   // finalizado: no cuenta
+        await s.Lotes.RegistrarBajaAsync(baja, 50, "Mortalidad", Datos.F("2026-11-05"), null);   // finalizado: no cuenta
 
         var todos = await s.Consultas.ObtenerDashboardAsync(null, s.Aves.Id, Datos.F("2026-11-06"));
         var montelindo = await s.Consultas.ObtenerDashboardAsync(ids.Montelindo, s.Aves.Id, Datos.F("2026-11-06"));

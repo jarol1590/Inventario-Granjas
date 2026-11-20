@@ -7,19 +7,19 @@ namespace UCaldas.Granjas.Services.Kardex;
 
 /// <summary>
 /// Documentos de lotes: venta y traslado. Son remisiones reales (con sus niveles documentales) cuyas líneas apuntan a un
-/// lote (<c>lote_id</c> + <c>cantidad</c>), editables y anulables como las de animales. Todavía NO escriben en el libro
-/// (<c>MOVIMIENTO_INVENTARIO</c>): el Kardex de lotes está pendiente. Editar = revertir las líneas y volver a aplicarlas.
+/// lote (<c>lote_id</c> + <c>cantidad</c>), editables y anulables como las de animales. No escriben en el libro
+/// (<c>MOVIMIENTO_INVENTARIO</c>): el Kardex mensual de lotes las lee de la remisión. Editar = revertir las líneas y volver a aplicarlas.
+/// Los lotes ya no tienen ubicación.
 /// </summary>
 public sealed partial class KardexService
 {
-    private const string PrefijoUbicacionOrigen = "Ubicación de origen: ";
-
     // ---- Venta de lotes ---------------------------------------------------------------------------------------------
 
     public async Task<SalidaResultado> RegistrarVentaLoteAsync(VentaLoteDto dto, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);
         Regla.Exigir(dto.RemisionId is null, "Esta venta ya está registrada; use la edición para modificarla.");
+        dto.ReciboCaja = ReciboParaValidar(dto.ReciboCaja, dto.Recibo);
         ValidarVentaLote(dto);
 
         await using var uow = await fabrica.BeginAsync(ct);
@@ -33,6 +33,7 @@ public sealed partial class KardexService
         await AplicarLineasDeVentaAsync(uow, remision, dto, ct);
 
         var resultado = await ResumirSalidaDeLotesAsync(uow, remision.Id, oficio.Id, ct);
+        await GuardarReciboAsync(uow, remision, oficio.ProgramaId, dto.Comercial, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return resultado;
     }
@@ -41,6 +42,7 @@ public sealed partial class KardexService
     {
         ArgumentNullException.ThrowIfNull(dto);
         Regla.Exigir(dto.RemisionId is not null, "Falta indicar la venta que se va a editar.");
+        dto.ReciboCaja = ReciboParaValidar(dto.ReciboCaja, dto.Recibo);
         ValidarVentaLote(dto);
 
         await using var uow = await fabrica.BeginAsync(ct);
@@ -55,6 +57,7 @@ public sealed partial class KardexService
         await AplicarLineasDeVentaAsync(uow, remision, dto, ct);
 
         var resultado = await ResumirSalidaDeLotesAsync(uow, remision.Id, oficio.Id, ct);
+        await GuardarReciboAsync(uow, remision, oficio.ProgramaId, dto.Comercial, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return resultado;
     }
@@ -103,6 +106,7 @@ public sealed partial class KardexService
             Regla.Exigir(
                 oficio.ProgramaId == programa.Id,
                 $"El oficio {numeroOficio} pertenece a otro programa: un oficio solo puede tener remisiones de un solo programa.");
+            ExigirOficioAbierto(oficio, remision.OficioId);   // al corregir, remision.OficioId aún es el oficio anterior
         }
 
         remision.NumeroRemision = numero;
@@ -201,6 +205,7 @@ public sealed partial class KardexService
         await uow.Remisiones.InsertAsync(remision, ct);
         var valor = await AplicarLineasDeTrasladoAsync(uow, remision, dto, ct);
 
+        await GuardarReciboAsync(uow, remision, null, null, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return new TrasladoResultado(remision.Id, dto.Lotes.Count, valor);
     }
@@ -223,6 +228,7 @@ public sealed partial class KardexService
         await uow.Remisiones.UpdateAsync(remision, ct);
         var valor = await AplicarLineasDeTrasladoAsync(uow, remision, dto, ct);
 
+        await GuardarReciboAsync(uow, remision, null, null, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return new TrasladoResultado(remision.Id, dto.Lotes.Count, valor);
     }
@@ -275,14 +281,9 @@ public sealed partial class KardexService
 
             if (completo)
             {
-                // Todo el lote cambia de granja (conserva su código); se recuerda su ubicación para poder revertirlo.
-                detalle.ObservacionesEspecificas = PrefijoUbicacionOrigen + lote.Ubicacion;
+                // Todo el lote cambia de granja (conserva su código).
                 detalle.LoteDestinoId = lote.Id;
                 lote.GranjaId = dto.GranjaDestinoId;
-                if (!string.IsNullOrWhiteSpace(linea.UbicacionDestino))
-                {
-                    lote.Ubicacion = linea.UbicacionDestino.Trim();
-                }
             }
             else
             {
@@ -297,7 +298,7 @@ public sealed partial class KardexService
                     GranjaId = dto.GranjaDestinoId,
                     EtapaId = lote.EtapaId,
                     ClaseEntrada = ClaseEntrada.Traslado,
-                    Ubicacion = string.IsNullOrWhiteSpace(linea.UbicacionDestino) ? lote.Ubicacion : linea.UbicacionDestino.Trim(),
+                    Ubicacion = string.Empty,
                     LineaRaza = lote.LineaRaza,
                     OrigenReferencia = lote.CodigoLote,
                     FechaNacimientoIngreso = lote.FechaNacimientoIngreso,
@@ -335,13 +336,8 @@ public sealed partial class KardexService
             var destinoId = detalle.LoteDestinoId;
             if (lote is not null && destinoId == lote.Id)
             {
-                // Traslado total: vuelve a la granja y a la ubicación de origen.
+                // Traslado total: vuelve a la granja de origen.
                 lote.GranjaId = remision.GranjaOrigenId!.Value;
-                if (detalle.ObservacionesEspecificas?.StartsWith(PrefijoUbicacionOrigen, StringComparison.Ordinal) == true)
-                {
-                    lote.Ubicacion = detalle.ObservacionesEspecificas[PrefijoUbicacionOrigen.Length..];
-                }
-
                 lote.Operaciones = Math.Max(0, lote.Operaciones - 1);
                 await uow.Lotes.UpdateAsync(lote, ct);
             }

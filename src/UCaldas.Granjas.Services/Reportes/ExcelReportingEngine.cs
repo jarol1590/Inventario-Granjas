@@ -24,11 +24,17 @@ public interface IExcelReportingEngine
     /// <summary>Inventario físico y financiero por granja, agrupado por categoría con subtotales y gran total.</summary>
     Task<string> GenerarInventarioFisicoAsync(InventarioFisicoRequest request, CancellationToken ct = default);
 
+    /// <summary>Inventario físico individual: una fila por animal disponible (clase de entrada, nacimiento, sexo, chapeta, peso, observaciones).</summary>
+    Task<string> GenerarInventarioIndividualAsync(InventarioIndividualRequest request, CancellationToken ct = default);
+
+    /// <summary>Kardex mensual de un programa por lotes (aves): un bloque por lote con vienen, ventas, mortalidad, valorización y saldo.</summary>
+    Task<string> GenerarKardexLotesAsync(KardexLotesRequest request, CancellationToken ct = default);
+
     /// <summary>Hoja de vida individual de un bovino: datos, doble valoración, genealogía e historial.</summary>
     Task<string> GenerarHojaDeVidaAsync(int animalId, string rutaDestino, CancellationToken ct = default);
 }
 
-public sealed class ExcelReportingEngine(
+public sealed partial class ExcelReportingEngine(
     IUnitOfWorkFactory fabrica,
     IKardexReportBuilder kardex,
     IFichaService fichas,
@@ -391,7 +397,7 @@ public sealed class ExcelReportingEngine(
         string? estado,
         ConfiguracionFirma? firma)
     {
-        const int ultima = 8;
+        const int ultima = 9;
         ExcelEstilos.Titulo(hoja, 1, 1, ultima, (firma?.EntidadFacultad ?? "FACULTAD DE CIENCIAS AGROPECUARIAS").ToUpperInvariant(), 11);
         ExcelEstilos.Titulo(hoja, 2, 1, ultima, $"INVENTARIO FÍSICO - FINANCIERO DE SEMOVIENTES — GRANJA {granja.Nombre.ToUpperInvariant()}", 14);
         ExcelEstilos.Titulo(
@@ -401,7 +407,7 @@ public sealed class ExcelReportingEngine(
         string[] encabezados =
         [
             "Clase de entrada", "Fecha de nacimiento", "Sexo", "Chapeta amarilla", "Chapeta roja",
-            "Precio animal (costo de compra)", "Precio sistema (categoría actual)", "Valorización acumulada",
+            "Precio animal (costo de compra)", "Precio sistema (categoría actual)", "Valorización acumulada", "Observaciones",
         ];
         const int filaEncabezado = 5;
         for (var i = 0; i < encabezados.Length; i++)
@@ -448,6 +454,13 @@ public sealed class ExcelReportingEngine(
                 hoja.Cell(fila, 6).Value = animal.ValorCompraOrigen;
                 hoja.Cell(fila, 7).Value = animal.ValorContableActual;
                 hoja.Cell(fila, 8).Value = variacion.GetValueOrDefault(animal.Id);
+                if (!string.IsNullOrWhiteSpace(animal.Observaciones))
+                {
+                    hoja.Cell(fila, 9).Value = animal.Observaciones;
+                }
+
+                hoja.Cell(fila, 9).Style.Alignment.WrapText = true;
+                hoja.Cell(fila, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
                 fila++;
             }
 
@@ -491,7 +504,7 @@ public sealed class ExcelReportingEngine(
             hoja.Range(filaEncabezado + 1, columna, ultimaTabla, columna).Style.NumberFormat.Format = ExcelEstilos.FormatoMoneda;
         }
 
-        double[] anchos = [30, 18, 10, 17, 15, 22, 22, 20];
+        double[] anchos = [30, 18, 10, 17, 15, 22, 22, 20, 40];
         for (var i = 0; i < anchos.Length; i++)
         {
             hoja.Column(i + 1).Width = anchos[i];

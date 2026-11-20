@@ -558,6 +558,57 @@ public class ListadosViewModelTests
     }
 
     [Fact]
+    public async Task Informes_ofrece_los_cuatro_tipos_y_solo_los_mensuales_piden_mes()
+    {
+        await using var e = await EscenariosDeReporte.CrearOctubreDeTesoritoAsync();
+        var vm = CrearInformes(e, new DialogoFalso());
+
+        (vm.EsKardex, vm.EsInventario, vm.EsIndividual, vm.EsKardexLotes, vm.MostrarMes).Should().Be((true, false, false, false, true));
+        vm.EsIndividual = true;
+        (vm.Tipo, vm.EsKardex, vm.MostrarMes).Should().Be((TipoInforme.Individual, false, false));
+        vm.EsKardexLotes = true;
+        (vm.Tipo, vm.EsIndividual, vm.MostrarMes).Should().Be((TipoInforme.KardexLotes, false, true));
+        vm.EsInventario = false;
+        vm.Tipo.Should().Be(TipoInforme.KardexLotes, "desmarcar un botón de opción no cambia el informe");
+    }
+
+    [Fact]
+    public async Task Generar_el_inventario_individual_y_el_kardex_de_lotes_sugiere_el_nombre_y_crea_el_archivo()
+    {
+        await using var e = await EscenariosDeReporte.CrearOctubreDeTesoritoAsync();
+        var carpeta = Path.Combine(Path.GetTempPath(), "SistemaGranjasPruebas", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(carpeta);
+        try
+        {
+            var individual = Path.Combine(carpeta, "individual.xlsx");
+            var lotes = Path.Combine(carpeta, "lotes.xlsx");
+            var dialogos = new DialogoFalso { RespuestaConfirmar = false };
+            var vm = CrearInformes(e, dialogos, new ContextoGlobal { GranjaId = e.Ids.Tesorito });
+            await vm.CargarAsync();
+
+            vm.EsIndividual = true;
+            dialogos.RutaAGuardar = individual;
+            await vm.GenerarCommand.ExecuteAsync(null);
+
+            vm.EsKardexLotes = true;
+            vm.MesSeleccionado = vm.Meses.Single(m => m.Numero == 10);
+            vm.Anio = 2026;
+            dialogos.RutaAGuardar = lotes;
+            await vm.GenerarCommand.ExecuteAsync(null);
+
+            File.Exists(individual).Should().BeTrue();
+            File.Exists(lotes).Should().BeTrue();
+            dialogos.NombresSugeridos.Should().HaveCount(2);
+            dialogos.NombresSugeridos[0].Should().StartWith("Inventario_Fisico_Individual_");
+            dialogos.NombresSugeridos[1].Should().Be("Movimientos_Inventario_Lotes_2026-10.xlsx");
+        }
+        finally
+        {
+            Directory.Delete(carpeta, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Generar_el_inventario_fisico_usa_los_filtros_de_granja_y_categoria()
     {
         await using var e = await EscenariosDeReporte.CrearOctubreDeTesoritoAsync();

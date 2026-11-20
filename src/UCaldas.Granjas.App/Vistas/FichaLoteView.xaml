@@ -10,29 +10,23 @@
         <ColumnDefinition Width="130" /><ColumnDefinition Width="*" /><ColumnDefinition Width="130" /><ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
       <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
       <TextBlock Text="Código:" Style="{StaticResource Etiq}" />
       <TextBox Grid.Column="1" Margin="0,0,24,10" Text="{Binding CodigoLote, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
-      <TextBlock Grid.Column="2" Text="Ubicación:" Style="{StaticResource Etiq}" />
-      <TextBox Grid.Column="3" Margin="0,0,0,10" Text="{Binding Ubicacion, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
+      <TextBlock Grid.Column="2" Text="Línea / raza:" Style="{StaticResource Etiq}" />
+      <ComboBox Grid.Column="3" Margin="0,0,0,10" ItemsSource="{Binding RazasDisponibles}" SelectedItem="{Binding LineaRaza}" />
 
-      <TextBlock Grid.Row="1" Text="Línea / raza:" Style="{StaticResource Etiq}" />
-      <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" ItemsSource="{Binding RazasDisponibles}" SelectedItem="{Binding LineaRaza}" />
-      <TextBlock Grid.Row="1" Grid.Column="2" Text="Fecha ingreso:" Style="{StaticResource Etiq}" />
-      <DatePicker Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" SelectedDate="{Binding FechaIngreso, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="1" Text="Fecha ingreso:" Style="{StaticResource Etiq}" />
+      <DatePicker Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" SelectedDate="{Binding FechaIngreso, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Grid.Row="1" Grid.Column="2" Text="Origen:" Style="{StaticResource Etiq}" ToolTip="N.º de factura, chapeta de la madre o código del lote padre." />
+      <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding OrigenReferencia, UpdateSourceTrigger=PropertyChanged}" />
 
-      <TextBlock Grid.Row="2" Text="Origen:" Style="{StaticResource Etiq}" ToolTip="N.º de factura, chapeta de la madre o código del lote padre." />
-      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,10" Text="{Binding OrigenReferencia, UpdateSourceTrigger=PropertyChanged}" />
-      <TextBlock Grid.Row="2" Grid.Column="2" Text="Proveedor:" Style="{StaticResource Etiq}"
+      <TextBlock Grid.Row="2" Text="Proveedor:" Style="{StaticResource Etiq}"
                  Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />
-      <TextBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" Text="{Binding Proveedor, UpdateSourceTrigger=PropertyChanged}"
+      <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,10" Text="{Binding Proveedor, UpdateSourceTrigger=PropertyChanged}"
                Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />
-
-      <TextBlock Grid.Row="3" Text="Orden de compra:" Style="{StaticResource Etiq}"
-                 Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />
-      <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,24,10" Text="{Binding OrdenCompra, UpdateSourceTrigger=PropertyChanged}"
-               Visibility="{Binding EsCompra, Converter={StaticResource BoolAVisibilidad}}" />    </Grid>
+    </Grid>
 
     <TextBlock Text="Población y valorización" Style="{StaticResource Texto.Seccion}" Margin="0,8,0,10" />
     <Grid IsEnabled="{Binding EsEditable}">

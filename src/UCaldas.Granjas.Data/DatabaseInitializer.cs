@@ -18,9 +18,10 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
     /// Versión del esquema (<c>PRAGMA user_version</c>). 1 = esquema v2.1; 2 = esquema v2.2 (recuperación de contraseña en
     /// <c>CONFIGURACION_SISTEMA</c> y huecos de la matriz 2026 completados); 3 = esquema v2.3 (programas generalizados, tarifas de referencia
     /// por categoría y módulo de lotes); 4 = esquema v2.4 (documentos de lotes y edición de su compra); 5 = esquema v2.5 (catálogo de
-    /// razas y líneas por programa); 6 = esquema v2.6 (Vacas General con parto desde los 14 meses).
+    /// razas y líneas por programa); 6 = esquema v2.6 (Vacas General con parto desde los 14 meses); 7 = v2.7 (observaciones de animales y movimientos);
+    /// 8 = v2.8 (módulo Remisiones: convenios, clientes, productos, oficios cerrables y recibos de caja SP).
     /// </summary>
-    public const int VersionEsquemaActual = 6;
+    public const int VersionEsquemaActual = 8;
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -39,7 +40,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
             return;
         }
 
-        if (version is not (0 or 1 or 2 or 3 or 4 or 5))
+        if (version is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
         {
             throw new InvalidOperationException(
                 $"La base de datos tiene una versión de esquema desconocida ({version}); se esperaba {VersionEsquemaActual}. " +
@@ -77,7 +78,25 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
                 await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v5.sql"), transaction: transaction, cancellationToken: ct));
             }
 
-            await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v6.sql"), transaction: transaction, cancellationToken: ct));
+            if (version <= 5)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v6.sql"), transaction: transaction, cancellationToken: ct));
+            }
+
+            if (version <= 6)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v7.sql"), transaction: transaction, cancellationToken: ct));
+            }
+
+            await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v8.sql"), transaction: transaction, cancellationToken: ct));
+
+            // REMISION_DETALLE se reconstruye una sola vez (para admitir líneas de producto).
+            var tieneProducto = await connection.ExecuteScalarAsync<long>(new CommandDefinition(
+                "SELECT COUNT(*) FROM pragma_table_info('REMISION_DETALLE') WHERE name = 'producto_id'", transaction: transaction, cancellationToken: ct));
+            if (tieneProducto == 0)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v8_detalle.sql"), transaction: transaction, cancellationToken: ct));
+            }
         }
 
         await connection.ExecuteAsync(new CommandDefinition(

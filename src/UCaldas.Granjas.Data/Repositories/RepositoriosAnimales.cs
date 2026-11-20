@@ -17,7 +17,7 @@ internal sealed class AnimalRepository(SqliteConnection connection, SqliteTransa
             madre_identificacion = @MadreIdentificacion, peso_actual_kg = @PesoActualKg,
             orientacion_id = @OrientacionId, valor_contable_actual = @ValorContableActual,
             granja_id = @GranjaId, categoria_id = @CategoriaId, estado = @Estado,
-            numero_partos = @NumeroPartos, exento_valorizacion = @ExentoValorizacion
+            numero_partos = @NumeroPartos, exento_valorizacion = @ExentoValorizacion, observaciones = @Observaciones
         WHERE id = @Id
         """;
 

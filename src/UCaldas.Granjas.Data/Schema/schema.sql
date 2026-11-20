@@ -53,7 +53,8 @@ CREATE TABLE PROGRAMA (
     tipo_inventario TEXT NOT NULL CHECK (tipo_inventario IN ('INDIVIDUAL', 'LOTE')),
     observaciones   TEXT,                                           -- [v2.1] visible en el mockup de Granjas y Programas
     usa_valorizacion_biologica BOOLEAN NOT NULL DEFAULT 0,          -- [v2.3] 1 solo en Bovinos: valorización mensual por edad (AgingEngine)
-    unidad_venta_default       TEXT NOT NULL DEFAULT 'UNIDAD' CHECK (unidad_venta_default IN ('UNIDAD', 'KG'))   -- [v2.3]
+    unidad_venta_default       TEXT NOT NULL DEFAULT 'UNIDAD' CHECK (unidad_venta_default IN ('UNIDAD', 'KG')),  -- [v2.3]
+    maneja_inventario_animal   BOOLEAN NOT NULL DEFAULT 1                                                          -- [v2.8] 0 = programa de productos (hortalizas...)
 );
 
 CREATE TABLE GRANJA_PROGRAMA (
@@ -146,7 +147,8 @@ CREATE TABLE ANIMAL (
                           CHECK (estado IN ('Disponible', 'Vendido', 'Hurtado', 'Muerto', 'Trasladado')),
     numero_partos         INTEGER NOT NULL DEFAULT 0 CHECK (numero_partos >= 0),   -- [v2.1]
     exento_valorizacion   BOOLEAN NOT NULL DEFAULT 0,                              -- [v2.1]
-    fecha_registro        DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')) -- [v2.1]
+    fecha_registro        DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')), -- [v2.1]
+    observaciones         TEXT                                                      -- [v2.7]
 );
 
 CREATE INDEX ix_animal_granja_estado ON ANIMAL(granja_id, estado);
@@ -195,7 +197,9 @@ CREATE TABLE OFICIO_VENTA (
     numero_oficio TEXT NOT NULL UNIQUE COLLATE NOCASE,                -- exclusivo de ventas (OF-120)
     programa_id   INTEGER NOT NULL REFERENCES PROGRAMA(id),
     fecha_oficio  DATETIME NOT NULL,
-    observaciones TEXT
+    observaciones TEXT,
+    cerrado       BOOLEAN NOT NULL DEFAULT 0,                         -- [v2.8] un oficio cerrado no admite remisiones nuevas
+    fecha_cierre  DATETIME                                            -- [v2.8]
 );
 
 CREATE TABLE REMISION (
@@ -214,6 +218,14 @@ CREATE TABLE REMISION (
     clase_salida      TEXT CHECK (clase_salida IS NULL OR clase_salida IN
                           ('VENTA', 'MUERTE', 'HURTO', 'DESCARTE_SANITARIO', 'TRASLADO')),   -- [v2.1]
     anulada           BOOLEAN NOT NULL DEFAULT 0,                                            -- [v2.1]
+    programa_id       INTEGER,                                                               -- [v2.8] sin FK (ver migracion_v8.sql)
+    tipo_comprador    TEXT CHECK (tipo_comprador IS NULL OR tipo_comprador IN ('CONVENIO', 'OTRO')),   -- [v2.8]
+    convenio_id       INTEGER,                                                               -- [v2.8]
+    cliente_id        INTEGER,                                                               -- [v2.8]
+    subtotal             DECIMAL(12,2) NOT NULL DEFAULT 0,                                   -- [v2.8]
+    descuento_porcentaje DECIMAL(5,2)  NOT NULL DEFAULT 0,                                   -- [v2.8]
+    valor_descuento      DECIMAL(12,2) NOT NULL DEFAULT 0,                                   -- [v2.8]
+    total                DECIMAL(12,2) NOT NULL DEFAULT 0,                                   -- [v2.8]
     -- Jerarquía documental de 3 niveles (3.4 del documento): la VENTA exige Oficio y Recibo de Caja;
     -- traslados, bajas y compras los rechazan.
     CHECK (tipo_movimiento <> 'VENTA'
@@ -239,7 +251,11 @@ CREATE TABLE REMISION_DETALLE (
     lote_destino_id            INTEGER REFERENCES LOTE_POBLACION(id),           -- [v2.4] lote que creó un traslado parcial de lotes
     orientacion_origen_id      INTEGER REFERENCES ORIENTACION_PRODUCTIVA(id),   -- [v2.1]
     orientacion_destino_id     INTEGER REFERENCES ORIENTACION_PRODUCTIVA(id),   -- [v2.1]
-    CHECK ((animal_id IS NOT NULL) + (lote_id IS NOT NULL) = 1)
+    producto_id                INTEGER REFERENCES CATALOGO_PRODUCTO(id),        -- [v2.8] línea de producto (sin animal ni lote)
+    descripcion_item           TEXT,                                            -- [v2.8]
+    unidad_medida              TEXT,                                            -- [v2.8]
+    cantidad_producto          DECIMAL(12,2),                                   -- [v2.8]
+    CHECK ((animal_id IS NOT NULL) + (lote_id IS NOT NULL) + (producto_id IS NOT NULL) = 1)
 );
 
 CREATE INDEX ix_detalle_remision ON REMISION_DETALLE(remision_id);
@@ -259,9 +275,79 @@ CREATE TABLE MOVIMIENTO_INVENTARIO (
     granja_destino_id INTEGER REFERENCES GRANJA(id),
     costo_asociado    DECIMAL(12,2) NOT NULL,
     cantidad          INTEGER NOT NULL DEFAULT 1,                               -- [v2.3]
+    observaciones     TEXT,                                                     -- [v2.7]
     CHECK ((granja_origen_id IS NOT NULL) + (granja_destino_id IS NOT NULL) = 1)
 );
 
 CREATE INDEX ix_movimiento_animal   ON MOVIMIENTO_INVENTARIO(animal_id);
 CREATE INDEX ix_movimiento_fecha    ON MOVIMIENTO_INVENTARIO(fecha_movimiento);
 CREATE INDEX ix_movimiento_remision ON MOVIMIENTO_INVENTARIO(remision_id);
+CREATE INDEX ix_movimiento_lote     ON MOVIMIENTO_INVENTARIO(lote_id);
+
+-- MÓDULO REMISIONES (v2.8) ---------------------------------------------------
+
+CREATE TABLE CONVENIO (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre             TEXT NOT NULL,
+    nit                TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    direccion          TEXT NOT NULL,
+    telefono           TEXT NOT NULL,
+    correo_electronico TEXT,
+    activo             BOOLEAN NOT NULL DEFAULT 1
+);
+
+CREATE TABLE CLIENTE (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre_razon_social TEXT NOT NULL,
+    nit_cc              TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    direccion           TEXT,
+    telefono            TEXT,
+    correo_electronico  TEXT,
+    activo              BOOLEAN NOT NULL DEFAULT 1
+);
+
+CREATE TABLE CATALOGO_PRODUCTO (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo          TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    programa_id     INTEGER NOT NULL REFERENCES PROGRAMA(id),
+    nombre          TEXT NOT NULL,
+    unidad_medida   TEXT NOT NULL,
+    precio_unitario DECIMAL(12,2) NOT NULL DEFAULT 0,
+    activo          BOOLEAN NOT NULL DEFAULT 1
+);
+
+CREATE TABLE CONFIGURACION_REMISIONES (
+    id                        INTEGER PRIMARY KEY CHECK (id = 1),
+    nombre_director           TEXT NOT NULL DEFAULT '',
+    cargo_director            TEXT NOT NULL DEFAULT '',
+    titulo_director           TEXT,
+    jefe_tesoreria            TEXT NOT NULL DEFAULT '',
+    facultad_depto            TEXT NOT NULL DEFAULT '',
+    telefonos                 TEXT,
+    extensiones               TEXT,
+    entidad_bancaria          TEXT NOT NULL DEFAULT 'DAVIVIENDA',
+    tipo_cuenta               TEXT NOT NULL DEFAULT 'AHORROS',
+    numero_cuenta             TEXT NOT NULL DEFAULT '084500007533',
+    ultimo_consecutivo_recibo INTEGER NOT NULL DEFAULT 828
+);
+
+INSERT INTO CONFIGURACION_REMISIONES (id, facultad_depto)
+VALUES (1, 'Facultad de Ciencias Agropecuarias');
+
+-- Recibo de Caja SP: exactamente uno por remisión (venta o traslado). Un recibo anulado conserva su número.
+CREATE TABLE RECIBO_CAJA (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero_recibo     INTEGER NOT NULL UNIQUE,
+    prefijo           TEXT NOT NULL DEFAULT 'SP',
+    remision_id       INTEGER NOT NULL UNIQUE REFERENCES REMISION(id),
+    fecha             DATETIME NOT NULL,
+    forma_pago        TEXT NOT NULL CHECK (forma_pago IN ('CONSIGNACION', 'EFECTIVO_CHEQUE', 'TRASLADO_INTERNO')),
+    banco_consignacion TEXT,
+    es_efectivo       BOOLEAN NOT NULL DEFAULT 0,
+    cheque1_num      TEXT,
+    cheque2_num      TEXT,
+    total_pagado      DECIMAL(12,2) NOT NULL,
+    total_letras      TEXT NOT NULL,
+    observaciones     TEXT,
+    anulado           BOOLEAN NOT NULL DEFAULT 0
+);

@@ -80,7 +80,7 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
     {
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
         return (await uow.Programas.GetAllAsync(ct))
-            .Where(p => p.TipoInventario == tipoInventario)
+            .Where(p => p.TipoInventario == tipoInventario && p.ManejaInventarioAnimal)   // los programas de productos no tienen animales ni lotes
             .OrderBy(p => p.Codigo, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -256,6 +256,9 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
             Observaciones = string.IsNullOrWhiteSpace(programa.Observaciones) ? null : programa.Observaciones.Trim(),
             UnidadVentaDefault = unidad,
 
+            // Un programa de productos (hortalizas, frutales...) no tiene animales ni lotes: va como INDIVIDUAL y los módulos de animales lo filtran.
+            ManejaInventarioAnimal = programa.ManejaInventarioAnimal,
+
             // Un programa nuevo nunca usa la valorización biológica: esa es exclusiva de los bovinos sembrados con el sistema.
             UsaValorizacionBiologica = false,
         };
@@ -263,6 +266,12 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
         if (guardado.Id == 0)
         {
             await uow.Programas.InsertAsync(guardado, ct);
+            if (!guardado.ManejaInventarioAnimal)
+            {
+                await uow.GranjaProgramas.ReemplazarGranjasDeProgramaAsync(guardado.Id, granjaIds, ct);
+                await uow.CommitAsync(ct);
+                return guardado;
+            }
 
             // Cero fricción: el programa nace con la categoría "General" para poder registrar inventario de inmediato.
             var general = new CategoriaEtapa { Nombre = NombresBase.CategoriaGeneral, Sexo = Sexo.Ambos, ProgramaId = guardado.Id };

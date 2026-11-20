@@ -117,7 +117,7 @@ public sealed record VentaLoteEditable(VentaLoteDto Dto, bool Anulada, IReadOnly
 public sealed record TrasladoLoteEditable(TrasladoLoteDto Dto, bool Anulada, IReadOnlyList<LoteSeleccionable> Lotes);
 
 /// <summary>Un lote de una línea de documento (para mostrarlo en la grilla).</summary>
-public sealed record LoteSeleccionable(int Id, string Codigo, string Etapa, string Ubicacion, int CantidadActual, bool ControlNumerico, decimal ValorUnitario);
+public sealed record LoteSeleccionable(int Id, string Codigo, string Etapa, int CantidadActual, bool ControlNumerico, decimal ValorUnitario);
 
 public sealed record VentaEditable(VentaDto Dto, bool Anulada, IReadOnlyList<AnimalSeleccionable> Animales);
 

@@ -39,13 +39,13 @@ public class TrasladosPorProgramaTests
         var loteId = await lotes.RegistrarNuevoLoteAsync(new NuevoLoteDto
         {
             ProgramaId = aves.Id, GranjaId = e.Ids.Montelindo, EtapaId = etapa, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = "L-1",
-            Ubicacion = "Galpón 1", LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-10-25"), Cantidad = 1000, PrecioUnitarioFactura = 15_000m,
-            Factura = "FAC-L1", OrdenCompra = "OC", Proveedor = "Incubadora",
+            LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-10-25"), Cantidad = 1000, PrecioUnitarioFactura = 15_000m,
+            Factura = "FAC-L1", Proveedor = "Incubadora",
         });
         await e.Kardex.RegistrarTrasladoLoteAsync(new TrasladoLoteDto
         {
             NumeroRemision = "TRA-L1", FechaTraslado = Datos.F("2026-11-05"), GranjaOrigenId = e.Ids.Montelindo, GranjaDestinoId = e.Ids.Tesorito,
-            Lotes = [new TrasladoLoteLineaDto { LoteId = loteId, Cantidad = 300, CodigoNuevoLote = "L-1-T", UbicacionDestino = "Galpón T1" }],
+            Lotes = [new TrasladoLoteLineaDto { LoteId = loteId, Cantidad = 300, CodigoNuevoLote = "L-1-T" }],
         });
         return new Escenario(e, aves, new ConsultasService(e.Db.Uow, e.Reloj));
     }

@@ -135,7 +135,7 @@ public sealed partial class TarifasViewModel : ViewModelBase, ISeccion
     private async Task CargarProgramasAsync()
     {
         var previo = ProgramaTarifa?.Programa.Id;
-        var programas = await _catalogo.GetProgramasAsync();
+        var programas = (await _catalogo.GetProgramasAsync()).Where(p => p.ManejaInventarioAnimal);   // los programas de productos no tienen tarifas
 
         _cambiandoPrograma = true;
         try

@@ -83,6 +83,24 @@ public class RazasPorProgramaViewModelsTests
         vm.RazasDisponibles.Should().Contain(vm.Raza, "la raza actual siempre se puede mostrar, aunque sea antigua");
     }
 
+    [Fact]
+    public async Task La_ficha_del_animal_activa_Guardar_al_escribir_observaciones_y_las_guarda()
+    {
+        await using var e = await EscenarioKardex.CrearAsync();
+        await e.AltaVacaAsync("A-1", valor: 6_000_000m);
+        var animal = await e.AnimalAsync("A-1");
+        var vm = new FichaViewModel(new FichaService(e.Db.Uow, e.Reloj), new AnimalService(e.Db.Uow, e.Aging, e.Reloj), null!, new CatalogoService(e.Db.Uow), new DialogoFalso());
+        await vm.InicializarAsync(animal.Id);
+        vm.Observaciones.Should().BeEmpty();
+        vm.GuardarCambiosCommand.CanExecute(null).Should().BeFalse("no hay cambios");
+
+        vm.Observaciones = "Vigilar la ubre";
+
+        vm.GuardarCambiosCommand.CanExecute(null).Should().BeTrue("escribir observaciones ya es un cambio");
+        await vm.GuardarCambiosCommand.ExecuteAsync(null);
+        (await e.AnimalAsync("A-1")).Observaciones.Should().Be("Vigilar la ubre");
+    }
+
     private static async Task<(BaseDeDatosDePrueba Db, Programa Aves, CatalogoService Catalogo, LoteService Lotes)> LotesAsync()
     {
         var db = await BaseDeDatosDePrueba.CrearAsync();
@@ -119,9 +137,8 @@ public class RazasPorProgramaViewModelsTests
         var granja = (await catalogo.GetGranjasAsync()).Single(g => g.Codigo == "G-03").Id;
         var id = await lotes.RegistrarNuevoLoteAsync(new NuevoLoteDto
         {
-            ProgramaId = aves.Id, GranjaId = granja, EtapaId = etapa, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = "L-1", Ubicacion = "G1",
-            LineaRaza = "Isa Brown", FechaIngreso = Datos.F("2026-11-02"), Cantidad = 100, PrecioUnitarioFactura = 10_000m,
-            Factura = "F", OrdenCompra = "O", Proveedor = "P",
+            ProgramaId = aves.Id, GranjaId = granja, EtapaId = etapa, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = "L-1", LineaRaza = "Isa Brown", FechaIngreso = Datos.F("2026-11-02"), Cantidad = 100, PrecioUnitarioFactura = 10_000m,
+            Factura = "F", Proveedor = "P",
         });
         var vm = new FichaLoteViewModel(lotes, catalogo, new DialogoFalso(), await lotes.ObtenerAsync(id));
 

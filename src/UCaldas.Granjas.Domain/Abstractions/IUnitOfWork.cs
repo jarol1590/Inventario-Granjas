@@ -23,6 +23,11 @@ public interface IUnitOfWork : IAsyncDisposable
     IRemisionRepository Remisiones { get; }
     IRemisionDetalleRepository RemisionDetalles { get; }
     IMovimientoRepository Movimientos { get; }
+    IConvenioRepository Convenios { get; }
+    IClienteRepository Clientes { get; }
+    ICatalogoProductoRepository Productos { get; }
+    IConfiguracionRemisionesRepository ConfiguracionRemisiones { get; }
+    IReciboCajaRepository Recibos { get; }
 
     /// <summary>Confirma la transacción. En una sesión de solo lectura no hace nada.</summary>
     Task CommitAsync(CancellationToken ct = default);

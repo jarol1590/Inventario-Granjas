@@ -25,7 +25,8 @@ public sealed class KardexReportBuilder(IUnitOfWorkFactory fabrica) : IKardexRep
         await using var uow = await fabrica.OpenReadOnlyAsync(ct);
 
         var granjas = (await uow.Granjas.GetAllAsync(ct)).OrderBy(g => g.Codigo, StringComparer.OrdinalIgnoreCase).ToList();
-        var movimientos = await uow.Movimientos.GetAllAsync(ct);
+        // El Kardex de hatos solo cuenta animales: los asientos de lotes (valorización, bajas) van en el Kardex de lotes.
+        var movimientos = (await uow.Movimientos.GetAllAsync(ct)).Where(m => m.AnimalId is not null).ToList();
 
         if (granjaId is { } id)
         {

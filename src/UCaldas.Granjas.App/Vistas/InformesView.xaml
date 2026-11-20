@@ -16,8 +16,18 @@
           <RadioButton GroupName="Informe" IsChecked="{Binding EsInventario}" Margin="0,0,0,4">
             <TextBlock Text="Inventario Físico de Semovientes por Granja y Categoría" FontSize="14" />
           </RadioButton>
+          <TextBlock Margin="22,0,0,14" Style="{StaticResource Texto.Suave}"
+                     Text="Relación de animales por chapeta agrupada por categoría, con subtotales, gran total del valor de compra y del valor contable, y sus observaciones." />
+          <RadioButton GroupName="Informe" IsChecked="{Binding EsIndividual}" Margin="0,0,0,4">
+            <TextBlock Text="Inventario Físico Individual por Animal" FontSize="14" />
+          </RadioButton>
+          <TextBlock Margin="22,0,0,14" Style="{StaticResource Texto.Suave}"
+                     Text="Una hoja por granja con clase de entrada, fecha de nacimiento, sexo, chapeta amarilla, peso y observaciones de cada animal disponible." />
+          <RadioButton GroupName="Informe" IsChecked="{Binding EsKardexLotes}" Margin="0,0,0,4">
+            <TextBlock Text="Movimientos de Inventario de Lotes (Aves y demás programas por lotes)" FontSize="14" />
+          </RadioButton>
           <TextBlock Margin="22,0,0,0" Style="{StaticResource Texto.Suave}"
-                     Text="Relación de animales por chapeta agrupada por categoría, con subtotales y gran total del valor de compra y del valor contable." />
+                     Text="Libro mensual por lote con lo que viene, ventas (costo en libros y valor comercial), mortalidad, valorización por etapas y saldo final." />
         </StackPanel>
       </Border>
 
@@ -31,7 +41,7 @@
           <TextBlock Style="{StaticResource Texto.Suave}" FontSize="11.5" Margin="0,0,0,14"
                      Text="La granja y el programa se toman de los filtros de la parte superior." />
 
-          <StackPanel Orientation="Horizontal" Visibility="{Binding EsKardex, Converter={StaticResource BoolAVisibilidad}}">
+          <StackPanel Orientation="Horizontal" Visibility="{Binding MostrarMes, Converter={StaticResource BoolAVisibilidad}}">
             <TextBlock Text="Mes:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,10,0" />
             <ComboBox Width="150" ItemsSource="{Binding Meses}" SelectedItem="{Binding MesSeleccionado}" DisplayMemberPath="Nombre" />
             <TextBlock Text="Año:" Style="{StaticResource Texto.Etiqueta}" Margin="24,0,10,0" />

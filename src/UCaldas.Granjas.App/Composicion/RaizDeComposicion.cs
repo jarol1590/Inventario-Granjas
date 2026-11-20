@@ -7,6 +7,7 @@ using UCaldas.Granjas.Data;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Services.Animales;
 using UCaldas.Granjas.Services.Catalogos;
+using UCaldas.Granjas.Services.Comercial;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Services.Kardex;
 using UCaldas.Granjas.Services.Lotes;
@@ -45,6 +46,10 @@ public static class RaizDeComposicion
         servicios.AddSingleton<IBackupService, BackupService>();
         servicios.AddSingleton<ICatalogoService, CatalogoService>();
         servicios.AddSingleton<IConsultasService, ConsultasService>();
+        servicios.AddSingleton<ICatalogoComercialService, CatalogoComercialService>();
+        servicios.AddSingleton<IOficioService, OficioService>();
+        servicios.AddSingleton<IRemisionesQueryService, RemisionesQueryService>();
+        servicios.AddSingleton<IReciboCajaService, ReciboCajaService>();
         servicios.AddSingleton<ITarifaProgramaService, TarifaProgramaService>();
         servicios.AddSingleton<ILoteService, LoteService>();
 

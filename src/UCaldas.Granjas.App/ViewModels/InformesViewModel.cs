@@ -8,9 +8,18 @@ using UCaldas.Granjas.Services.Reportes;
 namespace UCaldas.Granjas.App.ViewModels;
 
 /// <summary>
-/// Centro de informes: Kardex financiero (por granja y mes) e inventario físico por granja y categoría. Los informes
-/// salen únicamente en Excel (.xlsx) con el bloque de firma configurado.
+/// Centro de informes: Kardex financiero (por granja y mes), inventario físico por granja y categoría, inventario físico
+/// individual por animal y Kardex mensual de lotes (aves). Los informes salen únicamente en Excel (.xlsx) con el bloque de firma.
 /// </summary>
+/// <summary>Informe que se va a generar.</summary>
+public enum TipoInforme
+{
+    Kardex,
+    Inventario,
+    Individual,
+    KardexLotes,
+}
+
 public sealed partial class InformesViewModel : ViewModelBase, IUsaFiltroGlobal
 {
     private const string FirmaDeEjemplo = "NOMBRE DE LA AUTORIDAD";
@@ -50,8 +59,8 @@ public sealed partial class InformesViewModel : ViewModelBase, IUsaFiltroGlobal
     public ObservableCollection<OpcionFiltro> Categorias { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsInventario))]
-    private bool _esKardex = true;
+    [NotifyPropertyChangedFor(nameof(EsKardex), nameof(EsInventario), nameof(EsIndividual), nameof(EsKardexLotes), nameof(MostrarMes))]
+    private TipoInforme _tipo = TipoInforme.Kardex;
 
     [ObservableProperty]
     private OpcionMes _mesSeleccionado;
@@ -75,10 +84,40 @@ public sealed partial class InformesViewModel : ViewModelBase, IUsaFiltroGlobal
     [NotifyCanExecuteChangedFor(nameof(AbrirUltimoCommand), nameof(MostrarUltimoCommand))]
     private string? _ultimoArchivo;
 
+    // Un RadioButton envía false al desmarcarse: solo el valor true cambia el tipo.
+    public bool EsKardex
+    {
+        get => Tipo == TipoInforme.Kardex;
+        set => Elegir(value, TipoInforme.Kardex);
+    }
+
     public bool EsInventario
     {
-        get => !EsKardex;
-        set => EsKardex = !value;
+        get => Tipo == TipoInforme.Inventario;
+        set => Elegir(value, TipoInforme.Inventario);
+    }
+
+    public bool EsIndividual
+    {
+        get => Tipo == TipoInforme.Individual;
+        set => Elegir(value, TipoInforme.Individual);
+    }
+
+    public bool EsKardexLotes
+    {
+        get => Tipo == TipoInforme.KardexLotes;
+        set => Elegir(value, TipoInforme.KardexLotes);
+    }
+
+    /// <summary>El Kardex financiero y el de lotes son mensuales.</summary>
+    public bool MostrarMes => Tipo is TipoInforme.Kardex or TipoInforme.KardexLotes;
+
+    private void Elegir(bool marcado, TipoInforme tipo)
+    {
+        if (marcado)
+        {
+            Tipo = tipo;
+        }
     }
 
     public async Task CargarAsync()
@@ -115,9 +154,13 @@ public sealed partial class InformesViewModel : ViewModelBase, IUsaFiltroGlobal
     private async Task GenerarAsync()
     {
         var hoy = _reloj.Hoy;
-        var sugerido = EsKardex
-            ? $"Kardex_Financiero_{Anio}-{MesSeleccionado.Numero:00}.xlsx"
-            : $"Inventario_Fisico_{hoy:yyyyMMdd}.xlsx";
+        var sugerido = Tipo switch
+        {
+            TipoInforme.Kardex => $"Kardex_Financiero_{Anio}-{MesSeleccionado.Numero:00}.xlsx",
+            TipoInforme.Individual => $"Inventario_Fisico_Individual_{hoy:yyyyMMdd}.xlsx",
+            TipoInforme.KardexLotes => $"Movimientos_Inventario_Lotes_{Anio}-{MesSeleccionado.Numero:00}.xlsx",
+            _ => $"Inventario_Fisico_{hoy:yyyyMMdd}.xlsx",
+        };
         var ruta = Dialogos.GuardarArchivo("Guardar el informe", "Libro de Excel (*.xlsx)|*.xlsx", sugerido);
         if (ruta is null)
         {
@@ -127,10 +170,17 @@ public sealed partial class InformesViewModel : ViewModelBase, IUsaFiltroGlobal
         string? generado = null;
         var terminado = await EjecutarAsync(async () =>
         {
-            generado = EsKardex
-                ? await _informes.GenerarKardexFinancieroAsync(new KardexReporteRequest(Anio, MesSeleccionado.Numero, _contexto.GranjaId, ruta))
-                : await _informes.GenerarInventarioFisicoAsync(new InventarioFisicoRequest(
-                    _contexto.GranjaId, _contexto.ProgramaId, CategoriaSeleccionada?.Id, EstadoSeleccionado.Valor, ruta));
+            generado = Tipo switch
+            {
+                TipoInforme.Kardex => await _informes.GenerarKardexFinancieroAsync(
+                    new KardexReporteRequest(Anio, MesSeleccionado.Numero, _contexto.GranjaId, ruta)),
+                TipoInforme.Individual => await _informes.GenerarInventarioIndividualAsync(
+                    new InventarioIndividualRequest(_contexto.GranjaId, _contexto.ProgramaId, ruta)),
+                TipoInforme.KardexLotes => await _informes.GenerarKardexLotesAsync(
+                    new KardexLotesRequest(Anio, MesSeleccionado.Numero, _contexto.GranjaId, _contexto.ProgramaId, ruta)),
+                _ => await _informes.GenerarInventarioFisicoAsync(new InventarioFisicoRequest(
+                    _contexto.GranjaId, _contexto.ProgramaId, CategoriaSeleccionada?.Id, EstadoSeleccionado.Valor, ruta)),
+            };
         }, "generar el informe");
 
         if (!terminado || generado is null)

@@ -101,7 +101,6 @@
       <DataGrid.Columns>
         <DataGridTextColumn Header="Código Lote" Binding="{Binding Codigo}" Width="1.1*" MinWidth="105" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTextColumn Header="Etapa" Binding="{Binding Etapa}" Width="1*" MinWidth="85" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
-        <DataGridTextColumn Header="Ubicación" Binding="{Binding Ubicacion}" Width="1*" MinWidth="95" IsReadOnly="True" ElementStyle="{StaticResource Celda.Centro}" />
         <DataGridTemplateColumn Header="Cantidad" Width="0.9*" MinWidth="90">
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate>

@@ -18,7 +18,6 @@ public sealed class LoteFila(LoteDetalle detalle)
     public int Id => Detalle.Lote.Id;
     public string Codigo => Detalle.Lote.CodigoLote;
     public string Granja => Detalle.GranjaNombre;
-    public string Ubicacion => Detalle.Lote.Ubicacion;
     public string Origen => Detalle.Lote.ClaseEntrada;
     public string Etapa => Detalle.EtapaNombre;
     public string Estado => Detalle.Lote.Estado;
@@ -164,8 +163,7 @@ public sealed partial class ProgramaLoteTabViewModel : ViewModelBase
                 && (EtapaSeleccionada?.Id is not { } e || d.Lote.EtapaId == e)
                 && (EstadoSeleccionado.Valor is not { } s || d.Lote.Estado == s)
                 && (string.IsNullOrEmpty(texto)
-                    || d.Lote.CodigoLote.Contains(texto, StringComparison.OrdinalIgnoreCase)
-                    || d.Lote.Ubicacion.Contains(texto, StringComparison.OrdinalIgnoreCase)))
+                    || d.Lote.CodigoLote.Contains(texto, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
         var seleccionado = Seleccionado?.Id;

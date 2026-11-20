@@ -180,10 +180,46 @@ public interface IRemisionDetalleRepository : IRepository<RemisionDetalle>
     Task EliminarPorRemisionAsync(int remisionId, CancellationToken ct = default);
 }
 
+public interface IConvenioRepository : IRepository<Convenio>
+{
+    Task<Convenio?> GetByNitAsync(string nit, CancellationToken ct = default);
+}
+
+public interface IClienteRepository : IRepository<Cliente>
+{
+    Task<Cliente?> GetByNitAsync(string nitCc, CancellationToken ct = default);
+}
+
+public interface ICatalogoProductoRepository : IRepository<CatalogoProducto>
+{
+    Task<CatalogoProducto?> GetByCodigoAsync(string codigo, CancellationToken ct = default);
+
+    Task<IReadOnlyList<CatalogoProducto>> GetByProgramaAsync(int programaId, CancellationToken ct = default);
+}
+
+public interface IConfiguracionRemisionesRepository
+{
+    /// <summary>La fila única de configuración (la crea la base).</summary>
+    Task<ConfiguracionRemisiones> GetAsync(CancellationToken ct = default);
+
+    Task GuardarAsync(ConfiguracionRemisiones configuracion, CancellationToken ct = default);
+}
+
+public interface IReciboCajaRepository : IRepository<ReciboCaja>
+{
+    Task<ReciboCaja?> GetByRemisionAsync(int remisionId, CancellationToken ct = default);
+
+    /// <summary>Mayor número de recibo emitido (0 si no hay).</summary>
+    Task<int> GetMaxNumeroAsync(CancellationToken ct = default);
+}
+
 public interface IMovimientoRepository : IRepository<MovimientoInventario>
 {
     /// <summary>Movimientos del animal en orden cronológico.</summary>
     Task<IReadOnlyList<MovimientoInventario>> GetByAnimalAsync(int animalId, CancellationToken ct = default);
+
+    /// <summary>Movimientos del lote (valorizaciones y bajas) en orden cronológico.</summary>
+    Task<IReadOnlyList<MovimientoInventario>> GetByLoteAsync(int loteId, CancellationToken ct = default);
 
     Task<IReadOnlyList<MovimientoInventario>> GetByRemisionAsync(int remisionId, CancellationToken ct = default);
 

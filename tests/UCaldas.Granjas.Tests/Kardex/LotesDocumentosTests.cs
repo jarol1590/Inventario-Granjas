@@ -31,9 +31,8 @@ public class LotesDocumentosTests
 
     private static NuevoLoteDto NuevoLote(string codigo, int granja, int programa, int etapa, int cantidad) => new()
     {
-        ProgramaId = programa, GranjaId = granja, EtapaId = etapa, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = codigo, Ubicacion = "Galpón 1",
-        LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-10-25"), Cantidad = cantidad, PrecioUnitarioFactura = 15_000m,
-        Factura = "FAC-" + codigo, OrdenCompra = "OC", Proveedor = "Incubadora",
+        ProgramaId = programa, GranjaId = granja, EtapaId = etapa, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = codigo, LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-10-25"), Cantidad = cantidad, PrecioUnitarioFactura = 15_000m,
+        Factura = "FAC-" + codigo, Proveedor = "Incubadora",
     };
 
     private static VentaLoteDto Venta(Entorno s, int cantidad = 400, decimal peso = 900m, decimal valor = 20_000_000m, string remision = "REM-L1") => new()
@@ -142,11 +141,11 @@ public class LotesDocumentosTests
     private static TrasladoLoteDto Traslado(Entorno s, int cantidad, string? codigoNuevo = null) => new()
     {
         NumeroRemision = "TRA-L1", FechaTraslado = Datos.F("2026-11-05"), GranjaOrigenId = s.E.Ids.Montelindo, GranjaDestinoId = s.E.Ids.Tesorito,
-        Lotes = [new TrasladoLoteLineaDto { LoteId = s.LoteId, Cantidad = cantidad, CodigoNuevoLote = codigoNuevo, UbicacionDestino = "Galpón T1" }],
+        Lotes = [new TrasladoLoteLineaDto { LoteId = s.LoteId, Cantidad = cantidad, CodigoNuevoLote = codigoNuevo }],
     };
 
     [Fact]
-    public async Task Un_traslado_total_cambia_el_lote_de_granja_y_anularlo_lo_devuelve_con_su_ubicacion()
+    public async Task Un_traslado_total_cambia_el_lote_de_granja_y_anularlo_lo_devuelve_a_la_de_origen()
     {
         var s = await CrearAsync();
         await using var _ = s.E;
@@ -154,13 +153,13 @@ public class LotesDocumentosTests
         var r = await s.E.Kardex.RegistrarTrasladoLoteAsync(Traslado(s, 1000));
 
         var lote = await LoteAsync(s);
-        (lote.GranjaId, lote.Ubicacion, lote.CantidadActual, lote.Operaciones).Should().Be((s.E.Ids.Tesorito, "Galpón T1", 1000, 1));
+        (lote.GranjaId, lote.CantidadActual, lote.Operaciones).Should().Be((s.E.Ids.Tesorito, 1000, 1));
         (await s.E.ContarAsync("MOVIMIENTO_INVENTARIO")).Should().Be(0);
 
         await s.E.Kardex.AnularAsync(r.RemisionId);
 
         lote = await LoteAsync(s);
-        (lote.GranjaId, lote.Ubicacion, lote.Operaciones).Should().Be((s.E.Ids.Montelindo, "Galpón 1", 0));
+        (lote.GranjaId, lote.Operaciones).Should().Be((s.E.Ids.Montelindo, 0));
     }
 
     [Fact]
@@ -197,7 +196,7 @@ public class LotesDocumentosTests
         await using var _ = s.E;
         var r = await s.E.Kardex.RegistrarTrasladoLoteAsync(Traslado(s, 300, "L-1-T"));
         var destinoId = (await s.Lotes.ListarAsync(s.Aves.Id)).Single(d => d.Lote.CodigoLote == "L-1-T").Lote.Id;
-        await s.Lotes.RegistrarBajaAsync(destinoId, 5, "Mortandad", Datos.F("2026-11-06"), null);
+        await s.Lotes.RegistrarBajaAsync(destinoId, 5, "Mortalidad", Datos.F("2026-11-06"), null);
 
         await ((Func<Task>)(() => s.E.Kardex.AnularAsync(r.RemisionId))).Should().ThrowAsync<ValidationException>().WithMessage("*ya tuvo operaciones*");
 

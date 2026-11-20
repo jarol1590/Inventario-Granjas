@@ -38,8 +38,9 @@
       <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,0,28,10" ItemsSource="{Binding Programas}" SelectedItem="{Binding ProgramaSeleccionado}"
                 DisplayMemberPath="Nombre" IsEnabled="{Binding PuedeElegirPrograma}" />
 
-      <TextBlock Grid.Row="0" Text="Número Orden:" Style="{StaticResource Etiq}" />
-      <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" Text="{Binding NumeroOrden, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" />
+      <TextBlock Grid.Row="0" Text="Número Orden:" Style="{StaticResource Etiq}" Visibility="{Binding EsLote, Converter={StaticResource InvertirVisibilidad}}" />
+      <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" Text="{Binding NumeroOrden, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40"
+               Visibility="{Binding EsLote, Converter={StaticResource InvertirVisibilidad}}" />
       <TextBlock Grid.Row="0" Grid.Column="2" Text="*Número Factura:" Style="{StaticResource Etiq}" />
       <TextBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" Text="{Binding NumeroFactura, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40"
                ToolTip="Identifica la compra; no se puede repetir." />
@@ -79,7 +80,6 @@
         <DataGrid.Columns>
           <DataGridTextColumn Header="Código Lote" Binding="{Binding Codigo}" Width="1.2*" MinWidth="110" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Etapa" Binding="{Binding Etapa}" Width="1*" MinWidth="90" ElementStyle="{StaticResource Celda.Centro}" />
-          <DataGridTextColumn Header="Ubicación" Binding="{Binding Ubicacion}" Width="1.1*" MinWidth="95" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Línea / Raza" Binding="{Binding LineaRaza}" Width="1.2*" MinWidth="105" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, StringFormat='N0'}" Width="0.8*" MinWidth="80" ElementStyle="{StaticResource Celda.Derecha}" />
           <DataGridTextColumn Header="Precio Unitario" Binding="{Binding PrecioUnitario, StringFormat='$#,##0'}" Width="1.1*" MinWidth="110" ElementStyle="{StaticResource Celda.Derecha}" />
@@ -93,11 +93,6 @@
         <DataGrid.Columns>
           <DataGridTextColumn Header="Código Lote" Binding="{Binding Codigo}" IsReadOnly="True" Width="1.2*" MinWidth="110" ElementStyle="{StaticResource Celda.Centro}" />
           <DataGridTextColumn Header="Etapa" Binding="{Binding Etapa}" IsReadOnly="True" Width="1*" MinWidth="90" ElementStyle="{StaticResource Celda.Centro}" />
-          <DataGridTemplateColumn Header="*Ubicación" Width="1.1*" MinWidth="110">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate><TextBox Text="{Binding Ubicacion, UpdateSourceTrigger=PropertyChanged}" MaxLength="40" /></DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
           <DataGridTemplateColumn Header="*Línea / Raza" Width="1.2*" MinWidth="115">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>

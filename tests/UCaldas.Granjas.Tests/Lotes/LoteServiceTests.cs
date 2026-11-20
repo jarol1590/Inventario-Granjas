@@ -26,8 +26,8 @@ public class LoteServiceTests
         public NuevoLoteDto Compra(string codigo = "L-AVE-01", int cantidad = 1000, decimal precio = 15_000m) => new()
         {
             ProgramaId = ProgramaId, GranjaId = Ids.Montelindo, EtapaId = Cria, ClaseEntrada = ClaseEntrada.Compra,
-            CodigoLote = codigo, Ubicacion = "Galpón 1", LineaRaza = "Hy-Line Brown", FechaIngreso = Datos.F("2026-11-02"),
-            Cantidad = cantidad, PrecioUnitarioFactura = precio, Factura = "FAC-77", OrdenCompra = "OC-5", Proveedor = "Incubadora Andina",
+            CodigoLote = codigo, LineaRaza = "Hy-Line Brown", FechaIngreso = Datos.F("2026-11-02"),
+            Cantidad = cantidad, PrecioUnitarioFactura = precio, Factura = "FAC-77", Proveedor = "Incubadora Andina",
         };
     }
 
@@ -69,8 +69,8 @@ public class LoteServiceTests
 
     private static ActualizarLoteDto Datos_(int id, LotePoblacion l) => new()
     {
-        LoteId = id, CodigoLote = l.CodigoLote, Ubicacion = l.Ubicacion, LineaRaza = l.LineaRaza, FechaIngreso = l.FechaNacimientoIngreso,
-        OrigenReferencia = l.OrigenReferencia, Proveedor = l.Proveedor, OrdenCompra = l.OrdenCompra, Observaciones = l.Observaciones,
+        LoteId = id, CodigoLote = l.CodigoLote, LineaRaza = l.LineaRaza, FechaIngreso = l.FechaNacimientoIngreso,
+        OrigenReferencia = l.OrigenReferencia, Proveedor = l.Proveedor, Observaciones = l.Observaciones,
         GranjaId = l.GranjaId, EtapaId = l.EtapaId, CantidadInicial = l.CantidadInicial, MortandadAcumulada = l.MortandadAcumulada,
         ValorContableUnitario = l.ValorContableUnitario,
     };
@@ -82,14 +82,13 @@ public class LoteServiceTests
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
         var dto = Datos_(id, await e.LoteAsync(id));
         dto.CodigoLote = "L-AVE-99";
-        dto.Ubicacion = "Galpón 4";
         dto.Proveedor = "Otra incubadora";
         dto.Observaciones = "  Nota libre  ";
 
         await e.Servicio.ActualizarDatosAsync(dto);
 
         var lote = await e.LoteAsync(id);
-        (lote.CodigoLote, lote.Ubicacion, lote.Proveedor, lote.Observaciones).Should().Be(("L-AVE-99", "Galpón 4", "Otra incubadora", "Nota libre"));
+        (lote.CodigoLote, lote.Proveedor, lote.Observaciones).Should().Be(("L-AVE-99", "Otra incubadora", "Nota libre"));
         (lote.CantidadActual, lote.ValorCompraUnitario, lote.ValorTotalContable, lote.GranjaId, lote.EtapaId)
             .Should().Be((1000, 15_000m, 15_000_000m, e.Ids.Montelindo, e.Cria));
     }
@@ -134,7 +133,7 @@ public class LoteServiceTests
     {
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
-        await e.Servicio.DesdoblarAsync(id, 100, "L-AVE-01B", "Galpón 2");   // inicial 900, actual 900
+        await e.Servicio.DesdoblarAsync(id, 100, "L-AVE-01B");   // inicial 900, actual 900
         var dto = Datos_(id, await e.LoteAsync(id));
         dto.CantidadInicial = 950;
         dto.MortandadAcumulada = 50;
@@ -199,7 +198,9 @@ public class LoteServiceTests
         lote.ClaseEntrada.Should().Be(ClaseEntrada.Compra);
         (lote.CantidadInicial, lote.CantidadActual, lote.MortandadAcumulada).Should().Be((1000, 1000, 0));
         (lote.ValorCompraUnitario, lote.ValorContableUnitario, lote.ValorTotalContable).Should().Be((15_000m, 15_000m, 15_000_000m));
-        (lote.OrigenReferencia, lote.Proveedor, lote.OrdenCompra).Should().Be(("FAC-77", "Incubadora Andina", "OC-5"));
+        (lote.OrigenReferencia, lote.Proveedor).Should().Be(("FAC-77", "Incubadora Andina"));
+        lote.OrdenCompra.Should().BeNull("la compra de un lote ya no lleva orden de compra");
+        lote.Ubicacion.Should().BeEmpty("la ubicación ya no se captura");
         lote.Estado.Should().Be(EstadoLote.Activo);
     }
 
@@ -209,7 +210,7 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var dto = e.Compra("L-AVE-02", 500);
         dto.ClaseEntrada = ClaseEntrada.Nacimiento;
-        dto.Factura = dto.OrdenCompra = dto.Proveedor = null;
+        dto.Factura = dto.Proveedor = null;
         dto.PrecioUnitarioFactura = 999m;   // se ignora en los nacimientos
         dto.OrigenReferencia = "Acta de incubación 12";
 
@@ -231,9 +232,9 @@ public class LoteServiceTests
 
         (lote.CantidadInicial, lote.CantidadActual).Should().Be((0, 0));
         lote.ValorTotalContable.Should().Be(3_000_000m);
-        var baja = () => e.Servicio.RegistrarBajaAsync(id, 1, "Mortandad", Datos.F("2026-11-05"), null);
+        var baja = () => e.Servicio.RegistrarBajaAsync(id, 1, "Mortalidad", Datos.F("2026-11-05"), null);
         await baja.Should().ThrowAsync<ValidationException>().WithMessage("*no lleva control numérico*");
-        var desdoble = () => e.Servicio.DesdoblarAsync(id, 1, "L-PEC-02", "Estanque 2");
+        var desdoble = () => e.Servicio.DesdoblarAsync(id, 1, "L-PEC-02");
         await desdoble.Should().ThrowAsync<ValidationException>().WithMessage("*sin control numérico*");
     }
 
@@ -286,13 +287,13 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra(cantidad: 1000, precio: 15_000m));
 
-        var resultado = await e.Servicio.CambiarEtapaAsync(id, e.Postura, "Galpón 3");
+        var resultado = await e.Servicio.CambiarEtapaAsync(id, e.Postura);
 
         // Δ = (40.000 − 15.000) × 1.000
         (resultado.ValorAnteriorLote, resultado.ValorNuevoLote, resultado.Delta).Should().Be((15_000_000m, 40_000_000m, 25_000_000m));
         resultado.SinValorDeReferencia.Should().BeFalse();
         var lote = await e.LoteAsync(id);
-        (lote.EtapaId, lote.Ubicacion, lote.ValorContableUnitario, lote.ValorTotalContable).Should().Be((e.Postura, "Galpón 3", 40_000m, 40_000_000m));
+        (lote.EtapaId, lote.ValorContableUnitario, lote.ValorTotalContable).Should().Be((e.Postura, 40_000m, 40_000_000m));
         lote.ValorCompraUnitario.Should().Be(15_000m, "el valor de compra no cambia nunca");
         lote.Observaciones.Should().Contain("Cambio de etapa a «Postura»");
     }
@@ -303,7 +304,7 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
 
-        var resultado = await e.Servicio.CambiarEtapaAsync(id, e.General, null);   // «General» vale 0
+        var resultado = await e.Servicio.CambiarEtapaAsync(id, e.General);   // «General» vale 0
 
         resultado.SinValorDeReferencia.Should().BeTrue();
         resultado.Delta.Should().Be(0m);
@@ -311,14 +312,14 @@ public class LoteServiceTests
     }
 
     [Fact]
-    public async Task Sin_cambio_de_etapa_ni_de_ubicacion_no_hay_nada_que_hacer()
+    public async Task Elegir_la_misma_etapa_no_hace_nada_y_se_rechaza()
     {
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
 
-        var act = () => e.Servicio.CambiarEtapaAsync(id, e.Cria, null);
+        var act = () => e.Servicio.CambiarEtapaAsync(id, e.Cria);
 
-        await act.Should().ThrowAsync<ValidationException>().WithMessage("*otra etapa*ubicación*");
+        await act.Should().ThrowAsync<ValidationException>().WithMessage("*etapa distinta*");
     }
 
     // ---- Desdoble ------------------------------------------------------------------------------------------------------
@@ -328,15 +329,15 @@ public class LoteServiceTests
     {
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra(cantidad: 1000, precio: 15_000m));
-        await e.Servicio.RegistrarBajaAsync(id, 100, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Servicio.RegistrarBajaAsync(id, 100, "Mortalidad", Datos.F("2026-11-05"), null);
         var antes = (await e.Servicio.ListarAsync(e.ProgramaId)).Sum(d => d.Lote.ValorTotalContable);
 
-        var nuevoId = await e.Servicio.DesdoblarAsync(id, 300, "L-AVE-01B", "Galpón 2");
+        var nuevoId = await e.Servicio.DesdoblarAsync(id, 300, "L-AVE-01B");
 
         var origen = await e.LoteAsync(id);
         var nuevo = await e.LoteAsync(nuevoId);
         (origen.CantidadActual, origen.ValorTotalContable).Should().Be((600, 9_000_000m));
-        (nuevo.ClaseEntrada, nuevo.OrigenReferencia, nuevo.Ubicacion).Should().Be((ClaseEntrada.Desdoble, "L-AVE-01", "Galpón 2"));
+        (nuevo.ClaseEntrada, nuevo.OrigenReferencia).Should().Be((ClaseEntrada.Desdoble, "L-AVE-01"));
         (nuevo.CantidadInicial, nuevo.CantidadActual, nuevo.MortandadAcumulada).Should().Be((300, 300, 0));
         (nuevo.ValorCompraUnitario, nuevo.ValorContableUnitario, nuevo.EtapaId, nuevo.LineaRaza, nuevo.FechaNacimientoIngreso)
             .Should().Be((15_000m, 15_000m, origen.EtapaId, origen.LineaRaza, origen.FechaNacimientoIngreso));
@@ -353,7 +354,7 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
 
-        var act = () => e.Servicio.DesdoblarAsync(id, cantidad, "L-X", "Galpón 2");
+        var act = () => e.Servicio.DesdoblarAsync(id, cantidad, "L-X");
 
         await act.Should().ThrowAsync<ValidationException>();
         (await e.Servicio.ListarAsync(e.ProgramaId)).Should().HaveCount(1);
@@ -367,12 +368,12 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra(cantidad: 1000, precio: 15_000m));
 
-        await e.Servicio.RegistrarBajaAsync(id, 58, "Mortandad", Datos.F("2026-11-05"), "calor");
+        await e.Servicio.RegistrarBajaAsync(id, 58, "Mortalidad", Datos.F("2026-11-05"), "calor");
 
         var lote = await e.LoteAsync(id);
         (lote.CantidadActual, lote.MortandadAcumulada, lote.ValorTotalContable).Should().Be((942, 58, 14_130_000m));
         lote.Estado.Should().Be(EstadoLote.Activo);
-        lote.Observaciones.Should().Contain("[05/11/2026] Mortandad: 58 cabezas (calor)");
+        lote.Observaciones.Should().Contain("[05/11/2026] Mortalidad: 58 cabezas (calor)");
     }
 
     [Fact]
@@ -385,18 +386,18 @@ public class LoteServiceTests
 
         var lote = await e.LoteAsync(id);
         (lote.Estado, lote.CantidadActual, lote.ValorTotalContable).Should().Be((EstadoLote.Finalizado, 0, 0m));
-        var otra = () => e.Servicio.RegistrarBajaAsync(id, 1, "Mortandad", Datos.F("2026-11-05"), null);
+        var otra = () => e.Servicio.RegistrarBajaAsync(id, 1, "Mortalidad", Datos.F("2026-11-05"), null);
         await otra.Should().ThrowAsync<ValidationException>().WithMessage("*finalizado*");
-        var etapa = () => e.Servicio.CambiarEtapaAsync(id, e.Postura, null);
+        var etapa = () => e.Servicio.CambiarEtapaAsync(id, e.Postura);
         await etapa.Should().ThrowAsync<ValidationException>().WithMessage("*finalizado*");
     }
 
     [Theory]
-    [InlineData(0, "Mortandad", "2026-11-05")]
-    [InlineData(1001, "Mortandad", "2026-11-05")]
+    [InlineData(0, "Mortalidad", "2026-11-05")]
+    [InlineData(1001, "Mortalidad", "2026-11-05")]
     [InlineData(5, "Robo", "2026-11-05")]
-    [InlineData(5, "Mortandad", "2026-11-20")]
-    [InlineData(5, "Mortandad", "2026-10-01")]
+    [InlineData(5, "Mortalidad", "2026-11-20")]
+    [InlineData(5, "Mortalidad", "2026-10-01")]
     public async Task Las_bajas_invalidas_se_rechazan_sin_cambiar_el_lote(int cantidad, string causa, string fecha)
     {
         await using var e = await CrearAsync();
@@ -416,7 +417,7 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var uno = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra("L-1", 1000, 15_000m));
         await e.Servicio.RegistrarNuevoLoteAsync(e.Compra("L-2", 1500, 10_000m));
-        await e.Servicio.RegistrarBajaAsync(uno, 50, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Servicio.RegistrarBajaAsync(uno, 50, "Mortalidad", Datos.F("2026-11-05"), null);
 
         var resumen = ResumenLotes.De((await e.Servicio.ListarAsync(e.ProgramaId)).Select(d => d.Lote));
 
@@ -426,25 +427,79 @@ public class LoteServiceTests
         ResumenLotes.De([]).PorcentajeMortandad.Should().Be(0m);
     }
 
+    private static async Task<IReadOnlyList<MovimientoInventario>> MovimientosAsync(Entorno e, int loteId)
+    {
+        await using var uow = await e.Db.Uow.OpenReadOnlyAsync();
+        return await uow.Movimientos.GetByLoteAsync(loteId);
+    }
+
     [Fact]
-    public async Task Los_lotes_no_escriben_en_el_Kardex_ni_alteran_la_invariante_de_los_animales()
+    public async Task Cambiar_de_etapa_asienta_la_valorizacion_del_lote_con_su_signo_y_su_motivo()
+    {
+        await using var e = await CrearAsync();
+        var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra(cantidad: 1000, precio: 15_000m));
+
+        await e.Servicio.CambiarEtapaAsync(id, e.Postura);   // 15.000 -> 40.000 por cabeza
+
+        var m = (await MovimientosAsync(e, id)).Should().ContainSingle().Subject;
+        (m.TipoMovimiento, m.CostoAsociado, m.Cantidad, m.GranjaDestinoId, m.GranjaOrigenId, m.AnimalId)
+            .Should().Be((TipoMovimiento.Valorizacion, 25_000_000m, 1000, e.Ids.Montelindo, (int?)null, (int?)null));
+        m.FechaMovimiento.Should().Be(Datos.F("2026-11-06"));
+        m.Observaciones.Should().Be("Valorización por cambio de etapa: Cría -> Postura");
+    }
+
+    [Fact]
+    public async Task Una_valorizacion_a_la_baja_queda_negativa_y_sin_cambio_de_valor_no_se_asienta()
+    {
+        await using var e = await CrearAsync();
+        var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra(cantidad: 100, precio: 15_000m));
+        await e.Servicio.CambiarEtapaAsync(id, e.Postura);   // +25.000 x 100
+        await e.Servicio.CambiarEtapaAsync(id, e.Cria);      // −25.000 x 100
+        await e.Servicio.CambiarEtapaAsync(id, e.General);   // «General» vale 0: conserva el valor, no hay delta
+
+        var movimientos = await MovimientosAsync(e, id);
+
+        movimientos.Select(x => x.CostoAsociado).Should().Equal(2_500_000m, -2_500_000m);
+    }
+
+    [Fact]
+    public async Task Una_baja_asienta_la_muerte_o_el_hurto_con_la_fecha_en_que_ocurrio_y_su_costo_en_libros()
+    {
+        await using var e = await CrearAsync();
+        var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra(cantidad: 1000, precio: 15_000m));
+
+        await e.Servicio.RegistrarBajaAsync(id, 58, "Mortalidad", Datos.F("2026-11-04"), "calor");
+        await e.Servicio.RegistrarBajaAsync(id, 5, "Hurto", Datos.F("2026-11-05"), null);
+
+        var movimientos = await MovimientosAsync(e, id);
+        movimientos.Select(x => (x.TipoMovimiento, x.FechaMovimiento, x.Cantidad, x.CostoAsociado, x.GranjaOrigenId, x.GranjaDestinoId)).Should().Equal(
+            (TipoMovimiento.Muerte, Datos.F("2026-11-04"), 58, -870_000m, (int?)e.Ids.Montelindo, (int?)null),
+            (TipoMovimiento.Hurto, Datos.F("2026-11-05"), 5, -75_000m, (int?)e.Ids.Montelindo, (int?)null));
+        movimientos[0].Observaciones.Should().Be("Mortalidad: calor");
+    }
+
+    [Fact]
+    public async Task Los_asientos_de_lotes_no_alteran_la_invariante_de_los_animales_ni_crean_remisiones()
     {
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
-        await e.Servicio.CambiarEtapaAsync(id, e.Postura, null);
+        await e.Servicio.CambiarEtapaAsync(id, e.Postura);
         await e.Servicio.RegistrarBajaAsync(id, 5, "Hurto", Datos.F("2026-11-05"), null);
-        await e.Servicio.DesdoblarAsync(id, 100, "L-AVE-01B", "Galpón 2");
+        await e.Servicio.DesdoblarAsync(id, 100, "L-AVE-01B");
 
-        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM MOVIMIENTO_INVENTARIO")).Should().Be(0, "el Kardex de lotes todavía no existe");
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM MOVIMIENTO_INVENTARIO")).Should().Be(2, "solo la valorización y la baja");
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM MOVIMIENTO_INVENTARIO WHERE animal_id IS NOT NULL")).Should().Be(0);
         (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM REMISION")).Should().Be(0);
+        await using var uow = await e.Db.Uow.OpenReadOnlyAsync();
+        (await uow.Movimientos.GetSaldosPorAnimalAsync()).Should().BeEmpty("el saldo del libro por animal no incluye lotes");
     }
 
     // ---- Editar y anular la compra de un lote -------------------------------------------------------------------------------
 
     private static EditarCompraLoteDto Edicion(LotePoblacion l) => new()
     {
-        LoteId = l.Id, Factura = l.OrigenReferencia!, OrdenCompra = l.OrdenCompra!, Proveedor = l.Proveedor!, FechaIngreso = l.FechaNacimientoIngreso,
-        GranjaId = l.GranjaId, Ubicacion = l.Ubicacion, LineaRaza = l.LineaRaza, Cantidad = l.CantidadInicial, PrecioUnitarioFactura = l.ValorCompraUnitario,
+        LoteId = l.Id, Factura = l.OrigenReferencia!, Proveedor = l.Proveedor!, FechaIngreso = l.FechaNacimientoIngreso,
+        GranjaId = l.GranjaId, LineaRaza = l.LineaRaza, Cantidad = l.CantidadInicial, PrecioUnitarioFactura = l.ValorCompraUnitario,
         Observaciones = l.Observaciones,
     };
 
@@ -456,14 +511,13 @@ public class LoteServiceTests
         var dto = Edicion(await e.LoteAsync(id));
         dto.Factura = "FAC-CORREGIDA";
         dto.Proveedor = "Otro proveedor";
-        dto.Ubicacion = "Galpón 5";
         dto.Cantidad = 1200;
         dto.PrecioUnitarioFactura = 14_000m;
 
         await e.Servicio.EditarCompraAsync(dto);
 
         var lote = await e.LoteAsync(id);
-        (lote.OrigenReferencia, lote.Proveedor, lote.Ubicacion).Should().Be(("FAC-CORREGIDA", "Otro proveedor", "Galpón 5"));
+        (lote.OrigenReferencia, lote.Proveedor).Should().Be(("FAC-CORREGIDA", "Otro proveedor"));
         (lote.CantidadInicial, lote.CantidadActual, lote.ValorCompraUnitario, lote.ValorContableUnitario, lote.ValorTotalContable)
             .Should().Be((1200, 1200, 14_000m, 14_000m, 16_800_000m));
     }
@@ -473,7 +527,7 @@ public class LoteServiceTests
     {
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
-        await e.Servicio.RegistrarBajaAsync(id, 10, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Servicio.RegistrarBajaAsync(id, 10, "Mortalidad", Datos.F("2026-11-05"), null);
 
         var dto = Edicion(await e.LoteAsync(id));
         dto.Cantidad = 1200;
@@ -494,7 +548,7 @@ public class LoteServiceTests
     {
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
-        await e.Servicio.CambiarEtapaAsync(id, e.Postura, null);   // valor contable 40.000
+        await e.Servicio.CambiarEtapaAsync(id, e.Postura);   // valor contable 40.000
 
         var dto = Edicion(await e.LoteAsync(id));
         dto.PrecioUnitarioFactura = 12_000m;
@@ -510,9 +564,9 @@ public class LoteServiceTests
         await using var e = await CrearAsync();
         var id = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra());
 
-        await e.Servicio.CambiarEtapaAsync(id, e.Postura, null);
-        await e.Servicio.DesdoblarAsync(id, 100, "L-AVE-01B", "Galpón 2");
-        await e.Servicio.RegistrarBajaAsync(id, 5, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Servicio.CambiarEtapaAsync(id, e.Postura);
+        await e.Servicio.DesdoblarAsync(id, 100, "L-AVE-01B");
+        await e.Servicio.RegistrarBajaAsync(id, 5, "Mortalidad", Datos.F("2026-11-05"), null);
 
         (await e.LoteAsync(id)).Operaciones.Should().Be(3);
     }
@@ -549,7 +603,7 @@ public class LoteServiceTests
         (await e.Servicio.ListarAsync(e.ProgramaId, incluirAnulados: true)).Should().ContainSingle();
         await ((Func<Task>)(() => e.Servicio.RegistrarNuevoLoteAsync(e.Compra()))).Should().ThrowAsync<ValidationException>().WithMessage("*Ya existe un lote*");
         await ((Func<Task>)(() => e.Servicio.AnularCompraAsync(id, null))).Should().ThrowAsync<ValidationException>().WithMessage("*ya fue anulada*");
-        await ((Func<Task>)(() => e.Servicio.RegistrarBajaAsync(id, 1, "Mortandad", Datos.F("2026-11-05"), null))).Should().ThrowAsync<ValidationException>().WithMessage("*anulada*");
+        await ((Func<Task>)(() => e.Servicio.RegistrarBajaAsync(id, 1, "Mortalidad", Datos.F("2026-11-05"), null))).Should().ThrowAsync<ValidationException>().WithMessage("*anulada*");
     }
 
     [Fact]
@@ -557,13 +611,13 @@ public class LoteServiceTests
     {
         await using var e = await CrearAsync();
         var conBajas = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra("L-A"));
-        await e.Servicio.CambiarEtapaAsync(conBajas, e.Postura, null);
-        await e.Servicio.RegistrarBajaAsync(conBajas, 5, "Mortandad", Datos.F("2026-11-05"), null);
+        await e.Servicio.CambiarEtapaAsync(conBajas, e.Postura);
+        await e.Servicio.RegistrarBajaAsync(conBajas, 5, "Mortalidad", Datos.F("2026-11-05"), null);
         await e.Servicio.AnularCompraAsync(conBajas, null);
         (await e.LoteAsync(conBajas)).Anulado.Should().BeTrue();
 
         var desdoblado = await e.Servicio.RegistrarNuevoLoteAsync(e.Compra("L-B"));
-        await e.Servicio.DesdoblarAsync(desdoblado, 100, "L-B2", "Galpón 2");
+        await e.Servicio.DesdoblarAsync(desdoblado, 100, "L-B2");
         await ((Func<Task>)(() => e.Servicio.AnularCompraAsync(desdoblado, null))).Should().ThrowAsync<ValidationException>().WithMessage("*desdoblado, vendido o trasladado*");
     }
 

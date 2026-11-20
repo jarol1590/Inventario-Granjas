@@ -277,7 +277,7 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
         foreach (var d in (await _lotes.ListarAsync(_programaLote.Id)).Where(d => d.Lote.Estado == EstadoLote.Activo && d.Lote.GranjaId == granjaId && !enTraslado.Contains(d.Lote.Id)))
         {
             LotesDisponibles.Add(new LoteSeleccionable(
-                d.Lote.Id, d.Lote.CodigoLote, d.EtapaNombre, d.Lote.Ubicacion, d.Lote.CantidadActual, d.Lote.ControlNumericoPoblacion, d.Lote.ValorContableUnitario));
+                d.Lote.Id, d.Lote.CodigoLote, d.EtapaNombre, d.Lote.CantidadActual, d.Lote.ControlNumericoPoblacion, d.Lote.ValorContableUnitario));
         }
 
         LoteParaAgregar = LotesDisponibles.FirstOrDefault();
@@ -308,7 +308,7 @@ public sealed partial class TrasladoEditorViewModel : DialogViewModelBase
             {
                 var lote = traslado.Lotes.First(l => l.Id == linea.LoteId);
                 _programaLote ??= (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.TipoInventario == TipoInventario.Lote);
-                AgregarFilaDeLote(new TrasladoLoteFila(lote, linea.Cantidad, linea.CodigoNuevoLote, linea.UbicacionDestino));
+                AgregarFilaDeLote(new TrasladoLoteFila(lote, linea.Cantidad, linea.CodigoNuevoLote));
             }
         }
         finally

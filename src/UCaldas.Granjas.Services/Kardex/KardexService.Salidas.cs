@@ -13,6 +13,7 @@ public sealed partial class KardexService
     {
         ArgumentNullException.ThrowIfNull(dto);
         Regla.Exigir(dto.RemisionId is null, "Esta venta ya está registrada; use la edición para modificarla.");
+        dto.ReciboCaja = ReciboParaValidar(dto.ReciboCaja, dto.Recibo);
         validador.ValidarVenta(dto, reloj.Hoy);
 
         await using var uow = await fabrica.BeginAsync(ct);
@@ -51,6 +52,7 @@ public sealed partial class KardexService
                 uow, remision, animal, EstadoAnimal.Vendido, TipoMovimiento.Venta, item.PrecioVenta, item.PesoKg, item.ObservacionesEspecificas, ct);
         }
 
+        await GuardarReciboAsync(uow, remision, oficio.ProgramaId, dto.Comercial, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return new SalidaResultado(remision.Id, oficio.Id, dto.Animales.Count, totalCosto, totalVenta);
     }
@@ -60,7 +62,7 @@ public sealed partial class KardexService
     /// Un oficio pertenece a un solo programa y todos los animales de sus remisiones deben ser de ese programa.
     /// </summary>
     private static async Task<OficioVenta> ObtenerOCrearOficioAsync(
-        IUnitOfWork uow, VentaDto dto, IReadOnlyCollection<Animal> animales, CancellationToken ct)
+        IUnitOfWork uow, VentaDto dto, IReadOnlyCollection<Animal> animales, CancellationToken ct, int? oficioActualId = null)
     {
         var programa = await uow.Programas.GetByIdAsync(dto.ProgramaId, ct)
             ?? throw Regla.Violada("El programa del oficio de venta no existe.");
@@ -86,6 +88,8 @@ public sealed partial class KardexService
                 $"El oficio {numero} pertenece al programa «{delOficio?.Nombre}»: un oficio solo puede tener remisiones de un solo programa.");
         }
 
+        ExigirOficioAbierto(oficio, oficioActualId);
+
         var categorias = (await uow.Categorias.GetAllAsync(ct)).ToDictionary(c => c.Id);
         foreach (var animal in animales)
         {
@@ -96,6 +100,15 @@ public sealed partial class KardexService
 
         return oficio;
     }
+
+    /// <summary>
+    /// Un oficio cerrado no admite remisiones nuevas. Una remisión que ya pertenecía al oficio (<paramref name="oficioActualId"/>)
+    /// sí se puede corregir; moverla a otro oficio cerrado, no.
+    /// </summary>
+    internal static void ExigirOficioAbierto(OficioVenta oficio, int? oficioActualId)
+        => Regla.Exigir(
+            !oficio.Cerrado || oficioActualId == oficio.Id,
+            $"El oficio {oficio.NumeroOficio} está cerrado: ábralo de nuevo para agregarle remisiones.");
 
     // ---- Baja -------------------------------------------------------------------------------------------------
 
@@ -187,6 +200,7 @@ public sealed partial class KardexService
             totalValor += await AplicarTrasladoAsync(uow, remision, animal, origen, destino, item, ct);
         }
 
+        await GuardarReciboAsync(uow, remision, null, null, dto.Recibo, ct);
         await uow.CommitAsync(ct);
         return new TrasladoResultado(remision.Id, dto.Animales.Count, totalValor);
     }

@@ -11,7 +11,6 @@ public sealed partial class SalidaLoteFila : ObservableObject
         LoteId = lote.Id;
         Codigo = lote.Codigo;
         Etapa = lote.Etapa;
-        Ubicacion = lote.Ubicacion;
         Disponible = lote.CantidadActual;
         ControlNumerico = lote.ControlNumerico;
         ValorUnitario = lote.ValorUnitario;
@@ -26,8 +25,6 @@ public sealed partial class SalidaLoteFila : ObservableObject
     public string Codigo { get; }
 
     public string Etapa { get; }
-
-    public string Ubicacion { get; }
 
     /// <summary>Cabezas del lote al abrir la ventana (al editar, ya sin las de este documento).</summary>
     public int Disponible { get; }

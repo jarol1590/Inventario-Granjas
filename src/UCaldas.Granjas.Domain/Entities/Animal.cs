@@ -1,4 +1,4 @@
-using UCaldas.Granjas.Domain.Constants;
+﻿using UCaldas.Granjas.Domain.Constants;
 
 namespace UCaldas.Granjas.Domain.Entities;
 
@@ -48,4 +48,7 @@ public class Animal
 
     /// <summary>Momento en que se registró en el sistema (extensión v2.1).</summary>
     public DateTime FechaRegistro { get; set; }
+
+    /// <summary>Anotaciones libres sobre el animal (extensión v2.7). Salen en los informes de inventario.</summary>
+    public string? Observaciones { get; set; }
 }

@@ -111,14 +111,6 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="Ubicación destino" Width="1.2*" MinWidth="120">
-          <DataGridTemplateColumn.CellTemplate>
-            <DataTemplate>
-              <TextBox Text="{Binding UbicacionDestino, UpdateSourceTrigger=PropertyChanged}" MaxLength="40"
-                       IsReadOnly="{Binding Data.EsLectura, Source={StaticResource Proxy}}" />
-            </DataTemplate>
-          </DataGridTemplateColumn.CellTemplate>
-        </DataGridTemplateColumn>
         <DataGridTextColumn Header="Valor en libros" Binding="{Binding Valor, StringFormat='$#,##0'}" Width="1.1*" MinWidth="105" IsReadOnly="True" ElementStyle="{StaticResource Celda.Derecha}" />
         <DataGridTemplateColumn Header="Acciones" Width="105">
           <DataGridTemplateColumn.CellTemplate>

@@ -12,7 +12,6 @@ public sealed partial class CompraLoteFila : ObservableObject
         Codigo = lote.CodigoLote;
         Etapa = detalle.EtapaNombre;
         ControlNumerico = lote.ControlNumericoPoblacion;
-        _ubicacion = lote.Ubicacion;
         _lineaRaza = lote.LineaRaza;
         _cantidad = lote.CantidadInicial;
         _precioUnitario = lote.ValorCompraUnitario;
@@ -28,9 +27,6 @@ public sealed partial class CompraLoteFila : ObservableObject
 
     /// <summary>La cantidad inicial solo existe en los lotes con control numérico de población.</summary>
     public bool PuedeCorregirCantidad => ControlNumerico;
-
-    [ObservableProperty]
-    private string _ubicacion;
 
     [ObservableProperty]
     private string _lineaRaza;

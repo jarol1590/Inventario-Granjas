@@ -32,6 +32,9 @@ public sealed class AnimalEdicionDto
     public bool ExentoValorizacion { get; set; }
 
     public string? MadreIdentificacion { get; set; }
+
+    /// <summary>Anotaciones libres del animal (v2.7); vacío = sin observaciones.</summary>
+    public string? Observaciones { get; set; }
 }
 
 /// <summary>Efecto del guardado de la ficha sobre la categoría y el valor contable (recalculados al instante).</summary>
@@ -100,6 +103,7 @@ public sealed class AnimalService(IUnitOfWorkFactory fabrica, IAgingEngine aging
         animal.NumeroPartos = dto.NumeroPartos;
         animal.ExentoValorizacion = dto.ExentoValorizacion;
         animal.MadreIdentificacion = Normalizar(dto.MadreIdentificacion);
+        animal.Observaciones = Normalizar(dto.Observaciones);
 
         // UpdateAsync nunca toca valor_compra_origen, fecha_registro ni clase_entrada (inmutables).
         await uow.Animales.UpdateAsync(animal, ct);

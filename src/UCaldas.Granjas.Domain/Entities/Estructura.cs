@@ -64,6 +64,12 @@ public class Programa
 
     /// <summary>UNIDAD (por cabeza) o KG (por peso en báscula): unidad de cobro por omisión del programa (extensión v2.3).</summary>
     public string UnidadVentaDefault { get; set; } = "UNIDAD";
+
+    /// <summary>
+    /// false = programa de productos (hortalizas, frutales...): no tiene animales ni lotes, solo catálogo de productos (extensión v2.8).
+    /// Se guarda con <c>tipo_inventario = INDIVIDUAL</c> porque la columna solo admite INDIVIDUAL o LOTE; los módulos de animales lo filtran.
+    /// </summary>
+    public bool ManejaInventarioAnimal { get; set; } = true;
 }
 
 /// <summary>

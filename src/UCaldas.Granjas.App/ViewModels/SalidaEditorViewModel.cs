@@ -305,7 +305,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         foreach (var d in (await _lotes.ListarAsync(_programaLote.Id)).Where(d => d.Lote.Estado == EstadoLote.Activo && d.Lote.GranjaId == granjaId && !enVenta.Contains(d.Lote.Id)))
         {
             LotesDisponibles.Add(new LoteSeleccionable(
-                d.Lote.Id, d.Lote.CodigoLote, d.EtapaNombre, d.Lote.Ubicacion, d.Lote.CantidadActual, d.Lote.ControlNumericoPoblacion, d.Lote.ValorContableUnitario));
+                d.Lote.Id, d.Lote.CodigoLote, d.EtapaNombre, d.Lote.CantidadActual, d.Lote.ControlNumericoPoblacion, d.Lote.ValorContableUnitario));
         }
 
         LoteParaAgregar = LotesDisponibles.FirstOrDefault();
@@ -563,7 +563,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
 
         var programas = await _catalogo.GetProgramasAsync();
         _programaId = programas.FirstOrDefault(p => p.Codigo == NombresBase.ProgramaGanaderia)?.Id
-            ?? programas.First(p => p.TipoInventario == TipoInventario.Individual).Id;
+            ?? programas.First(p => p.TipoInventario == TipoInventario.Individual && p.ManejaInventarioAnimal).Id;
         return _programaId;
     }
 

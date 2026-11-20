@@ -48,8 +48,8 @@ public class ComprasPorProgramaTests
         var idLote = await new LoteService(e.Db.Uow, e.Reloj).RegistrarNuevoLoteAsync(new NuevoLoteDto
         {
             ProgramaId = aves.Id, GranjaId = e.Ids.Montelindo, EtapaId = etapaAve, ClaseEntrada = ClaseEntrada.Compra, CodigoLote = "L-AVE-1",
-            Ubicacion = "Galpón 1", LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-10-25"), Cantidad = 1000, PrecioUnitarioFactura = 15_000m,
-            Factura = "FAC-AVE", OrdenCompra = "OC-AVE", Proveedor = "Incubadora Andina",
+            LineaRaza = "Hy-Line", FechaIngreso = Datos.F("2026-10-25"), Cantidad = 1000, PrecioUnitarioFactura = 15_000m,
+            Factura = "FAC-AVE", Proveedor = "Incubadora Andina",
         });
         return new Escenario(e, equinos, aves, new ConsultasService(e.Db.Uow, e.Reloj), idLote);
     }
@@ -98,7 +98,7 @@ public class ComprasPorProgramaTests
         var r = await s.Consultas.ListarComprasAsync(new CompraFiltro(null, Desde, Hasta, ProgramaId: s.Aves.Id));
 
         var fila = r.Items.Single();
-        (fila.LoteId, fila.NumeroFactura, fila.OrdenCompra, fila.Proveedor, fila.GranjaDestino).Should().Be((s.IdLote, "FAC-AVE", "OC-AVE", "Incubadora Andina", "Montelindo"));
+        (fila.LoteId, fila.NumeroFactura, fila.OrdenCompra, fila.Proveedor, fila.GranjaDestino).Should().Be((s.IdLote, "FAC-AVE", (string?)null, "Incubadora Andina", "Montelindo"));
         (fila.Identificador, fila.CategoriaEtapa, fila.Cantidad, fila.ValorUnitario, fila.TotalFactura).Should().Be(("L-AVE-1", "General", 1000, 15_000m, 15_000_000m));
         r.Resumen.Should().Be(new ResumenCompras(1, 1000, 15_000_000m));
 

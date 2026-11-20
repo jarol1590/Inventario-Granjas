@@ -11,17 +11,18 @@ public class DatabaseInitializerTests
         "ANIMAL", "CATEGORIA_ETAPA", "CONFIGURACION_FIRMA", "CONFIGURACION_SISTEMA", "DATOS_GENEALOGIA", "GRANJA",
         "GRANJA_PROGRAMA", "LOTE_POBLACION", "MOVIMIENTO_INVENTARIO", "OFICIO_VENTA", "ORIENTACION_PRODUCTIVA",
         "PROGRAMA", "RAZA_LINEA_PROGRAMA", "REMISION", "REMISION_DETALLE", "TABLA_VALORIZACION_BASE", "TARIFA_CATEGORIA_PROGRAMA", "VIGENCIA_VALORIZACION",
+        "CATALOGO_PRODUCTO", "CLIENTE", "CONFIGURACION_REMISIONES", "CONVENIO", "RECIBO_CAJA",
     ];
 
     [Fact]
-    public async Task Crea_las_18_tablas_del_esquema()
+    public async Task Crea_las_23_tablas_del_esquema()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();
 
         var tablas = await db.ConsultarAsync<string>(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
 
-        tablas.Should().Equal(TablasEsperadas);
+        tablas.Should().BeEquivalentTo(TablasEsperadas);
     }
 
     [Fact]
@@ -135,9 +136,42 @@ public class DatabaseInitializerTests
 
     // ---- Migración de la versión 1 (esquema v2.1) a la 2 (v2.2) ----------------------------------------------------
 
+    /// <summary>
+    /// Deja la base como la dejaba la versión 7: sin el módulo Remisiones de la v2.8. REMISION_DETALLE conserva sus columnas de
+    /// producto (la migración solo la reconstruye cuando faltan).
+    /// </summary>
+    private static async Task DegradarAVersion7Async(BaseDeDatosDePrueba db)
+    {
+        foreach (var tabla in new[] { "RECIBO_CAJA", "CONVENIO", "CLIENTE", "CATALOGO_PRODUCTO", "CONFIGURACION_REMISIONES" })
+        {
+            await db.EjecutarAsync($"DROP TABLE {tabla}");
+        }
+
+        await db.EjecutarAsync("ALTER TABLE PROGRAMA DROP COLUMN maneja_inventario_animal");
+        await db.EjecutarAsync("ALTER TABLE OFICIO_VENTA DROP COLUMN cerrado");
+        await db.EjecutarAsync("ALTER TABLE OFICIO_VENTA DROP COLUMN fecha_cierre");
+        foreach (var columna in new[] { "programa_id", "tipo_comprador", "convenio_id", "cliente_id", "subtotal", "descuento_porcentaje", "valor_descuento", "total" })
+        {
+            await db.EjecutarAsync($"ALTER TABLE REMISION DROP COLUMN {columna}");
+        }
+
+        await db.EjecutarAsync("PRAGMA user_version = 7");
+    }
+
+    /// <summary>Deja la base como la dejaba la versión 6: sin las observaciones de animales y movimientos de la v2.7.</summary>
+    private static async Task DegradarAVersion6Async(BaseDeDatosDePrueba db)
+    {
+        await DegradarAVersion7Async(db);
+        await db.EjecutarAsync("DROP INDEX ix_movimiento_lote");
+        await db.EjecutarAsync("ALTER TABLE ANIMAL DROP COLUMN observaciones");
+        await db.EjecutarAsync("ALTER TABLE MOVIMIENTO_INVENTARIO DROP COLUMN observaciones");
+        await db.EjecutarAsync("PRAGMA user_version = 6");
+    }
+
     /// <summary>Deja la base como la dejaba la versión 4: sin el catálogo de razas y líneas por programa de la v2.5.</summary>
     private static async Task DegradarAVersion4Async(BaseDeDatosDePrueba db)
     {
+        await DegradarAVersion6Async(db);
         await db.EjecutarAsync("DROP TABLE RAZA_LINEA_PROGRAMA");
         await db.EjecutarAsync("PRAGMA user_version = 4");
     }
@@ -305,6 +339,7 @@ public class DatabaseInitializerTests
         const string vacasLacteo = "categoria_id = (SELECT id FROM CATEGORIA_ETAPA WHERE nombre = 'Vacas General') AND requiere_partos = 1";
         await db.EjecutarAsync($"UPDATE TABLA_VALORIZACION_BASE SET edad_minima_meses = 24 WHERE {vacasLacteo}");
         await db.EjecutarAsync($"UPDATE TABLA_VALORIZACION_BASE SET edad_minima_meses = 30 WHERE {vacasLacteo} AND valor_estandar = 4000000");
+        await DegradarAVersion6Async(db);
         await db.EjecutarAsync("PRAGMA user_version = 5");
 
         await new DatabaseInitializer(db.Conexiones).InitializeAsync();
@@ -312,6 +347,75 @@ public class DatabaseInitializerTests
         (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
         (await db.EscalarAsync<long>($"SELECT edad_minima_meses FROM TABLA_VALORIZACION_BASE WHERE {vacasLacteo} AND valor_estandar = 6000000")).Should().Be(14);
         (await db.EscalarAsync<long>($"SELECT edad_minima_meses FROM TABLA_VALORIZACION_BASE WHERE {vacasLacteo} AND valor_estandar = 4000000")).Should().Be(30, "lo que el usuario editó se respeta");
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_7_agrega_el_modulo_Remisiones_sin_perder_las_remisiones()
+    {
+        await using var e = await Kardex.EscenarioKardex.CrearAsync("2026-11-06");
+        await e.AltaVacaAsync("S-1", valor: 5_000_000m);
+        await e.Kardex.RegistrarVentaAsync(await e.VentaAsync("REM-1", "OF-1", "RC-1", null, ("S-1", 5_500_000m)));
+        var detallesAntes = await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM REMISION_DETALLE");
+        var costoAntes = await e.Db.EscalarAsync<decimal>("SELECT costo_sistema_libros FROM REMISION_DETALLE");
+        await DegradarAVersion7Async(e.Db);
+
+        await new DatabaseInitializer(e.Db.Conexiones).InitializeAsync();
+
+        (await e.Db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM RECIBO_CAJA")).Should().Be(0);
+        (await e.Db.EscalarAsync<long>("SELECT ultimo_consecutivo_recibo FROM CONFIGURACION_REMISIONES")).Should().Be(828);
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM REMISION_DETALLE")).Should().Be(detallesAntes);
+        (await e.Db.EscalarAsync<decimal>("SELECT costo_sistema_libros FROM REMISION_DETALLE")).Should().Be(costoAntes);
+        (await e.Db.EscalarAsync<decimal>("SELECT total FROM REMISION WHERE numero_remision = 'REM-1'")).Should().Be(5_500_000m, "los totales se completan con las líneas");
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM PROGRAMA WHERE maneja_inventario_animal = 1")).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task La_reconstruccion_del_detalle_admite_lineas_de_producto_y_exige_un_solo_origen()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("INSERT INTO CATALOGO_PRODUCTO (codigo, programa_id, nombre, unidad_medida, precio_unitario) VALUES ('HOR-04', 1, 'Tomate', 'Kg', 3000)");
+        await db.EjecutarAsync("INSERT INTO REMISION (numero_remision, tipo_movimiento, granja_origen_id, granja_destino_id, fecha_remision) VALUES ('REM-T', 'TRASLADO', 1, 2, '2026-11-01')");
+
+        var producto = () => db.EjecutarAsync("INSERT INTO REMISION_DETALLE (remision_id, producto_id, descripcion_item, unidad_medida, cantidad_producto, costo_sistema_libros) VALUES (1, 1, 'Tomate', 'Kg', 12.5, 0)");
+        var sinOrigen = () => db.EjecutarAsync("INSERT INTO REMISION_DETALLE (remision_id, costo_sistema_libros) VALUES (1, 0)");
+
+        await producto.Should().NotThrowAsync();
+        await sinOrigen.Should().ThrowAsync<Microsoft.Data.Sqlite.SqliteException>("una línea necesita animal, lote o producto");
+    }
+
+    [Fact]
+    public async Task El_recibo_de_caja_es_uno_por_remision_y_su_numero_no_se_repite()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("INSERT INTO REMISION (numero_remision, tipo_movimiento, granja_origen_id, granja_destino_id, fecha_remision) VALUES ('REM-T', 'TRASLADO', 1, 2, '2026-11-01')");
+        await db.EjecutarAsync("INSERT INTO REMISION (numero_remision, tipo_movimiento, granja_origen_id, granja_destino_id, fecha_remision) VALUES ('REM-U', 'TRASLADO', 1, 2, '2026-11-01')");
+        const string insertar = "INSERT INTO RECIBO_CAJA (numero_recibo, remision_id, fecha, forma_pago, total_pagado, total_letras) VALUES ({0}, {1}, '2026-11-01', 'TRASLADO_INTERNO', 0, 'CERO PESOS')";
+        await db.EjecutarAsync(string.Format(insertar, 829, 1));
+
+        var otroParaLaMisma = () => db.EjecutarAsync(string.Format(insertar, 830, 1));
+        var numeroRepetido = () => db.EjecutarAsync(string.Format(insertar, 829, 2));
+
+        await otroParaLaMisma.Should().ThrowAsync<Microsoft.Data.Sqlite.SqliteException>();
+        await numeroRepetido.Should().ThrowAsync<Microsoft.Data.Sqlite.SqliteException>();
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_6_agrega_las_observaciones_sin_perder_datos()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await DegradarAVersion6Async(db);
+        var animalesAntes = await db.EscalarAsync<long>("SELECT COUNT(*) FROM ANIMAL");
+        var programasAntes = await db.EscalarAsync<long>("SELECT COUNT(*) FROM PROGRAMA");
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM pragma_table_info('ANIMAL') WHERE name = 'observaciones'")).Should().Be(1);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM pragma_table_info('MOVIMIENTO_INVENTARIO') WHERE name = 'observaciones'")).Should().Be(1);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM sqlite_master WHERE name = 'ix_movimiento_lote'")).Should().Be(1);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM ANIMAL")).Should().Be(animalesAntes);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM PROGRAMA")).Should().Be(programasAntes);
     }
 
     [Fact]

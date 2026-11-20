@@ -12,7 +12,14 @@
     </Style>
   </UserControl.Resources>
 
-  <StackPanel Margin="28,20,28,22">
+  <!-- Contenido con desplazamiento; los botones quedan siempre visibles al pie. -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <StackPanel Margin="28,20,28,12">
     <TextBlock Text="Datos Básicos" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,10" />
     <Grid>
       <Grid.ColumnDefinitions>
@@ -43,7 +50,7 @@
       <TextBlock Grid.Row="2" Text="Nombre:" Style="{StaticResource Etiq}" />
       <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,24,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" />
       <TextBlock Grid.Row="2" Grid.Column="2" Text="Peso Actual (kg):" Style="{StaticResource Etiq}" />
-      <TextBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" Text="{Binding PesoActualKg, StringFormat='0.##', UpdateSourceTrigger=LostFocus}" />
+      <TextBox Grid.Row="2" Grid.Column="3" Margin="0,0,0,10" Text="{Binding PesoActualKg, StringFormat='0.##', UpdateSourceTrigger=PropertyChanged}" />
 
       <TextBlock Grid.Row="3" Text="Sexo:" Style="{StaticResource Etiq}" />
       <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
@@ -66,6 +73,11 @@
         <Run Text="{Binding EstadoTexto, Mode=OneWay}" FontWeight="Medium" /><Run Text=" · " /><Run Text="{Binding EdadTexto, Mode=OneWay}" />
       </TextBlock>
     </Grid>
+
+    <TextBlock Text="Observaciones:" Style="{StaticResource Texto.Etiqueta}" Margin="0,4,0,4" />
+    <TextBox Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True"
+             MinHeight="52" MaxLength="500" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10"
+             ToolTip="Anotaciones libres del animal; salen en los informes de inventario." />
 
     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
       <CheckBox IsChecked="{Binding ExentoValorizacion}" Content="Exento de valorización masiva"
@@ -131,10 +143,13 @@
       </DataGrid.Columns>
     </DataGrid>
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+  </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="28,8,28,18">
       <Button Content="💾 GUARDAR CAMBIOS" Command="{Binding GuardarCambiosCommand}" Style="{StaticResource Boton.Primario}" />
       <Button Margin="10,0,0,0" Content="📊 GENERAR INFORME" Command="{Binding GenerarInformeCommand}" />
       <Button Margin="10,0,0,0" Content="CERRAR" Command="{Binding CerrarCommand}" IsCancel="True" MinWidth="100" />
     </StackPanel>
-  </StackPanel>
+  </Grid>
 </UserControl>

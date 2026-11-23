@@ -57,6 +57,7 @@ public sealed class CatalogoComercialService(IUnitOfWorkFactory fabrica) : ICata
         Regla.ExigirTexto(nit, "El NIT del convenio");
         Regla.ExigirTexto(convenio.Direccion, "La dirección del convenio");
         Regla.ExigirTexto(convenio.Telefono, "El teléfono del convenio");
+        Regla.ExigirTelefono(convenio.Telefono, "El teléfono del convenio");
         var correo = Limpio(convenio.CorreoElectronico);
         Regla.Exigir(correo is null || EsCorreo(correo), "El correo electrónico no es válido.");
 
@@ -107,6 +108,7 @@ public sealed class CatalogoComercialService(IUnitOfWorkFactory fabrica) : ICata
         var nit = (cliente.NitCc ?? string.Empty).Trim();
         Regla.ExigirTexto(nombre, "El nombre o razón social del cliente");
         Regla.ExigirTexto(nit, "El NIT o cédula del cliente");
+        Regla.ExigirTelefono(cliente.Telefono, "El teléfono del cliente");
         var correo = Limpio(cliente.CorreoElectronico);
         Regla.Exigir(correo is null || EsCorreo(correo), "El correo electrónico no es válido.");
 
@@ -211,6 +213,7 @@ public sealed class CatalogoComercialService(IUnitOfWorkFactory fabrica) : ICata
         Regla.ExigirTexto(configuracion.EntidadBancaria, "La entidad bancaria");
         Regla.ExigirTexto(configuracion.TipoCuenta, "El tipo de cuenta");
         Regla.ExigirTexto(configuracion.NumeroCuenta, "El número de cuenta");
+        Regla.ExigirTelefonos(configuracion.Telefonos, "Los teléfonos");
         Regla.Exigir(configuracion.UltimoConsecutivoRecibo >= 0, "El consecutivo de recibos no puede ser negativo.");
 
         await using var uow = await fabrica.BeginAsync(ct);

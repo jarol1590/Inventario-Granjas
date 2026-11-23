@@ -141,6 +141,19 @@ public class ModuloRemisionesTests
     }
 
     [Fact]
+    public async Task Los_telefonos_de_convenio_cliente_y_datos_institucionales_solo_aceptan_mas_y_numeros()
+    {
+        await using var s = await CrearAsync();
+        var convenio = new Convenio { Nombre = "Convenio C", Nit = "800.9", Direccion = "Calle 1", Telefono = "300-123" };
+        await ((Func<Task>)(() => s.Catalogo.GuardarConvenioAsync(convenio))).Should().ThrowAsync<ValidationException>().WithMessage("*formato no válido*");
+        convenio.Telefono = "+573001234567";
+        await s.Catalogo.GuardarConvenioAsync(convenio);
+
+        await ((Func<Task>)(() => s.Catalogo.GuardarClienteAsync(new Cliente { NombreRazonSocial = "X", NitCc = "1", Telefono = "(6) 12" })))
+            .Should().ThrowAsync<ValidationException>().WithMessage("*formato no válido*");
+    }
+
+    [Fact]
     public async Task Los_clientes_y_productos_validan_sus_datos_y_no_repiten_codigo_ni_NIT()
     {
         await using var s = await CrearAsync();

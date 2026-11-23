@@ -343,6 +343,7 @@ public sealed class CatalogoService(IUnitOfWorkFactory fabrica) : ICatalogoServi
         Regla.ExigirTexto(firma.NombreAutoridad, "El nombre de la autoridad");
         Regla.ExigirTexto(firma.CargoAutoridad, "El cargo");
         Regla.ExigirTexto(firma.EntidadFacultad, "El nombre del departamento o facultad");
+        Regla.ExigirTelefono(firma.Telefono, "El teléfono");
         if (!string.IsNullOrWhiteSpace(firma.RutaImagenFirma))
         {
             Regla.Exigir(

@@ -74,6 +74,14 @@ public class VentasPorProgramaTests
             Lineas = [new LineaProductoDto { ProductoId = producto.Id, UnidadMedida = "Cubeta", Cantidad = 12.5m, ValorUnitario = 18_000m }],
         });
 
+        var leche = await catalogo.GuardarProductoAsync(new CatalogoProducto { Codigo = "LEC-L", ProgramaId = e.Ids.ProgramaGanaderia, Nombre = "Leche", UnidadMedida = "Litro", PrecioUnitario = 2_000m });
+        await e.Kardex.RegistrarRemisionProductosAsync(new RemisionProductosDto
+        {
+            Tipo = TipoRemision.Venta, ProgramaId = e.Ids.ProgramaGanaderia, NumeroOficio = "OF-1", NumeroRemision = "REM-5", Fecha = Datos.F("2026-10-28"),
+            GranjaOrigenId = e.Ids.Tesorito, Comprador = convenio.Nombre, Comercial = comercial, Recibo = pago,
+            Lineas = [new LineaProductoDto { ProductoId = leche.Id, UnidadMedida = "Litro", Cantidad = 100m, ValorUnitario = 2_000m }],
+        });
+
         await e.AltaVacaAsync("T-1", valor: 5_000_000m);
         var traslado = await e.TrasladoAsync("REM-T1", e.Ids.Tesorito, e.Ids.Montelindo, "T-1");
         traslado.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.TrasladoInterno };
@@ -95,40 +103,37 @@ public class VentasPorProgramaTests
         var ruta = await Motor(s.E).GenerarVentasPorProgramaAsync(new VentasReporteRequest(Datos.F("2026-10-01"), Datos.F("2026-11-30"), null, Ruta(s.E, "ventas.xlsx")));
 
         using var libro = new XLWorkbook(ruta);
-        var h = libro.Worksheet("Ventas por programas");
-        h.Cell("A2").GetString().Should().Be("INFORME DE VENTAS POR PROGRAMAS");
-        h.Cell("A3").GetString().Should().Be("Del 01/10/2026 al 30/11/2026 · Programa: Todos los programas");
-        string[] encabezados = ["Fecha", "N° Oficio", "N° Remisión", "Recibo SP", "Convenio / Comprador", "Descripción ítem", "Unidad", "Cantidad", "Valor unitario", "Valor total"];
+        libro.Worksheets.Select(w => w.Name).Should().Equal("Avicultura (Aves)", "Ganadería (Bovinos)");
+        string[] encabezados = ["Remisión", "Cliente", "Año", "Mes", "Producto", "Cantidad (unidad)", "Precio Unitario", "Total"];
+
+        var aves = libro.Worksheet("Avicultura (Aves)");
+        aves.Cell("A2").GetString().Should().Be("INFORME DE VENTAS - AVICULTURA (AVES)");
         for (var i = 0; i < encabezados.Length; i++)
         {
-            h.Cell(5, i + 1).GetString().Should().Be(encabezados[i]);
+            aves.Cell(5, i + 1).GetString().Should().Be(encabezados[i]);
         }
 
-        // Avicultura primero (orden alfabético): una línea de huevos.
-        h.Cell("A6").GetString().Should().Be("AVICULTURA (AVES)");
-        (h.Cell("C7").GetString(), h.Cell("B7").GetString(), h.Cell("F7").GetString(), h.Cell("H7").GetDouble(), h.Cell("J7").GetDouble())
-            .Should().Be(("REM-4", "OF-2", "Huevo cubeta x30", 12.5, 225_000d));
-        h.Cell("A8").GetString().Should().Be("Subtotal Avicultura (Aves)");
-        h.Cell("J8").GetDouble().Should().Be(225_000);
+        (aves.Cell("A6").GetString(), aves.Cell("B6").GetString(), (int)aves.Cell("C6").GetDouble(), aves.Cell("D6").GetString(), aves.Cell("E6").GetString(),
+                aves.Cell("F6").GetDouble(), aves.Cell("G6").GetDouble(), aves.Cell("H6").GetDouble())
+            .Should().Be(("REM-4", "Convenio Frigocaldas", 2026, "Noviembre", "Huevo cubeta x30", 12.5, 18_000d, 225_000d));
+        aves.Cell("A7").GetString().Should().Be("Subtotal");
+        aves.Cell("H7").FormulaA1.Should().Be("SUM(H6:H6)");
+        aves.Cell("H7").GetDouble().Should().Be(225_000);
 
-        // Ganadería: REM-2 (28/10) y REM-1 (04/11), con 10 % de descuento en REM-2; la anulada y el traslado no salen.
-        h.Cell("A9").GetString().Should().Be("GANADERÍA (BOVINOS)");
-        h.Cell("C10").GetString().Should().Be("REM-2");
-        h.Cell("C11").GetString().Should().Be("REM-1");
-        h.Cell("J10").GetDouble().Should().Be(4_000_000);
-        h.Cell("J11").GetDouble().Should().Be(6_000_000);
-        h.Cell("A12").GetString().Should().Be("Subtotal Ganadería (Bovinos)");
-        h.Cell("J12").FormulaA1.Should().Be("SUM(J10:J11)");
-        h.Cell("J12").GetDouble().Should().Be(10_000_000);
-        h.Cell("A13").GetString().Should().Be("Menos descuentos");
-        h.Cell("J13").GetDouble().Should().Be(-400_000);
-        h.Cell("A14").GetString().Should().Be("Total Ganadería (Bovinos)");
-        h.Cell("J14").GetDouble().Should().Be(9_600_000);
-        h.Cell("A15").GetString().Should().Be("TOTAL GENERAL RECAUDADO");
-        h.Cell("J15").GetDouble().Should().Be(9_825_000);
-        TieneTexto(h, "REM-3").Should().BeFalse("la venta anulada no cuenta");
-        TieneTexto(h, "REM-T1").Should().BeFalse("el traslado no es una venta");
-        TieneTexto(h, "PAULA VALENCIA ARANGO").Should().BeTrue("lleva el bloque de firma institucional");
+        // Ganadería: REM-2 y REM-5 (28/10) y REM-1 (04/11); la anulada y el traslado no salen.
+        var ganado = libro.Worksheet("Ganadería (Bovinos)");
+        ganado.Cell("A2").GetString().Should().Be("INFORME DE VENTAS - GANADERÍA (BOVINOS)");
+        (ganado.Cell("A6").GetString(), ganado.Cell("F6").GetDouble(), ganado.Cell("H6").GetDouble()).Should().Be(("REM-2", 1d, 4_000_000d));
+        (ganado.Cell("A7").GetString(), ganado.Cell("D7").GetString(), ganado.Cell("E7").GetString(), ganado.Cell("H7").GetDouble())
+            .Should().Be(("REM-5", "Octubre", "Leche", 200_000d));
+        (ganado.Cell("A8").GetString(), ganado.Cell("D8").GetString(), ganado.Cell("H8").GetDouble()).Should().Be(("REM-1", "Noviembre", 6_000_000d));
+        ganado.Cell("H9").GetDouble().Should().Be(10_200_000);
+        foreach (var hoja in libro.Worksheets)
+        {
+            TieneTexto(hoja, "REM-3").Should().BeFalse("la venta anulada no cuenta");
+            TieneTexto(hoja, "REM-T1").Should().BeFalse("el traslado no es una venta");
+            TieneTexto(hoja, "PAULA VALENCIA ARANGO").Should().BeTrue("lleva el bloque de firma institucional");
+        }
     }
 
     [Fact]
@@ -144,16 +149,15 @@ public class VentasPorProgramaTests
         using (var libro = new XLWorkbook(soloAves))
         {
             var h = libro.Worksheets.Single();
-            h.Cell("A3").GetString().Should().EndWith("Programa: Avicultura (Aves)");
-            TieneTexto(h, "GANADERÍA (BOVINOS)").Should().BeFalse();
-            h.Cell("J9").GetDouble().Should().Be(225_000, "el total general es solo el de avicultura");
+            h.Name.Should().Be("Avicultura (Aves)");
+            h.Cell("H7").GetDouble().Should().Be(225_000, "el total es solo el de avicultura");
         }
 
         using (var libro = new XLWorkbook(soloOctubre))
         {
             var h = libro.Worksheets.Single();
-            TieneTexto(h, "REM-2").Should().BeTrue();
-            TieneTexto(h, "REM-1").Should().BeFalse("REM-1 es de noviembre");
+            h.Name.Should().Be("Ganadería (Bovinos)");
+            TieneTexto(h, "REM-5").Should().BeTrue();
             TieneTexto(h, "REM-4").Should().BeFalse("REM-4 es de noviembre");
         }
 

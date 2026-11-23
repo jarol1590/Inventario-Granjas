@@ -82,55 +82,51 @@ public sealed class PdfDocumentService(IUnitOfWorkFactory fabrica, IReloj reloj)
 
         var doc = NuevoDocumento(horizontal: true);
         var seccion = doc.LastSection;
-        Cabecera(seccion, firma, "INFORME DE VENTAS POR PROGRAMAS",
-            $"Del {ventas.Desde.ToString("dd/MM/yyyy", Cultura)} al {ventas.Hasta.ToString("dd/MM/yyyy", Cultura)} · Programa: {programa ?? "Todos los programas"}");
+        var subtitulo = $"Del {ventas.Desde.ToString("dd/MM/yyyy", Cultura)} al {ventas.Hasta.ToString("dd/MM/yyyy", Cultura)}";
 
-        decimal totalGeneral = 0m;
-        if (ventas.Lineas.Count == 0)
+        // Un bloque (página) por programa, con subproductos, animales y lotes.
+        var grupos = ventas.Lineas
+            .GroupBy(l => (l.ProgramaId, l.Programa))
+            .OrderBy(g => g.Key.Programa, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        if (grupos.Count == 0)
         {
+            Cabecera(seccion, firma, $"INFORME DE VENTAS - {(programa ?? "Todos los programas").ToUpperInvariant()}", subtitulo);
             Texto(seccion, "Sin ventas en el rango seleccionado.", cursiva: true);
         }
 
-        foreach (var grupo in ventas.Lineas.GroupBy(l => (l.ProgramaId, l.Programa)).OrderBy(g => g.Key.Programa, StringComparer.CurrentCultureIgnoreCase))
+        var primero = true;
+        foreach (var grupo in grupos)
         {
-            var titulo = seccion.AddParagraph(grupo.Key.Programa.ToUpperInvariant());
-            titulo.Format.Font.Bold = true;
-            titulo.Format.Font.Size = 11;
-            titulo.Format.SpaceBefore = Unit.FromPoint(10);
-            titulo.Format.SpaceAfter = Unit.FromPoint(3);
+            if (!primero)
+            {
+                seccion.AddPageBreak();
+            }
 
-            var tabla = NuevaTabla(seccion, [2.1, 1.9, 2.2, 1.9, 4.4, 5.6, 1.6, 1.6, 2.4, 2.6]);
-            Fila(tabla, ["Fecha", "N° Oficio", "N° Remisión", "Recibo SP", "Convenio / Comprador", "Descripción ítem", "Unidad", "Cantidad", "Valor unitario", "Valor total"], encabezado: true);
+            primero = false;
+            Cabecera(seccion, firma, $"INFORME DE VENTAS - {grupo.Key.Programa.ToUpperInvariant()}", subtitulo);
+
+            var tabla = NuevaTabla(seccion, [2.3, 6.0, 1.6, 2.6, 6.0, 2.8, 2.8, 3.0]);
+            Fila(tabla, ["Remisión", "Cliente", "Año", "Mes", "Producto", "Cantidad (unidad)", "Precio Unitario", "Total"], encabezado: true);
             foreach (var l in grupo.OrderBy(x => x.Fecha).ThenBy(x => x.Remision, StringComparer.OrdinalIgnoreCase))
             {
-                Fila(tabla, [l.Fecha.ToString("dd/MM/yyyy", Cultura), l.Oficio ?? "—", l.Remision, l.Recibo ?? "—", l.Comprador, l.Item, l.Unidad,
-                    l.Cantidad.ToString("#,##0.##", Cultura), Dinero(l.ValorUnitario), Dinero(l.ValorTotal)], derecha: [7, 8, 9]);
+                Fila(tabla, [l.Remision, l.Comprador, l.Fecha.Year.ToString(Cultura), Cultura.TextInfo.ToTitleCase(Cultura.DateTimeFormat.GetMonthName(l.Fecha.Month)),
+                    l.Item, l.Cantidad.ToString("#,##0.##", Cultura), Dinero(l.ValorUnitario), Dinero(l.ValorTotal)], derecha: [5, 6, 7]);
             }
 
-            var subtotal = grupo.Sum(l => l.ValorTotal);
-            var descuento = grupo.Select(l => l.RemisionId).Distinct().Sum(rid => ventas.DescuentoPorRemision.GetValueOrDefault(rid));
-            Fila(tabla, ["", "", "", "", "", $"Subtotal {grupo.Key.Programa}", "", "", "", Dinero(subtotal)], resaltada: true, derecha: [9]);
-            if (descuento > 0)
-            {
-                Fila(tabla, ["", "", "", "", "", "Menos descuentos", "", "", "", Dinero(-descuento)], derecha: [9]);
-                Fila(tabla, ["", "", "", "", "", $"Total {grupo.Key.Programa}", "", "", "", Dinero(subtotal - descuento)], resaltada: true, derecha: [9]);
-            }
-
-            totalGeneral += subtotal - descuento;
+            Fila(tabla, ["Subtotal", "", "", "", "", grupo.Sum(l => l.Cantidad).ToString("#,##0.##", Cultura), "", Dinero(grupo.Sum(l => l.ValorTotal))],
+                resaltada: true, derecha: [5, 6, 7]);
+            BloqueDeFirma(seccion, firma);
+            Pie(seccion);
         }
 
-        if (ventas.Lineas.Count > 0)
+        if (grupos.Count == 0)
         {
-            var total = seccion.AddParagraph($"TOTAL GENERAL RECAUDADO: {Dinero(totalGeneral)}");
-            total.Format.Font.Bold = true;
-            total.Format.Font.Size = 12;
-            total.Format.Font.Color = Azul;
-            total.Format.Alignment = ParagraphAlignment.Right;
-            total.Format.SpaceBefore = Unit.FromPoint(12);
+            BloqueDeFirma(seccion, firma);
+            Pie(seccion);
         }
 
-        BloqueDeFirma(seccion, firma);
-        Pie(seccion);
         return Guardar(doc, request.RutaDestino);
     }
 

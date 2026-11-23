@@ -127,7 +127,8 @@ public sealed record VentaInformeLinea(
     string Unidad,
     decimal Cantidad,
     decimal ValorUnitario,
-    decimal ValorTotal);
+    decimal ValorTotal,
+    bool EsSubproducto = false);
 
 public sealed record VentasInforme(DateTime Desde, DateTime Hasta, IReadOnlyList<VentaInformeLinea> Lineas, IReadOnlyDictionary<int, decimal> DescuentoPorRemision);
 
@@ -433,7 +434,8 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
             {
                 lineas.Add(new VentaInformeLinea(
                     r.Id, fila.ProgramaId, fila.Programa, r.FechaRemision, fila.Oficio, r.NumeroRemision, fila.Recibo, r.TerceroEntidad ?? "—",
-                    l.Clase == ClaseDeLinea.Producto ? l.Descripcion : $"{l.Codigo} — {l.Descripcion}", l.Unidad, l.Cantidad, l.ValorUnitario, l.ValorTotal));
+                    l.Clase == ClaseDeLinea.Producto ? l.Descripcion : $"{l.Codigo} — {l.Descripcion}", l.Unidad, l.Cantidad, l.ValorUnitario, l.ValorTotal,
+                    l.Clase == ClaseDeLinea.Producto));
             }
         }
 

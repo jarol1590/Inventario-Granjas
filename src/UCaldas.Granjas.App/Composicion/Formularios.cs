@@ -82,8 +82,30 @@ public sealed class Formularios(IServiceProvider servicios, IDialogService dialo
         return await viewModel.InicializarNuevaAsync() && dialogos.Mostrar(viewModel);
     }
 
+    /// <summary>
+    /// Una remisión de subproductos pertenece al módulo Remisiones: se abre allí. Las ventas y traslados de animales o lotes
+    /// (con o sin recibo SP) se siguen consultando y editando en Sistema Granjas.
+    /// </summary>
+    private async Task<bool?> AbrirEnRemisionesSiEsDelModuloAsync(int remisionId)
+    {
+        var consultas = servicios.GetRequiredService<Services.Comercial.IRemisionesQueryService>();
+        if ((await consultas.ObtenerAsync(remisionId)).Clase != "PRODUCTOS")
+        {
+            return null;
+        }
+
+        var editor = servicios.GetRequiredService<ViewModels.Remisiones.RemisionEditorViewModel>();
+        return await editor.InicializarExistenteAsync(remisionId) && dialogos.Mostrar(editor);
+    }
+
     public async Task<bool> AbrirSalidaAsync(int remisionId, string clase)
     {
+        if (clase != ClaseSalida.Muerte && clase != ClaseSalida.Hurto && clase != ClaseSalida.DescarteSanitario
+            && await AbrirEnRemisionesSiEsDelModuloAsync(remisionId) is { } enModulo)
+        {
+            return enModulo;
+        }
+
         var viewModel = servicios.GetRequiredService<SalidaEditorViewModel>();
         return await viewModel.InicializarExistenteAsync(remisionId, clase) && dialogos.Mostrar(viewModel);
     }
@@ -96,6 +118,11 @@ public sealed class Formularios(IServiceProvider servicios, IDialogService dialo
 
     public async Task<bool> AbrirTrasladoAsync(int remisionId)
     {
+        if (await AbrirEnRemisionesSiEsDelModuloAsync(remisionId) is { } enModulo)
+        {
+            return enModulo;
+        }
+
         var viewModel = servicios.GetRequiredService<TrasladoEditorViewModel>();
         return await viewModel.InicializarExistenteAsync(remisionId) && dialogos.Mostrar(viewModel);
     }

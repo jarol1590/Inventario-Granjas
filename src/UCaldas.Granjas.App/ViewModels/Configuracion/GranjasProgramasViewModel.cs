@@ -23,7 +23,7 @@ public sealed record ProgramaFila(Programa Programa)
 
     public string Nombre => Programa.Nombre;
 
-    public string Tipo => Programa.TipoInventario == TipoInventario.Lote ? "Lote (Población)" : "Individual (Chapeta)";
+    public string Tipo => !Programa.ManejaInventarioAnimal ? "Productos (sin animales)" : Programa.TipoInventario == TipoInventario.Lote ? "Lote (Población)" : "Individual (Chapeta)";
 
     public string Observaciones => Programa.Observaciones ?? string.Empty;
 }

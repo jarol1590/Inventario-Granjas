@@ -1,0 +1,17 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.Remisiones.ConfiguracionRemisionesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <TextBlock Text="Configuración de Remisiones" Style="{StaticResource Texto.Titulo}" Margin="0,0,0,12" />
+    <TabControl Grid.Row="1" Style="{StaticResource Tab.Segmentado}">
+      <TabItem Header="🤝 Convenios"><ContentControl Content="{Binding Convenios}" IsTabStop="False" Margin="0,12,0,0" /></TabItem>
+      <TabItem Header="📦 Productos"><ContentControl Content="{Binding Productos}" IsTabStop="False" Margin="0,12,0,0" /></TabItem>
+      <TabItem Header="📋 Programas"><ContentControl Content="{Binding Programas}" IsTabStop="False" Margin="0,12,0,0" /></TabItem>
+      <TabItem Header="🏛️ Datos institucionales"><ContentControl Content="{Binding Datos}" IsTabStop="False" Margin="0,12,0,0" /></TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

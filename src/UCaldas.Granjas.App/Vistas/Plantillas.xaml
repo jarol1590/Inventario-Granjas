@@ -4,6 +4,8 @@
                     xmlns:vm="clr-namespace:UCaldas.Granjas.App.ViewModels"
                     xmlns:vmc="clr-namespace:UCaldas.Granjas.App.ViewModels.Configuracion"
                     xmlns:vml="clr-namespace:UCaldas.Granjas.App.ViewModels.Lotes"
+                    xmlns:vmr="clr-namespace:UCaldas.Granjas.App.ViewModels.Remisiones"
+                    xmlns:vr="clr-namespace:UCaldas.Granjas.App.Vistas.Remisiones"
                     xmlns:vistas="clr-namespace:UCaldas.Granjas.App.Vistas"
                     xmlns:vc="clr-namespace:UCaldas.Granjas.App.Vistas.Configuracion">
 
@@ -115,6 +117,24 @@
   <DataTemplate DataType="{x:Type vmc:ConfigurarRecuperacionViewModel}">
     <vc:ConfigurarRecuperacionView />
   </DataTemplate>
+
+
+  <!-- Módulo Remisiones -->
+  <DataTemplate DataType="{x:Type vmr:RemisionesViewModel}"><vr:RemisionesView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:OficiosViewModel}"><vr:OficiosView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:RecibosCajaViewModel}"><vr:RecibosCajaView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:InformesRemisionesViewModel}"><vr:InformesRemisionesView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ConfiguracionRemisionesViewModel}"><vr:ConfiguracionRemisionesView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ConveniosTabViewModel}"><vr:ConveniosTabView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ProductosTabViewModel}"><vr:ProductosTabView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ProgramasTabViewModel}"><vr:ProgramasTabView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:DatosInstitucionalesViewModel}"><vr:DatosInstitucionalesView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:RemisionEditorViewModel}"><vr:RemisionEditorView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ReciboCajaViewModel}"><vr:ReciboCajaView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:NuevoOficioViewModel}"><vr:NuevoOficioView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ConvenioEditorViewModel}"><vr:ConvenioEditorView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ClienteEditorViewModel}"><vr:ClienteEditorView /></DataTemplate>
+  <DataTemplate DataType="{x:Type vmr:ProductoEditorViewModel}"><vr:ProductoEditorView /></DataTemplate>
 
   <!-- Clave de recuperación (copiar / guardar): la usan el primer inicio, el restablecimiento y la configuración -->
   <DataTemplate DataType="{x:Type vm:ClaveDeRecuperacionViewModel}">

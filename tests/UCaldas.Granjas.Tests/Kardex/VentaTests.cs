@@ -24,7 +24,8 @@ public class VentaTests
         var remision = await e.RemisionAsync("REM-0012");
         remision.TipoMovimiento.Should().Be(TipoRemision.Venta);
         remision.ClaseSalida.Should().Be(ClaseSalida.Venta);
-        remision.ReciboCaja.Should().Be("RC-8841");
+        remision.ReciboCaja.Should().Be("829 SP", "toda venta lleva su Recibo de Caja SP");
+        (await e.Db.EscalarAsync<string>("SELECT observaciones FROM RECIBO_CAJA")).Should().Be("Recibo anterior: RC-8841", "el número escrito se conserva en las observaciones");
         remision.OficioId.Should().Be(resultado.OficioId);
         remision.GranjaOrigenId.Should().Be(e.Ids.Tesorito);
         remision.GranjaDestinoId.Should().BeNull();
@@ -68,8 +69,8 @@ public class VentaTests
 
         segunda.OficioId.Should().Be(primera.OficioId);
         (await e.ContarAsync("OFICIO_VENTA")).Should().Be(1);
-        (await e.RemisionAsync("REM-1")).ReciboCaja.Should().Be("RC-1");
-        (await e.RemisionAsync("REM-2")).ReciboCaja.Should().Be("RC-2", "cada remisión lleva su propio recibo de caja");
+        (await e.RemisionAsync("REM-1")).ReciboCaja.Should().Be("829 SP");
+        (await e.RemisionAsync("REM-2")).ReciboCaja.Should().Be("830 SP", "cada remisión lleva su propio recibo de caja");
         await e.AsegurarInvarianteAsync();
     }
 

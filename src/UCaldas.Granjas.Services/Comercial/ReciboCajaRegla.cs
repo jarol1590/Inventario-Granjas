@@ -118,8 +118,14 @@ internal static class ReciboCajaRegla
 
     private static async Task AplicarCompradorAsync(IUnitOfWork uow, Remision remision, DatosComercialesDto? comercial, CancellationToken ct)
     {
-        Regla.Exigir(comercial is not null, "Seleccione el comprador: un convenio u otro comprador.");
-        switch (comercial!.TipoComprador)
+        if (comercial is null)
+        {
+            // Venta de animales o lotes registrada en Sistema Granjas: el comprador es el texto escrito en la venta.
+            Regla.ExigirTexto(remision.TerceroEntidad, "El comprador");
+            return;
+        }
+
+        switch (comercial.TipoComprador)
         {
             case TipoComprador.Convenio:
                 var convenio = comercial.ConvenioId is { } cid ? await uow.Convenios.GetByIdAsync(cid, ct) : null;

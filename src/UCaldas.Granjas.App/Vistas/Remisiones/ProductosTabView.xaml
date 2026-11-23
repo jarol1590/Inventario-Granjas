@@ -1,0 +1,34 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.Remisiones.ProductosTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+      <TextBlock Text="Programa:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <ComboBox Width="260" ItemsSource="{Binding ProgramasFiltro}" SelectedItem="{Binding ProgramaFiltro}" DisplayMemberPath="Nombre" />
+      <TextBlock Text="Productos y subproductos vendibles (huevos, leche, hortalizas, frutales...) con su unidad y precio sugerido." Style="{StaticResource Texto.Suave}" Margin="16,0,0,0" VerticalAlignment="Center" />
+    </StackPanel>
+    <DataGrid Grid.Row="1" ItemsSource="{Binding Productos}" SelectedItem="{Binding Seleccionado}">
+      <DataGrid.InputBindings>
+        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding EditarCommand}" />
+      </DataGrid.InputBindings>
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Código" Binding="{Binding Producto.Codigo}" Width="Auto" MinWidth="95" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Programa" Binding="{Binding Programa}" Width="1.2*" MinWidth="150" />
+        <DataGridTextColumn Header="Producto" Binding="{Binding Producto.Nombre}" Width="1.6*" MinWidth="170" />
+        <DataGridTextColumn Header="Unidad" Binding="{Binding Producto.UnidadMedida}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource Celda.Centro}" />
+        <DataGridTextColumn Header="Precio sugerido" Binding="{Binding Producto.PrecioUnitario, StringFormat='$#,##0'}" Width="Auto" MinWidth="115" ElementStyle="{StaticResource Celda.Derecha}" />
+        <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="Auto" MinWidth="85" ElementStyle="{StaticResource Celda.Centro}" />
+      </DataGrid.Columns>
+    </DataGrid>
+    <WrapPanel Grid.Row="2" Margin="0,12,0,0">
+      <Button Content="+ AGREGAR PRODUCTO" Command="{Binding AgregarCommand}" Style="{StaticResource Boton.Primario}" Padding="14,9" Margin="0,0,10,6" />
+      <Button Content="✏ EDITAR" Command="{Binding EditarCommand}" Padding="14,9" Margin="0,0,10,6" />
+      <Button Content="{Binding TextoEstado}" Command="{Binding CambiarEstadoCommand}" Padding="14,9" Margin="0,0,10,6" />
+    </WrapPanel>
+  </Grid>
+</UserControl>

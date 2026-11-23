@@ -7,6 +7,7 @@ using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Animales;
 using UCaldas.Granjas.Services.Catalogos;
+using UCaldas.Granjas.Services.Comercial;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Services.Kardex;
 using UCaldas.Granjas.Services.Lotes;
@@ -591,7 +592,7 @@ public class ProgramasYLotesViewModelsTests
         var (e, kardex, consultas, contexto, loteId) = await EntornoDeSalidasAsync();
         await using var _ = e;
         var dialogos = new DialogoFalso();
-        var vm = new SalidaEditorViewModel(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), contexto, e.Reloj, dialogos);
+        var vm = new SalidaEditorViewModel(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), FormulariosRemisionesFalso.ConPago(e.Reloj.Ahora.Date), new RemisionesQueryService(e.Db.Uow), contexto, e.Reloj, dialogos);
         var cierres = new List<bool>();
         vm.CierreSolicitado += cierres.Add;
 
@@ -610,7 +611,6 @@ public class ProgramasYLotesViewModelsTests
         fila.ValorVenta = 20_000_000m;
         vm.NumeroOficio = "OF-9";
         vm.NumeroRemision = "REM-9";
-        vm.ReciboCaja = "RC-9";
         vm.Comprador = "Frigorífico";
         await vm.GuardarCommand.ExecuteAsync(null);
 
@@ -620,7 +620,7 @@ public class ProgramasYLotesViewModelsTests
 
         // Detalle: la misma pantalla, editable y anulable.
         var remisionId = (await consultas.ListarSalidasAsync(new SalidaFiltro(null, new DateTime(2026, 10, 1), new DateTime(2026, 11, 30), ProgramaId: e.Aves.Id))).Items.Single().RemisionId;
-        var detalle = new SalidaEditorViewModel(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), new ContextoGlobal(), e.Reloj, dialogos);
+        var detalle = new SalidaEditorViewModel(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), FormulariosRemisionesFalso.ConPago(e.Reloj.Ahora.Date), new RemisionesQueryService(e.Db.Uow), new ContextoGlobal(), e.Reloj, dialogos);
         await detalle.InicializarExistenteAsync(remisionId, ClaseSalida.Venta);
         (detalle.EsLote, detalle.Modo, detalle.NumeroRemision).Should().Be((true, ModoDocumento.Detalle, "REM-9"));
         detalle.Lotes.Single().Cantidad.Should().Be(400);
@@ -631,7 +631,7 @@ public class ProgramasYLotesViewModelsTests
         await detalle.GuardarCommand.ExecuteAsync(null);
         (await e.Lotes.ObtenerAsync(loteId)).Lote.CantidadActual.Should().Be(500);
 
-        var otro = new SalidaEditorViewModel(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), new ContextoGlobal(), e.Reloj, dialogos);
+        var otro = new SalidaEditorViewModel(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), FormulariosRemisionesFalso.ConPago(e.Reloj.Ahora.Date), new RemisionesQueryService(e.Db.Uow), new ContextoGlobal(), e.Reloj, dialogos);
         await otro.InicializarExistenteAsync(remisionId, ClaseSalida.Venta);
         dialogos.RespuestaPedir = "error";
         await otro.AnularCommand.ExecuteAsync(null);

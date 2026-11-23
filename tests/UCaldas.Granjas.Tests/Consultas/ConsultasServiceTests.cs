@@ -230,7 +230,7 @@ public class ConsultasServiceTests
         var venta = r.Items.Single(i => i.NumeroRemision == "REM-1");
         venta.Clase.Should().Be(ClaseSalida.Venta);
         venta.NumeroOficio.Should().Be("OF-1");
-        venta.ReciboCaja.Should().Be("RC-1");
+        venta.ReciboCaja.Should().Be("829 SP");
         venta.Destino.Should().Be("Frigorífico Manizales");
         venta.Cantidad.Should().Be(1);
         venta.Total.Should().Be(6_500_000m, "valor de venta real");
@@ -270,7 +270,7 @@ public class ConsultasServiceTests
         var venta = await servicio.ObtenerVentaAsync((await e.RemisionAsync("REM-1")).Id);
         venta.Dto.NumeroOficio.Should().Be("OF-1");
         venta.Dto.ProgramaId.Should().Be(e.Ids.ProgramaGanaderia);
-        venta.Dto.ReciboCaja.Should().Be("RC-1");
+        venta.Dto.ReciboCaja.Should().Be("829 SP");
         venta.Dto.Comprador.Should().Be("Frigorífico Manizales");
         venta.Dto.Animales.Should().ContainSingle().Which.PrecioVenta.Should().Be(6_500_000m);
         venta.Animales.Should().ContainSingle().Which.ChapetaAmarilla.Should().Be("A-1");

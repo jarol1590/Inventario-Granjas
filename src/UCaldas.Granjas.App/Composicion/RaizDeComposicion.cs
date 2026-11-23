@@ -3,6 +3,7 @@ using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels;
 using UCaldas.Granjas.App.ViewModels.Configuracion;
 using UCaldas.Granjas.App.ViewModels.Lotes;
+using UCaldas.Granjas.App.ViewModels.Remisiones;
 using UCaldas.Granjas.Data;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Services.Animales;
@@ -50,6 +51,7 @@ public static class RaizDeComposicion
         servicios.AddSingleton<IOficioService, OficioService>();
         servicios.AddSingleton<IRemisionesQueryService, RemisionesQueryService>();
         servicios.AddSingleton<IReciboCajaService, ReciboCajaService>();
+        servicios.AddSingleton<IPdfDocumentService, PdfDocumentService>();
         servicios.AddSingleton<ITarifaProgramaService, TarifaProgramaService>();
         servicios.AddSingleton<ILoteService, LoteService>();
 
@@ -79,6 +81,20 @@ public static class RaizDeComposicion
         servicios.AddTransient<FirmasViewModel>();
         servicios.AddTransient<GranjasProgramasViewModel>();
         servicios.AddTransient<RespaldosViewModel>();
+
+        // Módulo Remisiones
+        servicios.AddSingleton<IFormulariosRemisiones, FormulariosRemisiones>();
+        servicios.AddTransient<RemisionesViewModel>();
+        servicios.AddTransient<OficiosViewModel>();
+        servicios.AddTransient<RecibosCajaViewModel>();
+        servicios.AddTransient<InformesRemisionesViewModel>();
+        servicios.AddTransient<ConfiguracionRemisionesViewModel>();
+        servicios.AddTransient<ConveniosTabViewModel>();
+        servicios.AddTransient<ProductosTabViewModel>();
+        servicios.AddTransient<ProgramasTabViewModel>();
+        servicios.AddTransient<DatosInstitucionalesViewModel>();
+        servicios.AddTransient<NuevoOficioViewModel>();
+        servicios.AddTransient<RemisionEditorViewModel>();
 
         return servicios.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }

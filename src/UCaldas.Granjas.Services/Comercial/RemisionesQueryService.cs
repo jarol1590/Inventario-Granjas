@@ -26,7 +26,8 @@ public sealed record RemisionFiltro(
     string? Texto = null,
     DateTime? Desde = null,
     DateTime? Hasta = null,
-    bool IncluirAnuladas = false);
+    bool IncluirAnuladas = false,
+    string? Clase = null);
 
 public sealed record RemisionFila(
     int Id,
@@ -43,7 +44,24 @@ public sealed record RemisionFila(
     string Estado,
     bool Anulada,
     string Clase,
-    bool EsDelModulo);
+    bool EsDelModulo)
+{
+    /// <summary>Lo que se vendió, para la bandeja: Animales, Lotes o Subproductos.</summary>
+    public string ClaseTexto => Clase switch
+    {
+        ClaseRemision.Productos => "Subproductos",
+        ClaseRemision.Lotes => "Lotes",
+        _ => "Animales",
+    };
+}
+
+/// <summary>Qué contiene una remisión (columna <c>Clase</c> de la bandeja y filtro).</summary>
+public static class ClaseRemision
+{
+    public const string Animales = "ANIMALES";
+    public const string Lotes = "LOTES";
+    public const string Productos = "PRODUCTOS";
+}
 
 /// <summary>Una línea de la remisión sea cual sea su origen (animal, lote o producto).</summary>
 public sealed record LineaRemision(
@@ -95,6 +113,24 @@ public sealed record ReciboFila(
     string Tipo,
     string FormaPagoTexto);
 
+/// <summary>Una línea de venta del informe «Ventas por Programas».</summary>
+public sealed record VentaInformeLinea(
+    int RemisionId,
+    int? ProgramaId,
+    string Programa,
+    DateTime Fecha,
+    string? Oficio,
+    string Remision,
+    string? Recibo,
+    string Comprador,
+    string Item,
+    string Unidad,
+    decimal Cantidad,
+    decimal ValorUnitario,
+    decimal ValorTotal);
+
+public sealed record VentasInforme(DateTime Desde, DateTime Hasta, IReadOnlyList<VentaInformeLinea> Lineas, IReadOnlyDictionary<int, decimal> DescuentoPorRemision);
+
 public sealed record ResumenRemisiones(int RemisionesDelMes, decimal VentasDelMes);
 
 public sealed record ResumenRecibos(decimal Consignacion, decimal EfectivoCheque, string UltimoConsecutivo);
@@ -106,7 +142,7 @@ public interface IRemisionesQueryService
 
     Task<RemisionVista> ObtenerAsync(int remisionId, CancellationToken ct = default);
 
-    /// <summary>KPI del mes de <paramref name="mes"/>: remisiones emitidas y total vendido.</summary>
+    /// <summary>KPI del mes de <paramref name="mes"/>: remisiones de venta emitidas y total vendido.</summary>
     Task<ResumenRemisiones> ResumirAsync(DateTime mes, int? granjaId, int? programaId, CancellationToken ct = default);
 
     Task<IReadOnlyList<ReciboFila>> ListarRecibosAsync(string? formaPago = null, string? texto = null, bool incluirAnulados = false, CancellationToken ct = default);
@@ -115,6 +151,9 @@ public interface IRemisionesQueryService
 
     /// <summary>Siguiente número de remisión sugerido («REM-413») y siguiente consecutivo de recibo SP.</summary>
     Task<(string Remision, int Recibo)> SiguientesConsecutivosAsync(CancellationToken ct = default);
+
+    /// <summary>Líneas de las ventas vigentes (no anuladas) entre dos fechas, de un programa o de todos, para el informe de ventas.</summary>
+    Task<VentasInforme> ObtenerVentasAsync(DateTime desde, DateTime hasta, int? programaId, CancellationToken ct = default);
 
     /// <summary>Remisiones de venta de un oficio (con sus recibos).</summary>
     Task<IReadOnlyList<RemisionFila>> ListarDeOficioAsync(int oficioId, CancellationToken ct = default);
@@ -168,6 +207,7 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
             .Select(r => Fila(r, d))
             .Where(f => (filtro.IncluirAnuladas || !f.Anulada)
                         && (filtro.Tipo is null || f.Tipo == filtro.Tipo)
+                        && (filtro.Clase is null || f.Clase == filtro.Clase)
                         && (filtro.Estado is null || f.Estado == filtro.Estado)
                         && (filtro.ProgramaId is null || f.ProgramaId == filtro.ProgramaId)
                         && (filtro.Desde is null || f.Fecha.Date >= filtro.Desde.Value.Date)
@@ -235,7 +275,8 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
     }
 
     private static string ClaseDe(IReadOnlyList<RemisionDetalle> lineas)
-        => lineas.Any(l => l.ProductoId is not null) ? "PRODUCTOS" : lineas.Any(l => l.LoteId is not null) ? "LOTES" : "ANIMALES";
+        => lineas.Any(l => l.AnimalId is null && l.LoteId is null) ? ClaseRemision.Productos
+            : lineas.Any(l => l.LoteId is not null) ? ClaseRemision.Lotes : ClaseRemision.Animales;
 
     private static int? ProgramaDeLineas(IReadOnlyList<RemisionDetalle> lineas, Datos d)
     {
@@ -290,9 +331,10 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
 
     private static LineaRemision Linea(RemisionDetalle l, Datos d)
     {
-        if (l.ProductoId is { } pid)
+        if (l.AnimalId is null && l.LoteId is null)
         {
-            var producto = d.Productos.GetValueOrDefault(pid);
+            var pid = l.ProductoId;
+            var producto = pid is { } id ? d.Productos.GetValueOrDefault(id) : null;
             return new LineaRemision(
                 ClaseDeLinea.Producto, null, null, pid, producto?.Codigo ?? "—", l.DescripcionItem ?? producto?.Nombre ?? "—", l.UnidadMedida ?? producto?.UnidadMedida ?? "—",
                 l.CantidadProducto ?? 0m, l.ValorUnitarioTransaccion ?? 0m, l.ValorTotalTransaccion ?? 0m, null, 0m, l.ObservacionesEspecificas, null, null);
@@ -322,8 +364,8 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
     {
         var desde = new DateTime(mes.Year, mes.Month, 1);
         var hasta = desde.AddMonths(1).AddDays(-1);
-        var filas = await ListarAsync(new RemisionFiltro(granjaId, programaId, Desde: desde, Hasta: hasta), ct);
-        return new ResumenRemisiones(filas.Count, filas.Where(f => f.Tipo == TipoRemision.Venta).Sum(f => f.Total));
+        var filas = await ListarAsync(new RemisionFiltro(granjaId, programaId, TipoRemision.Venta, Desde: desde, Hasta: hasta), ct);
+        return new ResumenRemisiones(filas.Count, filas.Sum(f => f.Total));
     }
 
     public async Task<IReadOnlyList<ReciboFila>> ListarRecibosAsync(string? formaPago = null, string? texto = null, bool incluirAnulados = false, CancellationToken ct = default)
@@ -365,6 +407,37 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
             recibos.Where(r => r.Recibo.FormaPago == FormaPago.Consignacion).Sum(r => r.Recibo.TotalPagado),
             recibos.Where(r => r.Recibo.FormaPago == FormaPago.EfectivoCheque).Sum(r => r.Recibo.TotalPagado),
             recibos.Count == 0 ? "—" : recibos[0].Etiqueta);
+    }
+
+    public async Task<VentasInforme> ObtenerVentasAsync(DateTime desde, DateTime hasta, int? programaId, CancellationToken ct = default)
+    {
+        Regla.Exigir(desde.Date <= hasta.Date, "La fecha inicial no puede ser posterior a la final.");
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        var d = await CargarAsync(uow, ct);
+
+        var lineas = new List<VentaInformeLinea>();
+        var descuentos = new Dictionary<int, decimal>();
+        foreach (var r in d.Remisiones.Where(r => r.TipoMovimiento == TipoRemision.Venta && !r.Anulada
+                                                  && r.FechaRemision.Date >= desde.Date && r.FechaRemision.Date <= hasta.Date)
+                     .OrderBy(r => r.FechaRemision).ThenBy(r => r.Id))
+        {
+            var fila = Fila(r, d);
+            if (programaId is not null && fila.ProgramaId != programaId)
+            {
+                continue;
+            }
+
+            var detalles = d.Detalles[r.Id].ToList();
+            descuentos[r.Id] = TotalesRemision.Calcular(detalles, r.DescuentoPorcentaje).ValorDescuento;
+            foreach (var l in detalles.Select(x => Linea(x, d)))
+            {
+                lineas.Add(new VentaInformeLinea(
+                    r.Id, fila.ProgramaId, fila.Programa, r.FechaRemision, fila.Oficio, r.NumeroRemision, fila.Recibo, r.TerceroEntidad ?? "—",
+                    l.Clase == ClaseDeLinea.Producto ? l.Descripcion : $"{l.Codigo} — {l.Descripcion}", l.Unidad, l.Cantidad, l.ValorUnitario, l.ValorTotal));
+            }
+        }
+
+        return new VentasInforme(desde.Date, hasta.Date, lineas, descuentos);
     }
 
     // ---- Consecutivos -----------------------------------------------------------------------------------------------------

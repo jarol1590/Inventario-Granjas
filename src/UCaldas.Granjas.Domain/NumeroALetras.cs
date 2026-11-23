@@ -1,4 +1,4 @@
-namespace UCaldas.Granjas.Services.Comercial;
+namespace UCaldas.Granjas.Domain;
 
 /// <summary>Convierte valores en pesos a letras en español para el Recibo de Caja («CUATROCIENTOS VEINTE MIL PESOS M/CTE»).</summary>
 public static class NumeroALetras

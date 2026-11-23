@@ -57,7 +57,7 @@ public class LotesDocumentosTests
 
         (r.Animales, r.TotalVenta, r.TotalCostoSistema).Should().Be((400, 20_000_000m, 6_000_000m));
         var remision = await s.E.RemisionAsync("REM-L1");
-        (remision.TipoMovimiento, remision.ReciboCaja, remision.GranjaOrigenId, remision.OficioId).Should().Be(("VENTA", "RC-1", s.E.Ids.Montelindo, r.OficioId));
+        (remision.TipoMovimiento, remision.ReciboCaja, remision.GranjaOrigenId, remision.OficioId).Should().Be(("VENTA", "829 SP", s.E.Ids.Montelindo, r.OficioId));
         var detalle = (await s.E.DetallesAsync("REM-L1")).Single();
         (detalle.LoteId, detalle.AnimalId, detalle.Cantidad, detalle.PesoVendidoKg, detalle.CostoSistemaLibros).Should().Be((s.LoteId, (int?)null, 400, 900m, 6_000_000m));
         var lote = await LoteAsync(s);

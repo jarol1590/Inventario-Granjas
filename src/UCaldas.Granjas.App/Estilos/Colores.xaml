@@ -32,6 +32,9 @@
   <SolidColorBrush x:Key="Brush.Seleccion" Color="#D3E6DA" />
   <SolidColorBrush x:Key="Brush.Resaltado" Color="#E5F0E9" />
   <SolidColorBrush x:Key="Brush.Deshabilitado" Color="#EEF1EF" />
+  <!-- Fondos de avisos (total del recibo) e información (notas de los formularios de Remisiones). -->
+  <SolidColorBrush x:Key="Brush.AvisoFondo" Color="#FFF4DC" />
+  <SolidColorBrush x:Key="Brush.InfoFondo" Color="#E3EEF6" />
 
   <!-- Degradado de la Facultad: del verde al azul (franja de la cabecera y de la pantalla de acceso). -->
   <LinearGradientBrush x:Key="Brush.DegradadoFacultad" StartPoint="0,0" EndPoint="1,0">

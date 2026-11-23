@@ -255,7 +255,7 @@ CREATE TABLE REMISION_DETALLE (
     descripcion_item           TEXT,                                            -- [v2.8]
     unidad_medida              TEXT,                                            -- [v2.8]
     cantidad_producto          DECIMAL(12,2),                                   -- [v2.8]
-    CHECK ((animal_id IS NOT NULL) + (lote_id IS NOT NULL) + (producto_id IS NOT NULL) = 1)
+    CHECK ((animal_id IS NOT NULL) + (lote_id IS NOT NULL) + (producto_id IS NOT NULL OR descripcion_item IS NOT NULL) = 1)
 );
 
 CREATE INDEX ix_detalle_remision ON REMISION_DETALLE(remision_id);

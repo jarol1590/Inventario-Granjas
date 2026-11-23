@@ -33,8 +33,13 @@ public sealed partial class ProgramaEditorViewModel : DialogViewModelBase
         _original = existente ?? new Programa { TipoInventario = TipoInventario.Individual };
         EsNuevo = existente is null;
 
-        Tipos = [new(TipoInventario.Individual, "Individual (Chapeta)"), new(TipoInventario.Lote, "Lote (Población)")];
-        _tipoSeleccionado = Tipos.First(t => t.Valor == _original.TipoInventario);
+        Tipos =
+        [
+            new(TipoInventario.Individual, "Individual (Chapeta)"),
+            new(TipoInventario.Lote, "Lote (Población)"),
+            new(TipoProducto, "Productos (sin animales ni lotes)"),
+        ];
+        _tipoSeleccionado = Tipos.First(t => t.Valor == (_original.ManejaInventarioAnimal ? _original.TipoInventario : TipoProducto));
         Unidades = [new(UnidadCobro.Unidad, "Por cabeza / unidad"), new(UnidadCobro.Kg, "Por kilogramo (Kg)")];
         _unidadSeleccionada = Unidades.FirstOrDefault(u => u.Valor == _original.UnidadVentaDefault) ?? Unidades[0];
         _codigo = _original.Codigo;
@@ -46,6 +51,9 @@ public sealed partial class ProgramaEditorViewModel : DialogViewModelBase
             Granjas.Add(new GranjaSeleccionable(granja, granjaIdsAsociadas.Contains(granja.Id)));
         }
     }
+
+    /// <summary>Tipo de la interfaz para los programas de productos (hortalizas, frutales...): se guardan como INDIVIDUAL sin inventario animal.</summary>
+    private const string TipoProducto = "PRODUCTO";
 
     public bool EsNuevo { get; }
 
@@ -86,7 +94,8 @@ public sealed partial class ProgramaEditorViewModel : DialogViewModelBase
                     Id = _original.Id,
                     Codigo = Codigo,
                     Nombre = Nombre,
-                    TipoInventario = TipoSeleccionado.Valor!,
+                    TipoInventario = TipoSeleccionado.Valor == TipoProducto ? TipoInventario.Individual : TipoSeleccionado.Valor!,
+                    ManejaInventarioAnimal = TipoSeleccionado.Valor != TipoProducto,
                     Observaciones = Observaciones,
                     UnidadVentaDefault = UnidadSeleccionada.Valor!,
                 },

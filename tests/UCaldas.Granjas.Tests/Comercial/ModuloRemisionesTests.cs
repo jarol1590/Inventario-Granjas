@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Catalogos;
@@ -462,18 +463,19 @@ public class ModuloRemisionesTests
     }
 
     [Fact]
-    public async Task Una_venta_anterior_al_modulo_recibe_su_recibo_SP_despues_y_pasa_a_Pagada()
+    public async Task Una_venta_de_Sistema_Granjas_sin_recibo_recibe_su_recibo_SP_y_se_edita_despues()
     {
         await using var s = await CrearAsync();
         var legado = await s.E.VentaAsync("REM-OLD", "OF-OLD", "RC-77", null, ("S-1", 5_500_000m));
         var r = await s.E.Kardex.RegistrarVentaAsync(legado);
         var antes = await s.Consultas.ObtenerAsync(r.RemisionId);
-        (antes.Recibo, antes.EsDelModulo, antes.Estado, antes.Remision.ReciboCaja).Should().Be(((ReciboCaja?)null, false, EstadoRemision.Pagada, "RC-77"));
+        (antes.Recibo!.NumeroRecibo, antes.Recibo.Observaciones, antes.EsDelModulo, antes.Estado, antes.Remision.ReciboCaja, antes.Clase)
+            .Should().Be((829, "Recibo anterior: RC-77", true, EstadoRemision.Pagada, "829 SP", "ANIMALES"));
 
         var recibo = await s.Recibos.GuardarAsync(r.RemisionId, Entorno.Pago(), s.Comprador);
 
         var despues = await s.Consultas.ObtenerAsync(r.RemisionId);
-        (recibo.NumeroRecibo, despues.EsDelModulo, despues.Remision.ReciboCaja, despues.Remision.ConvenioId).Should().Be((829, true, "829 SP", s.Convenio.Id));
+        (recibo.NumeroRecibo, despues.Remision.ReciboCaja, despues.Remision.ConvenioId).Should().Be((829, "829 SP", s.Convenio.Id));
     }
 
     // ---- Consultas ------------------------------------------------------------------------------------------------------------
@@ -504,7 +506,7 @@ public class ModuloRemisionesTests
         porTexto.Should().ContainSingle().Which.Numero.Should().Be("REM-1");
         (await s.Consultas.ListarAsync(new RemisionFiltro(GranjaId: s.E.Ids.Montelindo))).Should().ContainSingle().Which.Numero.Should().Be("REM-T1", "la granja destino también cuenta");
         var resumen = await s.Consultas.ResumirAsync(Datos.F("2026-10-25"), null, null);
-        (resumen.RemisionesDelMes, resumen.VentasDelMes).Should().Be((2, 5_500_000m), "la venta y el traslado son de octubre; solo la venta suma al total vendido");
+        (resumen.RemisionesDelMes, resumen.VentasDelMes).Should().Be((1, 5_500_000m), "el KPI del módulo cuenta solo ventas; los traslados se manejan en Sistema Granjas");
     }
 
     [Fact]
@@ -553,7 +555,7 @@ public class ModuloRemisionesTests
         return (producto.Id, oficio);
     }
 
-    private static RemisionProductosDto VentaProductos(Entorno s, int productoId, string numero = "REM-P1", decimal cantidad = 10m, decimal valor = 18_000m) => new()
+    private static RemisionProductosDto VentaProductos(Entorno s, int? productoId, string numero = "REM-P1", decimal cantidad = 10m, decimal valor = 18_000m) => new()
     {
         Tipo = TipoRemision.Venta, ProgramaId = s.ProgramaAves, NumeroOficio = "OF-HUE", NumeroRemision = numero, Fecha = Datos.F("2026-11-05"),
         GranjaOrigenId = s.E.Ids.Montelindo, Comprador = s.Convenio.Nombre, Comercial = s.Comprador, Recibo = Entorno.Pago(),
@@ -641,7 +643,7 @@ public class ModuloRemisionesTests
     }
 
     [Fact]
-    public async Task Un_traslado_de_productos_va_entre_granjas_sin_oficio_con_recibo_interno()
+    public async Task Un_traslado_de_productos_se_rechaza_porque_los_traslados_son_de_Sistema_Granjas()
     {
         await using var s = await CrearAsync();
         var (productoId, _) = await PrepararProductosAsync(s);
@@ -653,15 +655,30 @@ public class ModuloRemisionesTests
             Lineas = [new LineaProductoDto { ProductoId = productoId, UnidadMedida = "Cubeta", Cantidad = 5m, ValorUnitario = 18_000m }],
         };
 
-        var r = await s.E.Kardex.RegistrarRemisionProductosAsync(dto);
+        await ((Func<Task>)(() => s.E.Kardex.RegistrarRemisionProductosAsync(dto))).Should().ThrowAsync<ValidationException>().WithMessage("*solo registra ventas de subproductos*");
+        (await s.E.ContarAsync("REMISION")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Una_linea_de_subproducto_escrita_a_mano_no_necesita_producto_de_catalogo_pero_si_descripcion()
+    {
+        await using var s = await CrearAsync();
+        var (_, oficio) = await PrepararProductosAsync(s);
+        var libre = VentaProductos(s, null, valor: 7_500m);
+        libre.Lineas[0].Descripcion = "Gallinaza seca";
+        libre.Lineas[0].UnidadMedida = "Bulto";
+        var sinDescripcion = VentaProductos(s, null, valor: 7_500m);
+        sinDescripcion.NumeroRemision = "REM-P9";
+        sinDescripcion.Lineas[0].Descripcion = "  ";
+
+        await ((Func<Task>)(() => s.E.Kardex.RegistrarRemisionProductosAsync(sinDescripcion))).Should().ThrowAsync<ValidationException>().WithMessage("*descripción*");
+        var r = await s.E.Kardex.RegistrarRemisionProductosAsync(libre);
 
         var vista = await s.Consultas.ObtenerAsync(r.RemisionId);
-        (vista.Remision.OficioId, vista.Remision.ReciboCaja, vista.Estado, vista.GranjaDestino, vista.Recibo!.FormaPago)
-            .Should().Be(((int?)null, (string?)null, EstadoRemision.TrasladoInterno, "Tesorito", FormaPago.TrasladoInterno));
-
-        dto.GranjaDestinoId = s.E.Ids.Montelindo;
-        dto.NumeroRemision = "REM-P3";
-        await ((Func<Task>)(() => s.E.Kardex.RegistrarRemisionProductosAsync(dto))).Should().ThrowAsync<ValidationException>().WithMessage("*distinta*");
+        (vista.Clase, vista.Lineas.Single().ProductoId, vista.Lineas.Single().Descripcion, vista.Totales.Total).Should().Be(("PRODUCTOS", (int?)null, "Gallinaza seca", libre.Lineas[0].Cantidad * 7_500m));
+        (await s.Consultas.ListarAsync(new RemisionFiltro(Clase: "ANIMALES"))).Should().BeEmpty();
+        (await s.Consultas.ListarAsync(new RemisionFiltro(Clase: "PRODUCTOS"))).Should().ContainSingle();
+        oficio.Should().BeGreaterThan(0);
     }
 
     // ---- Programas de productos ---------------------------------------------------------------------------------------------

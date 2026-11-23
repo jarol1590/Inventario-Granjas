@@ -3,9 +3,11 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
+using UCaldas.Granjas.App.ViewModels.Remisiones;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Services.Catalogos;
+using UCaldas.Granjas.Services.Comercial;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Services.Kardex;
 using UCaldas.Granjas.Services.Lotes;
@@ -25,7 +27,10 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
     private readonly ILoteService _lotes;
     private Programa? _programaLote;
     private readonly IFormularios _formularios;
+    private readonly IFormulariosRemisiones _formulariosRemisiones;
+    private readonly IRemisionesQueryService _remisiones;
     private readonly ContextoGlobal _contexto;
+    private ReciboCaja? _reciboExistente;
     private int? _remisionId;
     private int _programaId;
     private bool _cargando;
@@ -37,11 +42,15 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         ICatalogoService catalogo,
         ILoteService lotes,
         IFormularios formularios,
+        IFormulariosRemisiones formulariosRemisiones,
+        IRemisionesQueryService remisiones,
         ContextoGlobal contexto,
         IReloj reloj,
         IDialogService dialogos)
         : base(dialogos)
     {
+        _formulariosRemisiones = formulariosRemisiones;
+        _remisiones = remisiones;
         _kardex = kardex;
         _consultas = consultas;
         _catalogo = catalogo;
@@ -116,8 +125,11 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
     [ObservableProperty]
     private string _numeroOficio = string.Empty;
 
+    /// <summary>Recibo de Caja SP de la venta: «Automático» hasta guardarla; después su número («829 SP»).</summary>
     [ObservableProperty]
-    private string _reciboCaja = string.Empty;
+    private string _reciboCaja = ReciboAutomatico;
+
+    private const string ReciboAutomatico = "Automático (se abre al guardar)";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Titulo))]
@@ -216,7 +228,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
                     GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == dto.GranjaOrigenId);
                     FechaSalida = dto.FechaRemision;
                     NumeroOficio = dto.NumeroOficio;
-                    ReciboCaja = dto.ReciboCaja;
+                    await CargarReciboExistenteAsync(remisionId);
                     NumeroRemision = dto.NumeroRemision;
                     Comprador = dto.Comprador;
                     Observaciones = dto.Observaciones ?? string.Empty;
@@ -311,6 +323,58 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         LoteParaAgregar = LotesDisponibles.FirstOrDefault();
     }
 
+    /// <summary>Recibo SP ya emitido de la venta: se muestra su número y se precarga al editar.</summary>
+    private async Task CargarReciboExistenteAsync(int remisionId)
+    {
+        var vista = await _remisiones.ObtenerAsync(remisionId);
+        _reciboExistente = vista.Recibo;
+        DescuentoDelRecibo = vista.Remision.DescuentoPorcentaje;
+        ReciboCaja = _reciboExistente is { } r ? $"{r.NumeroRecibo} {r.Prefijo}" + (r.Anulado ? " (anulado)" : string.Empty) : ReciboAutomatico;
+    }
+
+    /// <summary>
+    /// Abre la ventana del Recibo de Caja SP con las líneas de la venta (misma ventana que usa el módulo Remisiones). Nulo si el
+    /// usuario la cancela. Con datos incompletos devuelve un recibo vacío y deja que el servicio explique qué falta.
+    /// </summary>
+    private async Task<(bool Continuar, ReciboCajaDto? Recibo)> CapturarReciboAsync()
+    {
+        var lineas = new List<LineaRemision>();
+        if (EsLote)
+        {
+            lineas.AddRange(Lotes.Select(l => new LineaRemision(
+                ClaseDeLinea.Lote, null, l.LoteId, null, l.Codigo, $"Lote {l.Codigo} · {l.Etapa}", "Cabeza", l.Cantidad,
+                l.Cantidad > 0 ? l.ValorVenta / l.Cantidad : l.ValorVenta, l.ValorVenta, l.PesoKg > 0 ? l.PesoKg : null, l.ValorEnLibros, null, null, null)));
+        }
+        else
+        {
+            lineas.AddRange(Animales.Select(a => new LineaRemision(
+                ClaseDeLinea.Animal, a.AnimalId, null, null, a.ChapetaAmarilla, $"{a.Animal.Categoria} — {a.Animal.Raza}", "Cabeza", 1m,
+                a.PrecioVenta, a.PrecioVenta, a.PesoKg, a.Animal.ValorContable, null, null, null)));
+        }
+
+        if (lineas.Count == 0 || string.IsNullOrWhiteSpace(Comprador))
+        {
+            return (true, null);
+        }
+
+        var etiqueta = _reciboExistente is { } r
+            ? $"{r.NumeroRecibo} {r.Prefijo}"
+            : $"{(await _remisiones.SiguientesConsecutivosAsync()).Recibo} SP";
+        var programa = (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == (EsLote ? _programaId : _programaId > 0 ? _programaId : _contexto.ProgramaId))?.Nombre ?? "Ganadería";
+        var contexto = new ReciboContexto(
+            true, etiqueta, NumeroRemision.Trim(), programa, Comprador.Trim(), null, lineas, lineas.Sum(l => l.ValorTotal), 0m,
+            _reciboExistente is null ? null : new ReciboCajaDto
+            {
+                Fecha = _reciboExistente.Fecha, FormaPago = _reciboExistente.FormaPago, BancoConsignacion = _reciboExistente.BancoConsignacion,
+                EsEfectivo = _reciboExistente.EsEfectivo, Cheque1Num = _reciboExistente.Cheque1Num, Cheque2Num = _reciboExistente.Cheque2Num,
+                Observaciones = _reciboExistente.Observaciones, TotalPagado = _reciboExistente.TotalPagado,
+                DescuentoPorcentaje = DescuentoDelRecibo,
+            });
+        return await _formulariosRemisiones.CapturarReciboAsync(contexto) is { } captura ? (true, captura.Recibo) : (false, null);
+    }
+
+    private decimal DescuentoDelRecibo { get; set; }
+
     private async Task CargarVentaDeLotesAsync(int remisionId)
     {
         var venta = await _consultas.ObtenerVentaLoteAsync(remisionId);
@@ -322,7 +386,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         GranjaSeleccionada = Granjas.FirstOrDefault(g => g.Id == dto.GranjaOrigenId);
         FechaSalida = dto.FechaRemision;
         NumeroOficio = dto.NumeroOficio;
-        ReciboCaja = dto.ReciboCaja;
+        await CargarReciboExistenteAsync(remisionId);
         NumeroRemision = dto.NumeroRemision;
         Comprador = dto.Comprador;
         Observaciones = dto.Observaciones ?? string.Empty;
@@ -431,6 +495,20 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             return;
         }
 
+        // Toda venta (animales o lotes) lleva su Recibo de Caja SP: se captura en la misma ventana del módulo Remisiones y se guarda
+        // junto con la venta, en una sola transacción.
+        ReciboCajaDto? recibo = null;
+        if (EsVenta || EsLote)
+        {
+            var (continuar, capturado) = await CapturarReciboAsync();
+            if (!continuar)
+            {
+                return;
+            }
+
+            recibo = capturado;
+        }
+
         SalidaResultado? resultado = null;
         var guardado = await EjecutarAsync(async () =>
         {
@@ -444,7 +522,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
                     ProgramaId = _programaId,
                     NumeroRemision = NumeroRemision,
                     FechaRemision = FechaSalida ?? default,
-                    ReciboCaja = ReciboCaja,
+                    Recibo = recibo,
                     GranjaOrigenId = granjaId,
                     Comprador = Comprador,
                     Observaciones = Vacio(Observaciones),
@@ -462,7 +540,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
                     ProgramaId = await ProgramaDeGanaderiaAsync(),
                     NumeroRemision = NumeroRemision,
                     FechaRemision = FechaSalida ?? default,
-                    ReciboCaja = ReciboCaja,
+                    Recibo = recibo,
                     GranjaOrigenId = granjaId,
                     Comprador = Comprador,
                     Observaciones = Vacio(Observaciones),

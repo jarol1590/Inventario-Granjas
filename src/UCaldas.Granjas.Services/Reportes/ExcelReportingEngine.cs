@@ -30,6 +30,9 @@ public interface IExcelReportingEngine
     /// <summary>Kardex mensual de un programa por lotes (aves): un bloque por lote con vienen, ventas, mortalidad, valorización y saldo.</summary>
     Task<string> GenerarKardexLotesAsync(KardexLotesRequest request, CancellationToken ct = default);
 
+    /// <summary>Ventas por programas (módulo Remisiones): solo remisiones de venta vigentes del rango, agrupadas por programa, con subtotales y total recaudado.</summary>
+    Task<string> GenerarVentasPorProgramaAsync(VentasReporteRequest request, CancellationToken ct = default);
+
     /// <summary>Hoja de vida individual de un bovino: datos, doble valoración, genealogía e historial.</summary>
     Task<string> GenerarHojaDeVidaAsync(int animalId, string rutaDestino, CancellationToken ct = default);
 }

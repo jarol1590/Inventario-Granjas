@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels.Configuracion;
+using UCaldas.Granjas.App.ViewModels.Remisiones;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Catalogos;
@@ -28,12 +29,24 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     public const string ClaveInformes = "informes";
     public const string ClaveConfiguracion = "configuracion";
 
+    // Módulo REMISIONES: menú lateral propio.
+    public const string ClaveRemisiones = "rem-remisiones";
+    public const string ClaveOficios = "rem-oficios";
+    public const string ClaveRecibos = "rem-recibos";
+    public const string ClaveInformesRemisiones = "rem-informes";
+    public const string ClaveConfigRemisiones = "rem-config";
+
+    private const string ModuloGranjas = "SISTEMA GRANJAS";
+    private const string ModuloRemisiones = "REMISIONES";
+
     private readonly IServiceProvider _servicios;
     private readonly ICatalogoService _catalogo;
     private readonly IBackupService _respaldos;
     private readonly IFormularios _formularios;
     private readonly ContextoGlobal _contexto;
     private readonly BarraDePestanas _barraModulos;
+    private readonly BarraDePestanas _menuGranjas;
+    private readonly BarraDePestanas _menuRemisiones;
     private readonly Dictionary<string, Pestana> _menuPorClave;
     private bool _cargandoFiltros;
 
@@ -63,21 +76,60 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
             new("📊", "Informes", ClaveInformes),
             new("⚙", "Configuración", ClaveConfiguracion),
         };
-        _menuPorClave = opciones.ToDictionary(o => (string)o.Contenido!);
-        Menu = new BarraDePestanas(opciones, opciones[0])
+        var opcionesRemisiones = new List<Pestana>
         {
-            PuedeCambiar = _ => Contenido?.PuedeSalir() ?? true,
+            new("🚚", "Remisiones", ClaveRemisiones),
+            new("📄", "Oficios", ClaveOficios),
+            new("🧾", "Recibos Caja", ClaveRecibos),
+            new("📊", "Informes", ClaveInformesRemisiones),
+            new("⚙", "Configuración", ClaveConfigRemisiones),
         };
-        Menu.CambioConfirmado += pestana => _ = NavegarAsync((string)pestana.Contenido!);
+        _menuPorClave = opciones.Concat(opcionesRemisiones).ToDictionary(o => (string)o.Contenido!);
+        _menuGranjas = CrearMenu(opciones);
+        _menuRemisiones = CrearMenu(opcionesRemisiones);
+        _menu = _menuGranjas;
 
         var modulos = new List<Pestana>
         {
             new("🐄", "SISTEMA GRANJAS"),
             new("📦", "SUMINISTROS E INSUMOS", Habilitada: false, Ayuda: "Módulo fuera del alcance de esta versión."),
-            new("🛒", "REMISIONES", Habilitada: false, Ayuda: "Módulo fuera del alcance de esta versión."),
+            new("🛒", "REMISIONES"),
         };
-        _barraModulos = new BarraDePestanas(modulos, modulos[0]);
+        _barraModulos = new BarraDePestanas(modulos, modulos[0])
+        {
+            PuedeCambiar = _ => Contenido?.PuedeSalir() ?? true,
+        };
+        _barraModulos.CambioConfirmado += pestana => _ = CambiarModuloAsync(pestana.Titulo);
         _barraSuperior = _barraModulos;
+    }
+
+    private BarraDePestanas CrearMenu(IReadOnlyList<Pestana> opciones)
+    {
+        var menu = new BarraDePestanas(opciones, opciones[0]) { PuedeCambiar = _ => Contenido?.PuedeSalir() ?? true };
+        menu.CambioConfirmado += pestana => _ = NavegarAsync((string)pestana.Contenido!);
+        return menu;
+    }
+
+    private async Task CambiarModuloAsync(string modulo)
+    {
+        var remisiones = modulo == ModuloRemisiones;
+        Menu = remisiones ? _menuRemisiones : _menuGranjas;
+        var clave = remisiones ? ClaveRemisiones : ClaveInicio;
+        Menu.SeleccionarSinNotificar(_menuPorClave[clave]);
+        await NavegarAsync(clave);
+    }
+
+    /// <summary>Activa el módulo al que pertenece la sección (si hace falta) y marca su opción en el menú.</summary>
+    private void ActivarModuloDe(string clave)
+    {
+        var deRemisiones = clave.StartsWith("rem-", StringComparison.Ordinal);
+        var destino = deRemisiones ? _menuRemisiones : _menuGranjas;
+        if (!ReferenceEquals(Menu, destino))
+        {
+            Menu = destino;
+            var modulo = _barraModulos.Pestanas.First(p => p.Titulo == (deRemisiones ? ModuloRemisiones : ModuloGranjas));
+            _barraModulos.SeleccionarSinNotificar(modulo);
+        }
     }
 
     /// <summary>La asigna el arranque: cierra la aplicación una vez hecho el respaldo.</summary>
@@ -86,7 +138,8 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     /// <summary>true cuando ya se confirmó la salida; evita repetir el flujo en el evento Closing de la ventana.</summary>
     public bool SalidaAutorizada { get; private set; }
 
-    public BarraDePestanas Menu { get; }
+    [ObservableProperty]
+    private BarraDePestanas _menu;
 
     [ObservableProperty]
     private BarraDePestanas _barraSuperior;
@@ -138,6 +191,7 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
     {
         if (_menuPorClave.TryGetValue(clave, out var pestana))
         {
+            ActivarModuloDe(clave);
             Menu.Seleccionada = pestana;
         }
     }
@@ -273,6 +327,11 @@ public sealed partial class ShellViewModel : ViewModelBase, INavegador
         ClaveTraslados => _servicios.GetRequiredService<TrasladosViewModel>(),
         ClaveInformes => _servicios.GetRequiredService<InformesViewModel>(),
         ClaveConfiguracion => _servicios.GetRequiredService<ConfiguracionViewModel>(),
+        ClaveRemisiones => _servicios.GetRequiredService<RemisionesViewModel>(),
+        ClaveOficios => _servicios.GetRequiredService<OficiosViewModel>(),
+        ClaveRecibos => _servicios.GetRequiredService<RecibosCajaViewModel>(),
+        ClaveInformesRemisiones => _servicios.GetRequiredService<InformesRemisionesViewModel>(),
+        ClaveConfigRemisiones => _servicios.GetRequiredService<ConfiguracionRemisionesViewModel>(),
         _ => throw new InvalidOperationException($"La sección «{clave}» no está disponible."),
     };
 

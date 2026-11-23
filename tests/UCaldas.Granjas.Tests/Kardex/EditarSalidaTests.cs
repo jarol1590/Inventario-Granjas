@@ -44,7 +44,7 @@ public class EditarSalidaTests
         resultado.TotalCostoSistema.Should().Be(9_750_000m);
         var remision = await e.RemisionAsync("REM-1");
         remision.TerceroEntidad.Should().Be("Frigorífico Caldas");
-        remision.ReciboCaja.Should().Be("RC-1B");
+        remision.ReciboCaja.Should().Be("829 SP", "la venta conserva su Recibo SP; el texto escrito ya no se usa como recibo");
         remision.Observaciones.Should().Be("Corregida");
         var detalle = (await e.DetallesAsync("REM-1")).Single(d => d.AnimalId == (e.IdAsync("A-1").Result));
         detalle.ValorTotalTransaccion.Should().Be(7_000_000m);

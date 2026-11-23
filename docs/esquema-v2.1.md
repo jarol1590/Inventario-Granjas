@@ -99,3 +99,26 @@ Nunca borra datos y no pisa lo que el usuario haya editado:
 - `ANIMAL.observaciones TEXT` (nullable): anotaciones libres editables en la ficha; salen en el inventario físico-financiero (columna I) y en el inventario físico individual.
 - `MOVIMIENTO_INVENTARIO.observaciones TEXT` (nullable) e índice `ix_movimiento_lote`: motivo de los asientos de lotes (valorización por cambio de etapa, bajas por mortalidad o hurto).
 - `LOTE_POBLACION.ubicacion` y `orden_compra` ya no se capturan: se guardan vacía/nula (la columna sigue NOT NULL por compatibilidad).
+
+## v2.8 (módulo Remisiones)
+
+- `PROGRAMA.maneja_inventario_animal BOOLEAN NOT NULL DEFAULT 1` (0 = programa de productos; se guarda con `tipo_inventario = 'INDIVIDUAL'`).
+- `OFICIO_VENTA.cerrado BOOLEAN NOT NULL DEFAULT 0`, `fecha_cierre DATETIME`.
+- `REMISION`: `programa_id`, `tipo_comprador`, `convenio_id`, `cliente_id`, `subtotal`, `descuento_porcentaje`, `valor_descuento`, `total` (sin FOREIGN KEY: SQLite no permite quitar después una columna que la lleve).
+- `REMISION_DETALLE` reconstruida: `producto_id` (FK a `CATALOGO_PRODUCTO`), `descripcion_item`, `unidad_medida`, `cantidad_producto` y CHECK `(animal_id) + (lote_id) + (producto_id) = 1` (en v2.9 pasa a `… + (producto_id IS NOT NULL OR descripcion_item IS NOT NULL) = 1`).
+- Tablas nuevas: `CONVENIO`, `CLIENTE`, `CATALOGO_PRODUCTO`, `CONFIGURACION_REMISIONES` (fila única, consecutivo inicial 828) y `RECIBO_CAJA` (`numero_recibo` y `remision_id` UNIQUE, `forma_pago`, `banco_consignacion`, `es_efectivo`, `cheque1_num`, `cheque2_num`, `total_pagado`, `total_letras`, `observaciones`, `anulado`).
+
+
+## v2.9 (`user_version = 9`): Remisiones = subproductos; toda venta con Recibo SP
+
+- `REMISION_DETALLE` se reconstruye (`Schema/migracion_v9_detalle.sql`, solo si su CHECK aún es el de v2.8) con el CHECK
+  `(animal_id IS NOT NULL) + (lote_id IS NOT NULL) + (producto_id IS NOT NULL OR descripcion_item IS NOT NULL) = 1`: una línea es un
+  animal, un lote o un ítem descrito (de catálogo o escrito a mano, sin `producto_id`).
+- **Conversión de recibos anteriores** (`DatabaseInitializer.ConvertirRecibosAnterioresAsync`, misma transacción de la migración): cada
+  `REMISION` de VENTA sin fila en `RECIBO_CAJA` recibe un Recibo SP con el siguiente consecutivo (orden por fecha e id). Fecha del recibo =
+  fecha de la venta; forma de pago = `CONSIGNACION` al banco de `CONFIGURACION_REMISIONES`; total = suma de sus líneas (decimal en C#)
+  menos el descuento; `observaciones` = «Recibo anterior: {texto escrito}»; `anulado` = la venta está anulada.
+  `REMISION.recibo_caja` pasa a «N SP», se completan `subtotal` y `total` y se actualiza `ultimo_consecutivo_recibo`.
+- Reglas de servicio: toda venta (animales, lotes o subproductos) tiene su Recibo SP; si el DTO no lo trae se crea uno por defecto
+  (o se conserva el existente al editar). Remisiones solo registra ventas de subproductos; los traslados con recibo siguen
+  existiendo en `KardexService` pero se manejan desde Sistema Granjas.

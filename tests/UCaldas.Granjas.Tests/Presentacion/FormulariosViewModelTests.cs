@@ -1,8 +1,10 @@
 ﻿using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.App.ViewModels;
+using UCaldas.Granjas.App.ViewModels.Remisiones;
 using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Services.Animales;
 using UCaldas.Granjas.Services.Catalogos;
+using UCaldas.Granjas.Services.Comercial;
 using UCaldas.Granjas.Services.Consultas;
 using UCaldas.Granjas.Tests.Infraestructura;
 using UCaldas.Granjas.Tests.Kardex;
@@ -256,8 +258,9 @@ public class FormulariosViewModelTests
 
     // ---- Salida -------------------------------------------------------------------------------------------------------
 
-    private static SalidaEditorViewModel CrearSalida(EscenarioKardex e, DialogoFalso dialogos, FormulariosFalso formularios)
-        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), new UCaldas.Granjas.Services.Lotes.LoteService(e.Db.Uow, e.Reloj), formularios, new ContextoGlobal(), e.Reloj, dialogos);
+    private static SalidaEditorViewModel CrearSalida(EscenarioKardex e, DialogoFalso dialogos, FormulariosFalso formularios, FormulariosRemisionesFalso? recibos = null)
+        => new(e.Kardex, Consultas(e), new CatalogoService(e.Db.Uow), new UCaldas.Granjas.Services.Lotes.LoteService(e.Db.Uow, e.Reloj), formularios,
+            recibos ?? FormulariosRemisionesFalso.ConPago(e.Reloj.Ahora.Date), new RemisionesQueryService(e.Db.Uow), new ContextoGlobal(), e.Reloj, dialogos);
 
     [Fact]
     public async Task La_clase_de_salida_decide_si_se_piden_oficio_y_recibo()
@@ -279,17 +282,19 @@ public class FormulariosViewModelTests
     }
 
     [Fact]
-    public async Task Una_venta_sin_recibo_de_caja_se_rechaza_y_con_todos_los_datos_se_registra()
+    public async Task Una_venta_abre_el_recibo_SP_y_solo_se_registra_si_el_recibo_se_acepta()
     {
         await using var e = await EscenarioKardex.CrearAsync();
         await e.AltaVacaAsync("A-1", valor: 6_000_000m);
         var formularios = new FormulariosFalso();
         formularios.Seleccion.Add(await SeleccionableAsync(e, e.Ids.Tesorito, "A-1"));
         var dialogos = new DialogoFalso();
-        var vm = CrearSalida(e, dialogos, formularios);
+        var recibos = new FormulariosRemisionesFalso();   // el usuario cancela el recibo
+        var vm = CrearSalida(e, dialogos, formularios, recibos);
         await vm.InicializarNuevaAsync();
         await vm.AgregarAnimalCommand.ExecuteAsync(null);
         vm.Animales.Should().ContainSingle();
+        vm.ReciboCaja.Should().Contain("Automático");
         vm.NumeroRemision = "REM-1";
         vm.NumeroOficio = "OF-1";
         vm.Comprador = "Frigorífico Manizales";
@@ -298,16 +303,19 @@ public class FormulariosViewModelTests
         var cierres = new List<bool>();
         vm.CierreSolicitado += cierres.Add;
 
-        await vm.GuardarCommand.ExecuteAsync(null); // falta el recibo de caja
+        await vm.GuardarCommand.ExecuteAsync(null); // cancela la ventana del recibo
 
-        dialogos.Advertencias.Should().ContainSingle();
+        recibos.UltimoContexto.Should().Match<ReciboContexto>(c => c.EsVenta && c.NumeroRecibo == "829 SP" && c.Subtotal == 6_500_000m && c.Comprador == "Frigorífico Manizales");
         cierres.Should().BeEmpty();
         (await e.AnimalAsync("A-1")).Estado.Should().Be(EstadoAnimal.Disponible);
+        (await e.ContarAsync("REMISION")).Should().Be(0);
 
-        vm.ReciboCaja = "RC-1";
+        recibos.ReciboAEntregar = FormulariosRemisionesFalso.Pago(e.Reloj.Ahora.Date);
         await vm.GuardarCommand.ExecuteAsync(null);
 
         cierres.Should().Equal(true);
+        (await e.ContarAsync("RECIBO_CAJA")).Should().Be(1);
+        (await e.RemisionAsync("REM-1")).ReciboCaja.Should().Be("829 SP");
         (await e.AnimalAsync("A-1")).Estado.Should().Be(EstadoAnimal.Vendido);
         dialogos.Informaciones.Should().ContainSingle().Which.Should().Contain("Venta registrada: 1 animal por $6.500.000").And.Contain("$6.000.000");
         await e.AsegurarInvarianteAsync();
@@ -374,7 +382,7 @@ public class FormulariosViewModelTests
         vm.Modo.Should().Be(ModoDocumento.Detalle);
         vm.Titulo.Should().Be("Detalle de la salida REM-1");
         vm.NumeroOficio.Should().Be("OF-1");
-        vm.ReciboCaja.Should().Be("RC-1");
+        vm.ReciboCaja.Should().Be("829 SP", "la venta con el recibo escrito a mano se convierte en Recibo SP");
         vm.PuedeCambiarClase.Should().BeFalse("una venta no se convierte en baja");
         vm.Animales.Should().ContainSingle().Which.PrecioVenta.Should().Be(6_500_000m);
         vm.TotalTexto.Should().Be("$6.500.000");

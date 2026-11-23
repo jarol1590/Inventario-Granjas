@@ -1,0 +1,178 @@
+<UserControl x:Class="UCaldas.Granjas.App.Vistas.Remisiones.RemisionEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:UCaldas.Granjas.App.Infraestructura"
+             xmlns:vm="clr-namespace:UCaldas.Granjas.App.ViewModels.Remisiones">
+  <UserControl.Resources>
+    <infra:BindingProxy x:Key="Proxy" Data="{Binding}" />
+  </UserControl.Resources>
+
+  <!-- Contenido con desplazamiento; los botones quedan siempre visibles al pie. -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="26,18,26,8">
+        <!-- Encabezado -->
+        <Border Background="{StaticResource Brush.Primario}" CornerRadius="6" Padding="15,10" Margin="0,0,0,12">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding EstadoTexto}" Foreground="White" FontWeight="Medium" VerticalAlignment="Center" />
+            <TextBlock Text="REMISIÓN DE VENTA DE SUBPRODUCTOS" Foreground="White" FontSize="15" FontWeight="Medium" VerticalAlignment="Center" />
+          </DockPanel>
+        </Border>
+
+        <Border Background="{StaticResource Brush.InfoFondo}" CornerRadius="6" Padding="12,8" Margin="0,0,0,10"
+                Visibility="{Binding EsNueva, Converter={StaticResource BoolAVisibilidad}}">
+          <TextBlock TextWrapping="Wrap" Style="{StaticResource Texto.Suave}"
+                     Text="Aquí se venden los subproductos de los programas (leche, huevos, gallinaza, fruta...). Las ventas de animales o lotes se registran en Sistema Granjas y también aparecen en la bandeja de Remisiones; los traslados se manejan solo allí." />
+        </Border>
+
+        <!-- Oficio, programa, fecha, número y granja -->
+        <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,10">
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,8">
+              <TextBlock Text="*Oficio de venta (abierto)" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+              <ComboBox ItemsSource="{Binding Oficios}" SelectedItem="{Binding OficioSeleccionado}" IsEnabled="{Binding EsEditable}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock>
+                      <Run Text="{Binding Oficio.NumeroOficio, Mode=OneWay}" /><Run Text=" (" /><Run Text="{Binding ProgramaNombre, Mode=OneWay}" /><Run Text=")" />
+                    </TextBlock>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Row="0" Grid.Column="1" Margin="5,0,5,8">
+              <TextBlock Text="Programa (el del oficio)" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+              <TextBox Text="{Binding ProgramaNombre, Mode=OneWay}" IsReadOnly="True" Focusable="False" />
+            </StackPanel>
+            <StackPanel Grid.Row="0" Grid.Column="2" Margin="10,0,0,8">
+              <TextBlock Text="*Fecha de remisión" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+              <DatePicker SelectedDate="{Binding FechaRemision, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsEditable}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+              <TextBlock Text="*N° de remisión" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+              <TextBox Text="{Binding NumeroRemision, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" FontWeight="Medium" />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="1" Margin="5,0,5,0">
+              <TextBlock Text="*Granja origen" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+              <ComboBox ItemsSource="{Binding Granjas}" SelectedItem="{Binding GranjaOrigen}" DisplayMemberPath="Nombre" IsEnabled="{Binding EsEditable}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Comprador -->
+        <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,10" IsEnabled="{Binding EsEditable}">
+          <WrapPanel Orientation="Horizontal">
+            <TextBlock Text="Comprador:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,14,0" VerticalAlignment="Center" />
+            <RadioButton GroupName="Comprador" Content="Convenio" IsChecked="{Binding EsConvenio}" VerticalContentAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Width="230" ItemsSource="{Binding Convenios}" SelectedItem="{Binding Convenio}" DisplayMemberPath="Nombre" Margin="0,0,24,0" />
+            <RadioButton GroupName="Comprador" Content="Otro comprador" IsChecked="{Binding EsOtro}" VerticalContentAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Width="230" ItemsSource="{Binding Clientes}" SelectedItem="{Binding Cliente}" DisplayMemberPath="NombreRazonSocial" Margin="0,0,8,0" />
+            <Button Content="+ Cliente" Command="{Binding NuevoClienteCommand}" ToolTip="Registrar un cliente nuevo" />
+          </WrapPanel>
+        </Border>
+
+        <!-- Ítems escritos a mano -->
+        <Border Style="{StaticResource Tarjeta}" Margin="0,0,0,10">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" Content="+ Agregar línea" Command="{Binding AgregarLineaCommand}" Style="{StaticResource Boton.Primario}" Padding="12,5"
+                      Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+              <StackPanel>
+                <TextBlock Text="Detalle de ítems vendidos" Style="{StaticResource Texto.Seccion}" />
+                <TextBlock Text="Escriba cada ítem; al elegir uno del catálogo del programa se proponen su unidad y su precio." Style="{StaticResource Texto.Suave}" Margin="0,2,0,0"
+                           Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+              </StackPanel>
+            </DockPanel>
+
+            <DataGrid ItemsSource="{Binding Lineas}" IsReadOnly="False" CanUserAddRows="False" MinHeight="90" MaxHeight="260" SelectionUnit="FullRow">
+              <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Descripción del ítem" Width="*" MinWidth="240">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <ComboBox IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
+                                ItemsSource="{Binding Data.ProductosDisponibles, Source={StaticResource Proxy}}" DisplayMemberPath="Nombre"
+                                SelectedItem="{Binding Producto, UpdateSourceTrigger=PropertyChanged}"
+                                Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding Data.EsEditable, Source={StaticResource Proxy}}"
+                                ToolTip="Escriba el ítem vendido o elija uno del catálogo del programa." />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" IsReadOnly="True" Width="Auto" MinWidth="80" />
+                <DataGridTemplateColumn Header="Unidad" Width="Auto" MinWidth="120">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <ComboBox IsEditable="True" ItemsSource="{x:Static vm:RemisionEditorViewModel.UnidadesSugeridas}"
+                                Text="{Binding Unidad, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding Data.EsEditable, Source={StaticResource Proxy}}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Cantidad" Width="Auto" MinWidth="95">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBox HorizontalContentAlignment="Right" Text="{Binding Cantidad, StringFormat='#,##0.##', UpdateSourceTrigger=PropertyChanged}"
+                               IsReadOnly="{Binding Data.EsLectura, Source={StaticResource Proxy}}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Valor unitario" Width="Auto" MinWidth="120">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBox HorizontalContentAlignment="Right" Text="{Binding ValorUnitario, StringFormat='#,##0.##', UpdateSourceTrigger=PropertyChanged}"
+                               IsReadOnly="{Binding Data.EsLectura, Source={StaticResource Proxy}}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Valor total" Binding="{Binding ValorTotal, StringFormat='$#,##0'}" IsReadOnly="True" Width="Auto" MinWidth="115" ElementStyle="{StaticResource Celda.Derecha}" />
+                <DataGridTemplateColumn Header="" Width="Auto" MinWidth="40">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                      <Button Content="✕" Command="{Binding Data.QuitarCommand, Source={StaticResource Proxy}}" CommandParameter="{Binding}" ToolTip="Quitar la línea"
+                              Visibility="{Binding Data.EsEditable, Source={StaticResource Proxy}, Converter={StaticResource BoolAVisibilidad}}" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <DockPanel Margin="0,8,0,0">
+              <TextBlock DockPanel.Dock="Right" Text="{Binding TotalTexto}" FontWeight="Medium" FontSize="15" Foreground="{StaticResource Brush.Primario}" />
+              <TextBlock Text="{Binding CantidadTexto}" Style="{StaticResource Texto.Suave}" VerticalAlignment="Center" />
+            </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Observaciones y recibo -->
+        <TextBlock Text="Observaciones:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,4" />
+        <TextBox Text="{Binding Observaciones, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxLength="300" />
+        <TextBlock Text="{Binding ReciboTexto}" Style="{StaticResource Texto.Suave}" Margin="0,8,0,0" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="26,8,26,16">
+      <Button Content="💾  CONTINUAR A RECIBO DE CAJA (SP)" Command="{Binding ContinuarAReciboCommand}" Style="{StaticResource Boton.Primario}" Padding="16,10" Margin="0,0,10,6"
+              Visibility="{Binding EsEditable, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Content="✏ EDITAR" Command="{Binding EditarCommand}" Padding="14,10" Margin="0,0,10,6"
+              Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Content="🧾 EDITAR RECIBO" Command="{Binding EditarReciboCommand}" Padding="14,10" Margin="0,0,10,6"
+              Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Content="🖨 REMISIÓN PDF" Command="{Binding ImprimirRemisionCommand}" Padding="14,10" Margin="0,0,10,6"
+              Visibility="{Binding EsLectura, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Content="🖨 RECIBO PDF" Command="{Binding ImprimirReciboCommand}" Padding="14,10" Margin="0,0,10,6"
+              Visibility="{Binding EsLectura, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Content="🗑 ANULAR" Command="{Binding AnularCommand}" Style="{StaticResource Boton.Peligro}" Padding="14,10" Margin="0,0,10,6"
+              Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
+      <Button Content="CERRAR" Command="{Binding CancelarCommand}" IsCancel="True" Padding="16,10" Margin="0,0,0,6" />
+    </WrapPanel>
+  </Grid>
+</UserControl>

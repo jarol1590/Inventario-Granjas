@@ -79,12 +79,21 @@ public sealed partial class KardexService
     private static async Task<bool> EsDocumentoDeProductosAsync(IUnitOfWork uow, Remision remision, CancellationToken ct)
     {
         var lineas = await uow.RemisionDetalles.GetByRemisionAsync(remision.Id, ct);
-        return lineas.Count > 0 && lineas.All(l => l.ProductoId is not null);
+        return EsDeSubproductos(lineas);
+    }
+
+    /// <summary>Remisión de subproductos: todas sus líneas son ítems (de catálogo o escritos a mano), ninguna es un animal o un lote.</summary>
+    internal static bool EsDeSubproductos(IEnumerable<RemisionDetalle> lineas)
+    {
+        var lista = lineas.ToList();
+        return lista.Count > 0 && lista.All(l => l.AnimalId is null && l.LoteId is null);
     }
 
     private void ValidarRemisionProductos(RemisionProductosDto dto)
     {
-        Regla.Exigir(dto.Tipo is TipoRemision.Venta or TipoRemision.Traslado, "El tipo de remisión debe ser venta o traslado.");
+        Regla.Exigir(
+            dto.Tipo == TipoRemision.Venta,
+            "El módulo Remisiones solo registra ventas de subproductos; los traslados se hacen en Sistema Granjas.");
         Regla.Exigir(dto.ProgramaId > 0, "Seleccione el programa de la remisión.");
         Regla.ExigirTexto(dto.NumeroRemision, "El número de remisión");
         Regla.Exigir(dto.Fecha != default && dto.Fecha.Date <= reloj.Hoy, "La fecha de la remisión es obligatoria y no puede ser futura.");
@@ -103,7 +112,7 @@ public sealed partial class KardexService
         Regla.Exigir(dto.Lineas.Count > 0, "Agregue al menos un producto a la remisión.");
         foreach (var linea in dto.Lineas)
         {
-            Regla.Exigir(linea.ProductoId is not null || !string.IsNullOrWhiteSpace(linea.Descripcion), "Hay una línea sin producto ni descripción.");
+            Regla.Exigir(linea.ProductoId is not null || !string.IsNullOrWhiteSpace(linea.Descripcion), "Escriba la descripción de cada ítem vendido.");
             Regla.ExigirTexto(linea.UnidadMedida, "La unidad de medida de cada ítem");
             Regla.Exigir(linea.Cantidad > 0, "La cantidad de cada ítem debe ser mayor que cero.");
             Regla.Exigir(linea.ValorUnitario >= 0, "El valor unitario no puede ser negativo.");

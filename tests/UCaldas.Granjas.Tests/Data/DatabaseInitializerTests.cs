@@ -357,17 +357,52 @@ public class DatabaseInitializerTests
         await e.Kardex.RegistrarVentaAsync(await e.VentaAsync("REM-1", "OF-1", "RC-1", null, ("S-1", 5_500_000m)));
         var detallesAntes = await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM REMISION_DETALLE");
         var costoAntes = await e.Db.EscalarAsync<decimal>("SELECT costo_sistema_libros FROM REMISION_DETALLE");
+        await e.Db.EjecutarAsync("UPDATE REMISION SET recibo_caja = 'RC-1'");   // como quedaba una venta antes de v2.8
         await DegradarAVersion7Async(e.Db);
 
         await new DatabaseInitializer(e.Db.Conexiones).InitializeAsync();
 
         (await e.Db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
-        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM RECIBO_CAJA")).Should().Be(0);
-        (await e.Db.EscalarAsync<long>("SELECT ultimo_consecutivo_recibo FROM CONFIGURACION_REMISIONES")).Should().Be(828);
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM RECIBO_CAJA")).Should().Be(1, "la venta con recibo escrito a mano se convierte en Recibo SP");
+        (await e.Db.EscalarAsync<long>("SELECT ultimo_consecutivo_recibo FROM CONFIGURACION_REMISIONES")).Should().Be(829);
         (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM REMISION_DETALLE")).Should().Be(detallesAntes);
         (await e.Db.EscalarAsync<decimal>("SELECT costo_sistema_libros FROM REMISION_DETALLE")).Should().Be(costoAntes);
         (await e.Db.EscalarAsync<decimal>("SELECT total FROM REMISION WHERE numero_remision = 'REM-1'")).Should().Be(5_500_000m, "los totales se completan con las líneas");
         (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM PROGRAMA WHERE maneja_inventario_animal = 1")).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Una_base_de_la_version_8_convierte_los_recibos_escritos_a_mano_en_recibos_SP_conservando_el_numero_anterior()
+    {
+        await using var e = await Kardex.EscenarioKardex.CrearAsync("2026-11-06");
+        await e.AltaVacaAsync("S-1", valor: 5_000_000m);
+        await e.AltaVacaAsync("S-2", valor: 4_000_000m);
+        await e.Kardex.RegistrarVentaAsync(await e.VentaAsync("REM-1", "OF-1", "RC-1", null, ("S-1", 5_500_000m)));
+        await e.Kardex.RegistrarVentaAsync(await e.VentaAsync("REM-2", "OF-1", "RC-2", null, ("S-2", 4_500_000m)));
+        await e.Kardex.AnularAsync((await e.RemisionAsync("REM-2")).Id, "error");
+        // Estado de una base v2.8: ventas con el recibo solo como texto y ninguna fila de RECIBO_CAJA.
+        await e.Db.EjecutarAsync("DELETE FROM RECIBO_CAJA");
+        await e.Db.EjecutarAsync("UPDATE CONFIGURACION_REMISIONES SET ultimo_consecutivo_recibo = 828");
+        await e.Db.EjecutarAsync("UPDATE REMISION SET recibo_caja = 'RC-1', subtotal = 0, total = 0 WHERE numero_remision = 'REM-1'");
+        await e.Db.EjecutarAsync("UPDATE REMISION SET recibo_caja = 'RC-2', subtotal = 0, total = 0 WHERE numero_remision = 'REM-2'");
+        await e.Db.EjecutarAsync("PRAGMA user_version = 8");
+
+        await new DatabaseInitializer(e.Db.Conexiones).InitializeAsync();
+
+        (await e.Db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await e.Db.EscalarAsync<string>("SELECT recibo_caja FROM REMISION WHERE numero_remision = 'REM-1'")).Should().Be("829 SP");
+        (await e.Db.EscalarAsync<string>("SELECT recibo_caja FROM REMISION WHERE numero_remision = 'REM-2'")).Should().Be("830 SP");
+        (await e.Db.EscalarAsync<string>("SELECT observaciones FROM RECIBO_CAJA WHERE numero_recibo = 829")).Should().Be("Recibo anterior: RC-1");
+        (await e.Db.EscalarAsync<string>("SELECT forma_pago FROM RECIBO_CAJA WHERE numero_recibo = 829")).Should().Be("CONSIGNACION");
+        (await e.Db.EscalarAsync<decimal>("SELECT total_pagado FROM RECIBO_CAJA WHERE numero_recibo = 829")).Should().Be(5_500_000m);
+        (await e.Db.EscalarAsync<string>("SELECT total_letras FROM RECIBO_CAJA WHERE numero_recibo = 829")).Should().Be("CINCO MILLONES QUINIENTOS MIL PESOS M/CTE");
+        (await e.Db.EscalarAsync<long>("SELECT anulado FROM RECIBO_CAJA WHERE numero_recibo = 830")).Should().Be(1, "la venta anulada conserva su recibo, anulado");
+        (await e.Db.EscalarAsync<decimal>("SELECT total FROM REMISION WHERE numero_remision = 'REM-1'")).Should().Be(5_500_000m);
+        (await e.Db.EscalarAsync<long>("SELECT ultimo_consecutivo_recibo FROM CONFIGURACION_REMISIONES")).Should().Be(830);
+
+        // Una segunda apertura no vuelve a convertir nada.
+        await new DatabaseInitializer(e.Db.Conexiones).InitializeAsync();
+        (await e.Db.EscalarAsync<long>("SELECT COUNT(*) FROM RECIBO_CAJA")).Should().Be(2);
     }
 
     [Fact]
@@ -380,7 +415,10 @@ public class DatabaseInitializerTests
         var producto = () => db.EjecutarAsync("INSERT INTO REMISION_DETALLE (remision_id, producto_id, descripcion_item, unidad_medida, cantidad_producto, costo_sistema_libros) VALUES (1, 1, 'Tomate', 'Kg', 12.5, 0)");
         var sinOrigen = () => db.EjecutarAsync("INSERT INTO REMISION_DETALLE (remision_id, costo_sistema_libros) VALUES (1, 0)");
 
+        var libre = () => db.EjecutarAsync("INSERT INTO REMISION_DETALLE (remision_id, descripcion_item, unidad_medida, cantidad_producto, costo_sistema_libros) VALUES (1, 'Gallinaza', 'Bulto', 3, 0)");
+
         await producto.Should().NotThrowAsync();
+        await libre.Should().NotThrowAsync("v2.9: un ítem se puede escribir a mano, sin producto de catálogo");
         await sinOrigen.Should().ThrowAsync<Microsoft.Data.Sqlite.SqliteException>("una línea necesita animal, lote o producto");
     }
 

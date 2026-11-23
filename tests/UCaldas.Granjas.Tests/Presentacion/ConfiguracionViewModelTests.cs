@@ -367,7 +367,7 @@ public class ConfiguracionViewModelTests
         {
             var editor = (ProgramaEditorViewModel)ventana;
             editor.EsNuevo.Should().BeTrue();
-            editor.Tipos.Select(t => t.Nombre).Should().Equal("Individual (Chapeta)", "Lote (Población)");
+            editor.Tipos.Select(t => t.Nombre).Should().Equal("Individual (Chapeta)", "Lote (Población)", "Productos (sin animales ni lotes)");
             editor.Granjas.Should().HaveCount(3).And.OnlyContain(g => !g.Seleccionada);
             editor.Codigo = "PRG-PIS";
             editor.Nombre = "Piscicultura";

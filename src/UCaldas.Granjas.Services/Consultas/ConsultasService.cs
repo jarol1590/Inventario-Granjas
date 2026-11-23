@@ -279,7 +279,8 @@ public sealed class ConsultasService(IUnitOfWorkFactory fabrica, IReloj reloj) :
                         && EnRango(r.FechaRemision, filtro.Desde, filtro.Hasta)
                         && (filtro.GranjaId is null || r.GranjaOrigenId == filtro.GranjaId)
                         && delPrograma(r)
-                        && TieneChapeta(r))
+                        && TieneChapeta(r)
+                        && !Kardex.KardexService.EsDeSubproductos(detalles[r.Id]))   // las de subproductos son del módulo Remisiones
             .OrderByDescending(r => r.FechaRemision).ThenByDescending(r => r.Id)
             .Select(r =>
             {

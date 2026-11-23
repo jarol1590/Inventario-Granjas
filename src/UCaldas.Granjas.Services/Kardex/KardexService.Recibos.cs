@@ -1,4 +1,5 @@
 using UCaldas.Granjas.Domain;
+using UCaldas.Granjas.Domain.Constants;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Services.Comercial;
@@ -24,11 +25,41 @@ public sealed partial class KardexService
     {
         if (recibo is null)
         {
-            return;
+            // Toda venta tiene su Recibo SP (v2.9): si quien registra no lo trae, se conserva el que ya tenía o se crea uno con
+            // la fecha de la venta y consignación al banco configurado (se corrige después en Remisiones › Recibos Caja).
+            if (remision.TipoMovimiento != TipoRemision.Venta)
+            {
+                return;
+            }
+
+            recibo = await ReciboPorDefectoAsync(uow, remision, ct);
         }
 
         remision.ProgramaId = programaId ?? await ProgramaDeLasLineasAsync(uow, remision, ct);
         await ReciboCajaRegla.AplicarAsync(uow, reloj, remision, comercial, recibo, ct);
+    }
+
+    private static async Task<ReciboCajaDto> ReciboPorDefectoAsync(IUnitOfWork uow, Remision remision, CancellationToken ct)
+    {
+        if (await uow.Recibos.GetByRemisionAsync(remision.Id, ct) is { } actual)
+        {
+            return new ReciboCajaDto
+            {
+                Fecha = actual.Fecha, FormaPago = actual.FormaPago, BancoConsignacion = actual.BancoConsignacion, EsEfectivo = actual.EsEfectivo,
+                Cheque1Num = actual.Cheque1Num, Cheque2Num = actual.Cheque2Num, Observaciones = actual.Observaciones,
+                DescuentoPorcentaje = remision.DescuentoPorcentaje,
+            };
+        }
+
+        var config = await uow.ConfiguracionRemisiones.GetAsync(ct);
+        var escrito = remision.ReciboCaja;
+        return new ReciboCajaDto
+        {
+            Fecha = remision.FechaRemision,
+            FormaPago = FormaPago.Consignacion,
+            BancoConsignacion = config.EntidadBancaria,
+            Observaciones = string.IsNullOrWhiteSpace(escrito) || escrito == ReciboProvisional ? null : $"Recibo anterior: {escrito.Trim()}",
+        };
     }
 
     /// <summary>El programa de una remisión de traslado sale de lo que se traslada: categoría del animal, programa del lote o del producto.</summary>

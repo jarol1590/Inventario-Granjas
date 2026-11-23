@@ -639,6 +639,130 @@ public class ProgramasYLotesViewModelsTests
     }
 
     [Fact]
+    public async Task La_salida_nueva_sugiere_el_consecutivo_y_un_numero_existente_ofrece_abrir_esa_remision()
+    {
+        var (e, kardex, consultas, contexto, loteId) = await EntornoDeSalidasAsync();
+        await using var _ = e;
+        var dialogos = new DialogoFalso();
+        var remisiones = new FormulariosRemisionesFalso { ReciboAEntregar = FormulariosRemisionesFalso.Pago(e.Reloj.Ahora.Date) };
+        SalidaEditorViewModel Crear() => new(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), remisiones, new RemisionesQueryService(e.Db.Uow), contexto, e.Reloj, dialogos);
+
+        var primera = Crear();
+        await primera.InicializarNuevaAsync();
+        primera.NumeroRemision.Should().Be("REM-1");
+        primera.AgregarLoteCommand.Execute(null);
+        primera.Lotes[0].Cantidad = 400;
+        primera.Lotes[0].PesoKg = 900m;
+        primera.Lotes[0].ValorVenta = 20_000_000m;
+        primera.NumeroOficio = "OF-9";
+        primera.Comprador = "Frigorífico";
+        await primera.GuardarCommand.ExecuteAsync(null);
+        var remisionId = (await consultas.ListarSalidasAsync(new SalidaFiltro(null, new DateTime(2026, 10, 1), new DateTime(2026, 11, 30), ProgramaId: e.Aves.Id))).Items.Single().RemisionId;
+
+        // La siguiente salida propone el consecutivo siguiente.
+        var segunda = Crear();
+        await segunda.InicializarNuevaAsync();
+        segunda.NumeroRemision.Should().Be("REM-2");
+
+        // Si se escribe un número existente y se acepta, se abre esa remisión y no se registra otra venta.
+        var cierres = new List<bool>();
+        segunda.CierreSolicitado += cierres.Add;
+        segunda.NumeroRemision = "REM-1";
+        dialogos.RespuestaConfirmar = false;
+        await segunda.GuardarCommand.ExecuteAsync(null);
+        cierres.Should().BeEmpty();
+        remisiones.Llamadas.Should().NotContain($"remision:{remisionId}");
+
+        dialogos.RespuestaConfirmar = true;
+        await segunda.GuardarCommand.ExecuteAsync(null);
+        remisiones.Llamadas.Should().Contain($"remision:{remisionId}");
+        cierres.Should().Equal(true);
+        (await e.Lotes.ObtenerAsync(loteId)).Lote.CantidadActual.Should().Be(600);
+    }
+
+    [Fact]
+    public async Task Al_salir_de_los_campos_se_verifica_la_remision_y_el_oficio_sin_guardar()
+    {
+        var (e, kardex, consultas, contexto, loteId) = await EntornoDeSalidasAsync();
+        await using var _ = e;
+        var dialogos = new DialogoFalso();
+        var remisiones = new FormulariosRemisionesFalso { ReciboAEntregar = FormulariosRemisionesFalso.Pago(e.Reloj.Ahora.Date) };
+        SalidaEditorViewModel Crear() => new(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), remisiones, new RemisionesQueryService(e.Db.Uow), contexto, e.Reloj, dialogos);
+
+        var primera = Crear();
+        await primera.InicializarNuevaAsync();
+        primera.AgregarLoteCommand.Execute(null);
+        primera.Lotes[0].Cantidad = 100;
+        primera.Lotes[0].PesoKg = 200m;
+        primera.Lotes[0].ValorVenta = 5_000_000m;
+        primera.NumeroOficio = "OF-5";
+        primera.Comprador = "Frigorífico";
+        await primera.GuardarCommand.ExecuteAsync(null);
+        var remisionId = (await consultas.ListarSalidasAsync(new SalidaFiltro(null, new DateTime(2026, 10, 1), new DateTime(2026, 11, 30), ProgramaId: e.Aves.Id))).Items.Single().RemisionId;
+
+        var vm = Crear();
+        await vm.InicializarNuevaAsync();
+
+        // Oficio existente y abierto: no se abre nada, solo se avisa bajo el campo; uno nuevo no avisa.
+        vm.NumeroOficio = "OF-5";
+        await vm.VerificarOficioCommand.ExecuteAsync(null);
+        vm.AvisoOficio.Should().Contain("OF-5").And.Contain("se agregará");
+        dialogos.Advertencias.Should().BeEmpty();
+        vm.NumeroOficio = "OF-NUEVO";
+        vm.AvisoOficio.Should().BeEmpty();
+        await vm.VerificarOficioCommand.ExecuteAsync(null);
+        vm.AvisoOficio.Should().BeEmpty();
+
+        // Remisión existente: al salir del campo se ofrece abrirla (rechazar no hace nada; aceptar abre y cierra).
+        var cierres = new List<bool>();
+        vm.CierreSolicitado += cierres.Add;
+        vm.NumeroRemision = "REM-1";
+        dialogos.RespuestaConfirmar = false;
+        await vm.VerificarRemisionCommand.ExecuteAsync(null);
+        cierres.Should().BeEmpty();
+        dialogos.RespuestaConfirmar = true;
+        await vm.VerificarRemisionCommand.ExecuteAsync(null);
+        remisiones.Llamadas.Should().Contain($"remision:{remisionId}");
+        cierres.Should().Equal(true);
+        (await e.Lotes.ObtenerAsync(loteId)).Lote.CantidadActual.Should().Be(900);
+    }
+
+    [Fact]
+    public async Task La_salida_nueva_propone_el_oficio_abierto_del_programa_o_una_lista_si_hay_varios()
+    {
+        var (e, kardex, consultas, contexto, _) = await EntornoDeSalidasAsync();
+        await using var _ = e;
+        var oficios = new OficioService(e.Db.Uow, e.Reloj);
+        var remisiones = new RemisionesQueryService(e.Db.Uow);
+        SalidaEditorViewModel Crear() => new(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), FormulariosRemisionesFalso.ConPago(e.Reloj.Ahora.Date), remisiones, contexto, e.Reloj, new DialogoFalso());
+        var hoy = e.Reloj.Ahora.Date;
+
+        // Sin oficios abiertos el campo queda vacío (se puede escribir uno nuevo).
+        var sin = Crear();
+        await sin.InicializarNuevaAsync();
+        sin.NumeroOficio.Should().BeEmpty();
+        sin.OficiosAbiertos.Should().BeEmpty();
+
+        // Uno abierto: aparece solo en el campo. Uno cerrado o de otro programa no cuenta.
+        await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-2", ProgramaId = e.Aves.Id, Fecha = hoy });
+        var cerrado = await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-1", ProgramaId = e.Aves.Id, Fecha = hoy });
+        await oficios.CerrarAsync(cerrado);
+        await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-G", ProgramaId = e.Ids.ProgramaGanaderia, Fecha = hoy });
+        var conUno = Crear();
+        await conUno.InicializarNuevaAsync();
+        conUno.NumeroOficio.Should().Be("OF-2");
+        conUno.OficiosAbiertos.Should().Equal("OF-2");
+        (await remisiones.ListarOficiosAbiertosAsync(e.Aves.Id)).Select(o => o.NumeroOficio).Should().Equal("OF-2");
+
+        // Varios abiertos: el campo queda vacío y la lista los ofrece.
+        await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-3", ProgramaId = e.Aves.Id, Fecha = hoy });
+        var conVarios = Crear();
+        await conVarios.InicializarNuevaAsync();
+        conVarios.NumeroOficio.Should().BeEmpty();
+        conVarios.OficiosAbiertos.Should().BeEquivalentTo(["OF-2", "OF-3"]);
+    }
+
+    [Fact]
     public async Task El_traslado_de_un_programa_por_lotes_mueve_lotes_y_su_detalle_se_edita_y_anula()
     {
         var (e, kardex, consultas, contexto, loteId) = await EntornoDeSalidasAsync();

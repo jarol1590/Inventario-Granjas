@@ -85,6 +85,9 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
 
     public ObservableCollection<SalidaAnimalFila> Animales { get; } = [];
 
+    /// <summary>Números de los oficios abiertos del programa de la venta (lista desplegable del campo «N° Oficio»).</summary>
+    public ObservableCollection<string> OficiosAbiertos { get; } = [];
+
     /// <summary>La salida es la venta de lotes de un programa por lotes (misma pantalla, con una grilla de lotes).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EsIndividual), nameof(PuedeCambiarClase), nameof(CantidadTexto), nameof(TotalTexto), nameof(MostrarAgregarAnimal), nameof(MostrarAgregarLote))]
@@ -186,8 +189,17 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             }
 
             // En un programa por lotes la salida es la venta de lotes (las bajas por mortandad se registran en Lotes).
-            if (_contexto.ProgramaId is { } programaId
-                && (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == programaId) is { TipoInventario: TipoInventario.Lote } programa)
+            var programaElegido = _contexto.ProgramaId is { } elegido
+                ? (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == elegido)
+                : null;
+
+            // Un programa individual elegido en los filtros (p. ej. Equinos) fija el programa de la venta y de su oficio.
+            if (programaElegido is { TipoInventario: TipoInventario.Individual, ManejaInventarioAnimal: true })
+            {
+                _programaId = programaElegido.Id;
+            }
+
+            if (programaElegido is { TipoInventario: TipoInventario.Lote } programa)
             {
                 _programaLote = programa;
                 _programaId = programa.Id;
@@ -201,6 +213,20 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
 
                 EsLote = true;
                 await CargarLotesDisponiblesAsync();
+            }
+
+            NumeroRemision = (await _remisiones.SiguientesConsecutivosAsync()).Remision;
+
+            // Oficios abiertos del programa: uno solo se propone en el campo; con varios el usuario elige de la lista.
+            OficiosAbiertos.Clear();
+            foreach (var oficio in await _remisiones.ListarOficiosAbiertosAsync(await ProgramaDeGanaderiaAsync()))
+            {
+                OficiosAbiertos.Add(oficio.NumeroOficio);
+            }
+
+            if (OficiosAbiertos.Count == 1)
+            {
+                NumeroOficio = OficiosAbiertos[0];
             }
 
             Modo = ModoDocumento.Nuevo;
@@ -259,6 +285,8 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             NotificarTotales();
         }, "abrir la salida");
     }
+
+    partial void OnNumeroOficioChanged(string value) => AvisoOficio = string.Empty;
 
     partial void OnModoChanged(ModoDocumento value) => NotificarComandos();
 
@@ -495,6 +523,12 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             return;
         }
 
+        // Un número de remisión ya usado no se duplica: se ofrece abrir ese documento para editarlo.
+        if (_abriendoExistente || (_remisionId is null && await OfrecerAbrirExistenteAsync()))
+        {
+            return;
+        }
+
         // Toda venta (animales o lotes) lleva su Recibo de Caja SP: se captura en la misma ventana del módulo Remisiones y se guarda
         // junto con la venta, en una sola transacción.
         ReciboCajaDto? recibo = null;
@@ -578,6 +612,114 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             : $"Baja {accion}: {Formato.Animales(resultado.Animales)}.\nCosto en libros: {Formato.Dinero(resultado.TotalCostoSistema)}.";
         Dialogos.Informar(mensaje, "Salida guardada");
         Cerrar(true);
+    }
+
+    /// <summary>Se ejecuta al salir del campo «Remisión»: si el número ya existe, ofrece abrir esa remisión.</summary>
+    [RelayCommand]
+    private async Task VerificarRemisionAsync()
+    {
+        if (_remisionId is null && Modo == ModoDocumento.Nuevo && !_abriendoExistente)
+        {
+            await OfrecerAbrirExistenteAsync();
+        }
+    }
+
+    /// <summary>
+    /// Se ejecuta al salir del campo «N° Oficio». Un oficio existente es válido (la remisión se agrega a él), pero se avisa antes
+    /// de guardar si está cerrado o si es de otro programa; si es válido se muestra bajo el campo a qué oficio se agregará.
+    /// </summary>
+    [RelayCommand]
+    private async Task VerificarOficioAsync()
+    {
+        AvisoOficio = string.Empty;
+        if (_remisionId is not null || Modo != ModoDocumento.Nuevo || !EsVenta || string.IsNullOrWhiteSpace(NumeroOficio) || _abriendoExistente)
+        {
+            return;
+        }
+
+        OficioVenta? oficio = null;
+        var programaId = 0;
+        string? programaDelOficio = null;
+        if (!await EjecutarAsync(async () =>
+            {
+                oficio = await _remisiones.BuscarOficioPorNumeroAsync(NumeroOficio);
+                programaId = EsLote ? _programaId : await ProgramaDeGanaderiaAsync();
+                if (oficio is not null && oficio.ProgramaId != programaId)
+                {
+                    programaDelOficio = (await _catalogo.GetProgramasAsync()).FirstOrDefault(p => p.Id == oficio.ProgramaId)?.Nombre;
+                }
+            }, "consultar el oficio"))
+        {
+            return;
+        }
+
+        if (oficio is null)
+        {
+            return;
+        }
+
+        if (oficio.ProgramaId != programaId)
+        {
+            Dialogos.Advertir($"El oficio {oficio.NumeroOficio} pertenece al programa «{programaDelOficio}»: un oficio solo puede tener remisiones de un solo programa. Escriba otro número de oficio.");
+        }
+        else if (oficio.Cerrado)
+        {
+            Dialogos.Advertir($"El oficio {oficio.NumeroOficio} está cerrado y no admite remisiones nuevas. Reábralo en Remisiones › Oficios o escriba otro número.");
+        }
+        else
+        {
+            AvisoOficio = $"El oficio {oficio.NumeroOficio} ya existe (fecha {oficio.FechaOficio:dd/MM/yyyy}): la remisión se agregará a ese oficio.";
+        }
+    }
+
+    /// <summary>Texto bajo el campo del oficio cuando ya existe y puede recibir la remisión.</summary>
+    [ObservableProperty]
+    private string _avisoOficio = string.Empty;
+
+    private bool _abriendoExistente;
+
+    /// <summary>
+    /// Si el número escrito ya existe, pregunta si se abre esa remisión para editarla. Devuelve <c>true</c> cuando el guardado debe
+    /// detenerse (se abrió la existente o el usuario prefiere corregir el número).
+    /// </summary>
+    private async Task<bool> OfrecerAbrirExistenteAsync()
+    {
+        Remision? existente = null;
+        if (!await EjecutarAsync(async () => existente = await _remisiones.BuscarPorNumeroAsync(NumeroRemision), "consultar el número de remisión"))
+        {
+            return true;
+        }
+
+        if (existente is null)
+        {
+            return false;
+        }
+
+        var numero = existente.NumeroRemision;
+        if (existente.TipoMovimiento == TipoRemision.Compra)
+        {
+            Dialogos.Advertir($"El número {numero} pertenece a una compra. Escriba otro número de remisión.");
+            return true;
+        }
+
+        if (!Dialogos.Confirmar(
+                $"Ya existe la remisión {numero}.\n\n¿Desea abrirla para editarla? (si elige No, corrija el número de esta salida)",
+                "Remisión existente"))
+        {
+            return true;
+        }
+
+        var id = existente.Id;
+        var clase = existente.ClaseSalida ?? ClaseSalida.Venta;
+        var esBaja = existente.TipoMovimiento == TipoRemision.Baja;
+        // La existente se abre encima (la pila de modales lo admite); al volver se cierra esta salida y se recarga el listado.
+        // La bandera evita que el foco perdido al pulsar un botón dispare otra verificación o un segundo cierre.
+        _abriendoExistente = true;
+        await EjecutarAsync(
+            () => esBaja ? _formularios.AbrirSalidaAsync(id, clase) : _formulariosRemisiones.AbrirRemisionAsync(id),
+            "abrir la remisión existente");
+        Cerrar(true);
+        return true;
     }
 
     [RelayCommand(CanExecute = nameof(PuedeEditarODesechar))]

@@ -42,7 +42,9 @@
         <TextBlock Grid.Row="1" Text="*Fecha Salida:" Style="{StaticResource Etiq}" />
         <DatePicker Grid.Row="1" Grid.Column="1" Margin="0,0,28,10" SelectedDate="{Binding FechaSalida, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsEditable}" />
         <TextBlock Grid.Row="1" Grid.Column="2" Text="*Remisión:" Style="{StaticResource Etiq}" />
-        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding NumeroRemision, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40" />
+        <TextBox Grid.Row="1" Grid.Column="3" Margin="0,0,0,10" Text="{Binding NumeroRemision, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40"
+                 infra:AlPerderElFoco.Comando="{Binding VerificarRemisionCommand}"
+                 ToolTip="Se propone el siguiente consecutivo; puede cambiarlo. Si escribe uno que ya existe, se ofrece abrir esa remisión." />
       </Grid>
 
       <!-- Solo ventas: Oficio → Remisión → Recibo de Caja -->
@@ -56,11 +58,27 @@
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,-4,0,10" TextWrapping="Wrap" Text="{Binding AvisoOficio}"
+                   Foreground="{StaticResource Brush.Exito}">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Visibility" Value="Visible" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding AvisoOficio}" Value="">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
         <TextBlock Grid.Row="0" Text="*N° Oficio:" Style="{StaticResource Etiq}" />
-        <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" Text="{Binding NumeroOficio, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding EsLectura}" MaxLength="40"
-                 ToolTip="Oficio de venta. Si ya existe, la remisión se agrega a ese oficio." />
+        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,28,10" IsEditable="True" ItemsSource="{Binding OficiosAbiertos}"
+                  Text="{Binding NumeroOficio, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding EsEditable}"
+                  infra:AlPerderElFoco.Comando="{Binding VerificarOficioCommand}"
+                  ToolTip="Oficio de venta. Se propone el oficio abierto del programa (con varios, elíjalo de la lista) o escriba uno nuevo. Si ya existe, la remisión se agrega a ese oficio." />
         <TextBlock Grid.Row="0" Grid.Column="2" Text="Recibo SP:" Style="{StaticResource Etiq}" />
         <TextBox Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" Text="{Binding ReciboCaja, Mode=OneWay}" IsReadOnly="True" Focusable="False"
                  ToolTip="El Recibo de Caja SP recibe el siguiente consecutivo y se abre al guardar la venta." />

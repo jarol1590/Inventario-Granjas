@@ -153,6 +153,15 @@ public interface IRemisionesQueryService
     /// <summary>Siguiente número de remisión sugerido («REM-413») y siguiente consecutivo de recibo SP.</summary>
     Task<(string Remision, int Recibo)> SiguientesConsecutivosAsync(CancellationToken ct = default);
 
+    /// <summary>Documento con ese número de remisión (compra, venta, traslado o baja), o nulo si no existe.</summary>
+    Task<Remision?> BuscarPorNumeroAsync(string numero, CancellationToken ct = default);
+
+    /// <summary>Oficios de venta abiertos (no cerrados) de un programa, del más reciente al más antiguo.</summary>
+    Task<IReadOnlyList<OficioVenta>> ListarOficiosAbiertosAsync(int programaId, CancellationToken ct = default);
+
+    /// <summary>Oficio de venta con ese número, o nulo si no existe.</summary>
+    Task<OficioVenta?> BuscarOficioPorNumeroAsync(string numero, CancellationToken ct = default);
+
     /// <summary>Líneas de las ventas vigentes (no anuladas) entre dos fechas, de un programa o de todos, para el informe de ventas.</summary>
     Task<VentasInforme> ObtenerVentasAsync(DateTime desde, DateTime hasta, int? programaId, CancellationToken ct = default);
 
@@ -443,6 +452,36 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
     }
 
     // ---- Consecutivos -----------------------------------------------------------------------------------------------------
+
+    public async Task<IReadOnlyList<OficioVenta>> ListarOficiosAbiertosAsync(int programaId, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        return [.. (await uow.Oficios.GetAllAsync(ct))
+            .Where(o => o.ProgramaId == programaId && !o.Cerrado)
+            .OrderByDescending(o => o.FechaOficio).ThenByDescending(o => o.Id)];
+    }
+
+    public async Task<OficioVenta?> BuscarOficioPorNumeroAsync(string numero, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(numero))
+        {
+            return null;
+        }
+
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        return await uow.Oficios.GetByNumeroAsync(numero.Trim(), ct);
+    }
+
+    public async Task<Remision?> BuscarPorNumeroAsync(string numero, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(numero))
+        {
+            return null;
+        }
+
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        return await uow.Remisiones.GetByNumeroAsync(numero.Trim(), ct);
+    }
 
     public async Task<(string Remision, int Recibo)> SiguientesConsecutivosAsync(CancellationToken ct = default)
     {

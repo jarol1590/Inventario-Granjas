@@ -50,6 +50,9 @@ public static class TipoRemision
 public static class FormaPago
 {
     public const string Consignacion = "CONSIGNACION";
+    public const string Transferencia = "TRANSFERENCIA";
+    public const string RecursosPropios = "RECURSOS_PROPIOS";
+    /// <summary>Solo recibos anteriores a la v2.11: ya no se puede elegir al crear o editar.</summary>
     public const string EfectivoCheque = "EFECTIVO_CHEQUE";
     public const string TrasladoInterno = "TRASLADO_INTERNO";
 }

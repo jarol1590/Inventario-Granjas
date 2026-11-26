@@ -45,7 +45,7 @@ public sealed partial class KardexService
         {
             return new ReciboCajaDto
             {
-                Fecha = actual.Fecha, FormaPago = actual.FormaPago, BancoConsignacion = actual.BancoConsignacion, EsEfectivo = actual.EsEfectivo,
+                Fecha = actual.Fecha, FormaPago = actual.FormaPago, BancoConsignacion = actual.BancoConsignacion, NumeroCuenta = actual.NumeroCuenta, TipoCuenta = actual.TipoCuenta, EsEfectivo = actual.EsEfectivo,
                 Cheque1Num = actual.Cheque1Num, Cheque2Num = actual.Cheque2Num, Observaciones = actual.Observaciones,
                 DescuentoPorcentaje = remision.DescuentoPorcentaje,
             };
@@ -58,6 +58,8 @@ public sealed partial class KardexService
             Fecha = remision.FechaRemision,
             FormaPago = FormaPago.Consignacion,
             BancoConsignacion = config.EntidadBancaria,
+            NumeroCuenta = config.NumeroCuenta,
+            TipoCuenta = config.TipoCuenta,
             Observaciones = string.IsNullOrWhiteSpace(escrito) || escrito == ReciboProvisional ? null : $"Recibo anterior: {escrito.Trim()}",
         };
     }

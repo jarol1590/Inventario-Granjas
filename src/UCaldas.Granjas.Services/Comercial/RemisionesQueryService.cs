@@ -134,7 +134,7 @@ public sealed record VentasInforme(DateTime Desde, DateTime Hasta, IReadOnlyList
 
 public sealed record ResumenRemisiones(int RemisionesDelMes, decimal VentasDelMes);
 
-public sealed record ResumenRecibos(decimal Consignacion, decimal EfectivoCheque, string UltimoConsecutivo);
+public sealed record ResumenRecibos(decimal Consignacion, decimal Transferencia, decimal RecursosPropios, string UltimoConsecutivo);
 
 /// <summary>Consultas del módulo Remisiones: bandeja, detalle, recibos y consecutivos sugeridos.</summary>
 public interface IRemisionesQueryService
@@ -409,6 +409,8 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
     internal static string TextoFormaPago(string forma, string? banco) => forma switch
     {
         FormaPago.Consignacion => string.IsNullOrWhiteSpace(banco) ? "Consignación bancaria" : $"Consignación {banco}",
+        FormaPago.Transferencia => string.IsNullOrWhiteSpace(banco) ? "Transferencia electrónica" : $"Transferencia electrónica {banco}",
+        FormaPago.RecursosPropios => "Recursos propios",
         FormaPago.EfectivoCheque => "Efectivo / Cheque",
         _ => "Traslado interno",
     };
@@ -418,7 +420,8 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
         var recibos = await ListarRecibosAsync(ct: ct);
         return new ResumenRecibos(
             recibos.Where(r => r.Recibo.FormaPago == FormaPago.Consignacion).Sum(r => r.Recibo.TotalPagado),
-            recibos.Where(r => r.Recibo.FormaPago == FormaPago.EfectivoCheque).Sum(r => r.Recibo.TotalPagado),
+            recibos.Where(r => r.Recibo.FormaPago == FormaPago.Transferencia).Sum(r => r.Recibo.TotalPagado),
+            recibos.Where(r => r.Recibo.FormaPago == FormaPago.RecursosPropios).Sum(r => r.Recibo.TotalPagado),
             recibos.Count == 0 ? "—" : recibos[0].Etiqueta);
     }
 

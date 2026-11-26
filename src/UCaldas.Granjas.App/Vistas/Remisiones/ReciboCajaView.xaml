@@ -82,21 +82,21 @@
             <TextBlock Text="Traslado interno entre granjas: el valor es el contable (o $0)." Style="{StaticResource Texto.Suave}" TextWrapping="Wrap"
                        Visibility="{Binding EsTraslado, Converter={StaticResource BoolAVisibilidad}}" />
             <StackPanel Visibility="{Binding EsVenta, Converter={StaticResource BoolAVisibilidad}}">
-              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <RadioButton GroupName="Pago" Content="Consignación bancaria" IsChecked="{Binding EsConsignacion}" Margin="0,0,18,0" />
-                <RadioButton GroupName="Pago" Content="Cheque - Efectivo" IsChecked="{Binding EsEfectivoCheque}" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Margin="0,0,0,8" Visibility="{Binding MostrarBanco, Converter={StaticResource BoolAVisibilidad}}">
-                <TextBlock Text="Entidad bancaria:" Style="{StaticResource Etiq}" Width="112" />
-                <ComboBox Width="300" IsEditable="True" ItemsSource="{Binding Bancos}" Text="{Binding Banco, UpdateSourceTrigger=PropertyChanged}" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Visibility="{Binding MostrarCheques, Converter={StaticResource BoolAVisibilidad}}">
-                <CheckBox Content="Efectivo" IsChecked="{Binding EsEfectivo}" VerticalAlignment="Center" Margin="0,0,14,0" />
-                <TextBlock Text="Cheque 1:" Style="{StaticResource Etiq}" />
-                <TextBox Width="90" Text="{Binding Cheque1, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,8" />
-                <TextBlock Text="Cheque 2:" Style="{StaticResource Etiq}" />
-                <TextBox Width="90" Text="{Binding Cheque2, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
-              </StackPanel>
+              <WrapPanel Margin="0,0,0,8">
+                <RadioButton GroupName="Pago" Content="Consignación bancaria" IsChecked="{Binding EsConsignacion}" Margin="0,0,18,4" />
+                <RadioButton GroupName="Pago" Content="Transferencia electrónica" IsChecked="{Binding EsTransferencia}" Margin="0,0,18,4" />
+                <RadioButton GroupName="Pago" Content="Recursos propios" IsChecked="{Binding EsRecursosPropios}" Margin="0,0,0,4" />
+              </WrapPanel>
+              <Grid Visibility="{Binding MostrarBanco, Converter={StaticResource BoolAVisibilidad}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="Entidad bancaria:" Style="{StaticResource Etiq}" />
+                <TextBox Grid.Column="1" Margin="0,0,0,8" MaxLength="60" Text="{Binding Banco, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Row="1" Text="Número de cuenta:" Style="{StaticResource Etiq}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" MaxLength="40" Text="{Binding NumeroCuenta, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Row="2" Text="Tipo de cuenta:" Style="{StaticResource Etiq}" />
+                <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" Width="160" ItemsSource="{Binding TiposCuenta}" SelectedItem="{Binding TipoCuenta}" />
+              </Grid>
             </StackPanel>
           </StackPanel>
         </Border>

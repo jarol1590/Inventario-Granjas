@@ -215,6 +215,35 @@ public class DatabaseInitializerTests
     }
 
     [Fact]
+    public async Task La_migracion_v12_agrega_numero_y_tipo_de_cuenta_al_recibo()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("ALTER TABLE RECIBO_CAJA DROP COLUMN numero_cuenta");
+        await db.EjecutarAsync("ALTER TABLE RECIBO_CAJA DROP COLUMN tipo_cuenta");
+        await db.EjecutarAsync("PRAGMA user_version = 11");
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM pragma_table_info('RECIBO_CAJA') WHERE name IN ('numero_cuenta', 'tipo_cuenta')")).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task La_migracion_v11_amplia_las_formas_de_pago()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("DROP TABLE RECIBO_CAJA");
+        await db.EjecutarAsync("CREATE TABLE RECIBO_CAJA (id INTEGER PRIMARY KEY AUTOINCREMENT, numero_recibo INTEGER NOT NULL UNIQUE, prefijo TEXT NOT NULL DEFAULT 'SP', remision_id INTEGER NOT NULL UNIQUE REFERENCES REMISION(id), fecha DATETIME NOT NULL, forma_pago TEXT NOT NULL CHECK (forma_pago IN ('CONSIGNACION', 'EFECTIVO_CHEQUE', 'TRASLADO_INTERNO')), banco_consignacion TEXT, es_efectivo BOOLEAN NOT NULL DEFAULT 0, cheque1_num TEXT, cheque2_num TEXT, total_pagado DECIMAL(12,2) NOT NULL, total_letras TEXT NOT NULL, observaciones TEXT, anulado BOOLEAN NOT NULL DEFAULT 0)");
+        await db.EjecutarAsync("PRAGMA user_version = 10");
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        var definicion = await db.EscalarAsync<string>("SELECT sql FROM sqlite_master WHERE name = 'RECIBO_CAJA'");
+        definicion.Should().Contain("TRANSFERENCIA").And.Contain("RECURSOS_PROPIOS").And.Contain("EFECTIVO_CHEQUE");
+    }
+
+    [Fact]
     public async Task Una_base_de_la_version_9_se_migra_haciendo_opcional_el_NIT_del_cliente_sin_perder_datos()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();

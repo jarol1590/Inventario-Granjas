@@ -36,7 +36,7 @@ public class VentasPorProgramaTests
         await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-1", ProgramaId = e.Ids.ProgramaGanaderia, Fecha = Datos.F("2026-10-15") });
         await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-2", ProgramaId = aves, Fecha = Datos.F("2026-10-15") });
         var comercial = new DatosComercialesDto { TipoComprador = TipoComprador.Convenio, ConvenioId = convenio.Id };
-        var pago = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA" };
+        var pago = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", NumeroCuenta = "123456", TipoCuenta = "Ahorros" };
 
         foreach (var chapeta in new[] { "G-1", "G-2", "G-3" })
         {
@@ -56,7 +56,7 @@ public class VentasPorProgramaTests
         v2.Comprador = convenio.Nombre;
         v2.ReciboCaja = string.Empty;
         v2.Comercial = comercial;
-        v2.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", DescuentoPorcentaje = 10m };
+        v2.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", NumeroCuenta = "123456", TipoCuenta = "Ahorros", DescuentoPorcentaje = 10m };
         await e.Kardex.RegistrarVentaAsync(v2);
 
         var anulada = await e.VentaAsync("REM-3", "OF-1", string.Empty, null, ("G-3", 3_000_000m));

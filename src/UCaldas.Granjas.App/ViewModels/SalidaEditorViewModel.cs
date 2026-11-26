@@ -396,6 +396,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
             _reciboExistente is null ? null : new ReciboCajaDto
             {
                 Fecha = _reciboExistente.Fecha, FormaPago = _reciboExistente.FormaPago, BancoConsignacion = _reciboExistente.BancoConsignacion,
+                NumeroCuenta = _reciboExistente.NumeroCuenta, TipoCuenta = _reciboExistente.TipoCuenta,
                 EsEfectivo = _reciboExistente.EsEfectivo, Cheque1Num = _reciboExistente.Cheque1Num, Cheque2Num = _reciboExistente.Cheque2Num,
                 Observaciones = _reciboExistente.Observaciones, TotalPagado = _reciboExistente.TotalPagado,
                 DescuentoPorcentaje = DescuentoDelRecibo,

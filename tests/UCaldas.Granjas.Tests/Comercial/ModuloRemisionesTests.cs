@@ -29,7 +29,7 @@ public class ModuloRemisionesTests
 
         public static ReciboCajaDto Pago(decimal descuento = 0m) => new()
         {
-            Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", DescuentoPorcentaje = descuento,
+            Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", NumeroCuenta = "123456", TipoCuenta = "Ahorros", DescuentoPorcentaje = descuento,
         };
 
         public async Task<VentaDto> VentaConReciboAsync(string remision, string oficio, params (string Chapeta, decimal Precio)[] animales)
@@ -393,6 +393,9 @@ public class ModuloRemisionesTests
 
     [Theory]
     [InlineData("efectivo")]
+    [InlineData("transferenciaSinBanco")]
+    [InlineData("transferenciaSinCuenta")]
+    [InlineData("tipoCuentaInvalido")]
     [InlineData("forma")]
     [InlineData("descuento")]
     [InlineData("fecha")]
@@ -403,6 +406,9 @@ public class ModuloRemisionesTests
         await s.CrearOficioAsync("OF-1");
         var dto = await s.VentaConReciboAsync("REM-1", "OF-1", ("S-1", 5_500_000m));
         if (caso == "efectivo") dto.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.EfectivoCheque };
+        if (caso == "transferenciaSinBanco") dto.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Transferencia, NumeroCuenta = "123", TipoCuenta = "Ahorros" };
+        if (caso == "transferenciaSinCuenta") dto.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Transferencia, BancoConsignacion = "X", TipoCuenta = "Ahorros" };
+        if (caso == "tipoCuentaInvalido") dto.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "X", NumeroCuenta = "123", TipoCuenta = "Otra" };
         if (caso == "forma") dto.Recibo!.FormaPago = FormaPago.TrasladoInterno;
         if (caso == "descuento") dto.Recibo!.DescuentoPorcentaje = 120m;
         if (caso == "fecha") dto.Recibo!.Fecha = Datos.F("2026-12-31");
@@ -415,17 +421,20 @@ public class ModuloRemisionesTests
     }
 
     [Fact]
-    public async Task El_pago_en_efectivo_o_con_cheque_guarda_los_numeros_de_cheque()
+    public async Task La_transferencia_guarda_el_banco_y_recursos_propios_no_guarda_datos_de_pago()
     {
         await using var s = await CrearAsync();
         await s.CrearOficioAsync("OF-1");
         var dto = await s.VentaConReciboAsync("REM-1", "OF-1", ("S-1", 5_500_000m));
-        dto.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.EfectivoCheque, EsEfectivo = true, Cheque1Num = " 1234 ", Cheque2Num = "5678", BancoConsignacion = "no aplica" };
+        dto.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Transferencia, BancoConsignacion = " BANCOLOMBIA ", NumeroCuenta = " 555-1 ", TipoCuenta = "corriente" };
 
         var r = await s.E.Kardex.RegistrarVentaAsync(dto);
 
         var recibo = (await s.ReciboDeAsync(r.RemisionId))!;
-        (recibo.EsEfectivo, recibo.Cheque1Num, recibo.Cheque2Num, recibo.BancoConsignacion).Should().Be((true, "1234", "5678", (string?)null));
+        (recibo.FormaPago, recibo.BancoConsignacion, recibo.NumeroCuenta, recibo.TipoCuenta, recibo.EsEfectivo).Should().Be((FormaPago.Transferencia, "BANCOLOMBIA", "555-1", "corriente", false));
+
+        var editado = await s.Recibos.GuardarAsync(r.RemisionId, new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.RecursosPropios, BancoConsignacion = "no aplica", NumeroCuenta = "1", TipoCuenta = "Ahorros" });
+        (editado.FormaPago, editado.BancoConsignacion, editado.NumeroCuenta, editado.TipoCuenta).Should().Be((FormaPago.RecursosPropios, (string?)null, (string?)null, (string?)null));
     }
 
     [Fact]
@@ -488,11 +497,11 @@ public class ModuloRemisionesTests
 
         var editado = await s.Recibos.GuardarAsync(r.RemisionId, new ReciboCajaDto
         {
-            Fecha = Datos.F("2026-11-05"), FormaPago = FormaPago.EfectivoCheque, Cheque1Num = "9999", DescuentoPorcentaje = 10m, Observaciones = " Pagó con cheque ",
+            Fecha = Datos.F("2026-11-05"), FormaPago = FormaPago.RecursosPropios, DescuentoPorcentaje = 10m, Observaciones = " Pagó con recursos propios ",
         });
 
-        (editado.NumeroRecibo, editado.FormaPago, editado.Cheque1Num, editado.BancoConsignacion, editado.TotalPagado, editado.Observaciones)
-            .Should().Be((829, FormaPago.EfectivoCheque, "9999", (string?)null, 4_950_000m, "Pagó con cheque"));
+        (editado.NumeroRecibo, editado.FormaPago, editado.BancoConsignacion, editado.TotalPagado, editado.Observaciones)
+            .Should().Be((829, FormaPago.RecursosPropios, (string?)null, 4_950_000m, "Pagó con recursos propios"));
         editado.TotalLetras.Should().Be("CUATRO MILLONES NOVECIENTOS CINCUENTA MIL PESOS M/CTE");
         var remision = await s.RemisionAsync(r.RemisionId);
         (remision.DescuentoPorcentaje, remision.ValorDescuento, remision.Total).Should().Be((10m, 550_000m, 4_950_000m));
@@ -583,14 +592,14 @@ public class ModuloRemisionesTests
         await s.CrearOficioAsync("OF-1");
         await s.E.Kardex.RegistrarVentaAsync(await s.VentaConReciboAsync("REM-1", "OF-1", ("S-1", 5_500_000m)));
         var efectivo = await s.VentaConReciboAsync("REM-2", "OF-1", ("S-2", 4_500_000m));
-        efectivo.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.EfectivoCheque, EsEfectivo = true };
+        efectivo.Recibo = new ReciboCajaDto { Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Transferencia, BancoConsignacion = "BANCOLOMBIA", NumeroCuenta = "9", TipoCuenta = "Ahorros" };
         await s.E.Kardex.RegistrarVentaAsync(efectivo);
 
         var resumen = await s.Consultas.ResumirRecibosAsync();
         var lista = await s.Consultas.ListarRecibosAsync(texto: "REM-2");
 
-        (resumen.Consignacion, resumen.EfectivoCheque, resumen.UltimoConsecutivo).Should().Be((5_500_000m, 4_500_000m, "830 SP"));
-        lista.Should().ContainSingle().Which.FormaPagoTexto.Should().Be("Efectivo / Cheque");
+        (resumen.Consignacion, resumen.Transferencia, resumen.RecursosPropios, resumen.UltimoConsecutivo).Should().Be((5_500_000m, 4_500_000m, 0m, "830 SP"));
+        lista.Should().ContainSingle().Which.FormaPagoTexto.Should().Be("Transferencia electrónica BANCOLOMBIA");
         (await s.Consultas.SiguientesConsecutivosAsync()).Should().Be(("REM-3", 831));
     }
 

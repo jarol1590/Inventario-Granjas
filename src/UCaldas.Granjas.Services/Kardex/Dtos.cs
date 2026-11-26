@@ -322,6 +322,12 @@ public sealed class ReciboCajaDto
 
     public string? BancoConsignacion { get; set; }
 
+    /// <summary>Número de la cuenta de la consignación o transferencia.</summary>
+    public string? NumeroCuenta { get; set; }
+
+    /// <summary>«Ahorros» o «Corriente».</summary>
+    public string? TipoCuenta { get; set; }
+
     public bool EsEfectivo { get; set; }
 
     public string? Cheque1Num { get; set; }

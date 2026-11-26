@@ -19,7 +19,7 @@
       </StackPanel>
     </DockPanel>
 
-    <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,12">
+    <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
       <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0" Padding="12,8">
         <StackPanel>
           <TextBlock Text="Recaudado por consignación" Style="{StaticResource Texto.KpiEtiqueta}" />
@@ -28,8 +28,14 @@
       </Border>
       <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0" Padding="12,8">
         <StackPanel>
-          <TextBlock Text="Recaudado en efectivo / cheque" Style="{StaticResource Texto.KpiEtiqueta}" />
-          <TextBlock Text="{Binding EfectivoTexto}" Style="{StaticResource Texto.KpiValor}" />
+          <TextBlock Text="Recaudado por transferencia" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding TransferenciaTexto}" Style="{StaticResource Texto.KpiValor}" />
+        </StackPanel>
+      </Border>
+      <Border Style="{StaticResource Tarjeta}" Margin="0,0,10,0" Padding="12,8">
+        <StackPanel>
+          <TextBlock Text="Con recursos propios" Style="{StaticResource Texto.KpiEtiqueta}" />
+          <TextBlock Text="{Binding RecursosPropiosTexto}" Style="{StaticResource Texto.KpiValor}" />
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Tarjeta}" Padding="12,8">

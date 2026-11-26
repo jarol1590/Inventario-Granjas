@@ -71,6 +71,8 @@ public class ReciboCaja
     public string FormaPago { get; set; } = string.Empty;
 
     public string? BancoConsignacion { get; set; }
+    public string? NumeroCuenta { get; set; }
+    public string? TipoCuenta { get; set; }
     public bool EsEfectivo { get; set; }
     public string? Cheque1Num { get; set; }
     public string? Cheque2Num { get; set; }

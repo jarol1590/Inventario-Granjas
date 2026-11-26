@@ -28,7 +28,7 @@ public sealed class FormulariosRemisionesFalso : IFormulariosRemisiones
 
     public static ReciboCajaDto Pago(DateTime fecha, decimal descuento = 0m) => new()
     {
-        Fecha = fecha, FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", DescuentoPorcentaje = descuento,
+        Fecha = fecha, FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", NumeroCuenta = "123456", TipoCuenta = "Ahorros", DescuentoPorcentaje = descuento,
     };
 
     /// <summary>Doble cuyo recibo se acepta con una consignación fechada <paramref name="fecha"/>.</summary>
@@ -89,7 +89,7 @@ public class ModuloRemisionesViewModelsTests
 
         public static ReciboCajaDto Pago(decimal descuento = 0m) => new()
         {
-            Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", DescuentoPorcentaje = descuento,
+            Fecha = Datos.F("2026-11-06"), FormaPago = FormaPago.Consignacion, BancoConsignacion = "DAVIVIENDA", NumeroCuenta = "123456", TipoCuenta = "Ahorros", DescuentoPorcentaje = descuento,
         };
     }
 
@@ -454,8 +454,10 @@ public class ModuloRemisionesViewModelsTests
         var cierres = new List<bool>();
         vm.CierreSolicitado += cierres.Add;
         (await vm.InicializarAsync()).Should().BeTrue();
-        vm.Bancos.Should().NotBeEmpty();
         vm.Banco.Should().Contain("DAVIVIENDA");
+        vm.NumeroCuenta.Should().NotBeNullOrWhiteSpace();
+        vm.TiposCuenta.Should().Equal("Ahorros", "Corriente");
+        vm.TipoCuenta.Should().Be("Ahorros");
 
         (vm.Total, vm.TotalLetras).Should().Be((420_000m, "CUATROCIENTOS VEINTE MIL PESOS M/CTE"));
         vm.Descuento = 10m;
@@ -469,7 +471,7 @@ public class ModuloRemisionesViewModelsTests
         vm.Fecha = Datos.F("2026-11-06");
         await vm.AceptarCommand.ExecuteAsync(null);
         cierres.Should().Equal(true);
-        vm.Resultado.Should().Match<ReciboCajaDto>(r => r.FormaPago == FormaPago.Consignacion && r.DescuentoPorcentaje == 10m);
+        vm.Resultado.Should().Match<ReciboCajaDto>(r => r.FormaPago == FormaPago.Consignacion && r.DescuentoPorcentaje == 10m && r.TipoCuenta == "Ahorros" && !string.IsNullOrEmpty(r.NumeroCuenta));
     }
 
     [Fact]

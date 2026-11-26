@@ -24,7 +24,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
     /// 8 = v2.8 (módulo Remisiones: convenios, clientes, productos, oficios cerrables y recibos de caja SP);
     /// 9 = v2.9 (líneas de subproductos escritas a mano y toda venta con su Recibo de Caja SP).
     /// </summary>
-    public const int VersionEsquemaActual = 10;
+    public const int VersionEsquemaActual = 12;
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -43,7 +43,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
             return;
         }
 
-        if (version is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
+        if (version is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10 or 11))
         {
             throw new InvalidOperationException(
                 $"La base de datos tiene una versión de esquema desconocida ({version}); se esperaba {VersionEsquemaActual}. " +
@@ -118,6 +118,18 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
             if (version <= 9)
             {
                 await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v10.sql"), transaction: transaction, cancellationToken: ct));
+            }
+
+            // v2.11: nuevas formas de pago del recibo (RECIBO_CAJA se reconstruye con el CHECK ampliado).
+            if (version <= 10)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v11.sql"), transaction: transaction, cancellationToken: ct));
+            }
+
+            // v2.12: número y tipo de cuenta en el recibo de caja.
+            if (version <= 11)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v12.sql"), transaction: transaction, cancellationToken: ct));
             }
         }
 

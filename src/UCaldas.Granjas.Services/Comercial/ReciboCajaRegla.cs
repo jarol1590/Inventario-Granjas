@@ -80,14 +80,20 @@ internal static class ReciboCajaRegla
     {
         recibo.Fecha = dto.Fecha.Date;
         recibo.FormaPago = dto.FormaPago;
-        recibo.BancoConsignacion = dto.FormaPago == FormaPago.Consignacion ? Limpio(dto.BancoConsignacion) : null;
-        recibo.EsEfectivo = dto.FormaPago == FormaPago.EfectivoCheque && dto.EsEfectivo;
-        recibo.Cheque1Num = dto.FormaPago == FormaPago.EfectivoCheque ? Limpio(dto.Cheque1Num) : null;
-        recibo.Cheque2Num = dto.FormaPago == FormaPago.EfectivoCheque ? Limpio(dto.Cheque2Num) : null;
+        recibo.BancoConsignacion = dto.FormaPago is FormaPago.Consignacion or FormaPago.Transferencia ? Limpio(dto.BancoConsignacion) : null;
+        var conCuenta = dto.FormaPago is FormaPago.Consignacion or FormaPago.Transferencia;
+        recibo.NumeroCuenta = conCuenta ? Limpio(dto.NumeroCuenta) : null;
+        recibo.TipoCuenta = conCuenta ? Limpio(dto.TipoCuenta) : null;
+        recibo.EsEfectivo = false;
+        recibo.Cheque1Num = null;
+        recibo.Cheque2Num = null;
         recibo.TotalPagado = total;
         recibo.TotalLetras = NumeroALetras.Pesos(total);
         recibo.Observaciones = Limpio(dto.Observaciones);
     }
+
+    /// <summary>Tipos de cuenta admitidos en el recibo.</summary>
+    public static readonly string[] TiposDeCuenta = ["Ahorros", "Corriente"];
 
     internal static void ValidarRecibo(ReciboCajaDto dto, bool esVenta, IReloj reloj)
     {
@@ -95,18 +101,17 @@ internal static class ReciboCajaRegla
         if (esVenta)
         {
             Regla.Exigir(
-                dto.FormaPago is FormaPago.Consignacion or FormaPago.EfectivoCheque,
-                "La forma de pago de una venta es consignación bancaria o cheque / efectivo.");
+                dto.FormaPago is FormaPago.Consignacion or FormaPago.Transferencia or FormaPago.RecursosPropios,
+                "La forma de pago de una venta es consignación bancaria, transferencia electrónica o recursos propios.");
             Regla.Exigir(dto.DescuentoPorcentaje is >= 0m and <= 100m, "El descuento debe estar entre 0 % y 100 %.");
-            if (dto.FormaPago == FormaPago.Consignacion)
+            if (dto.FormaPago is FormaPago.Consignacion or FormaPago.Transferencia)
             {
-                Regla.ExigirTexto(dto.BancoConsignacion, "La entidad bancaria de la consignación");
-            }
-            else
-            {
+                var pago = dto.FormaPago == FormaPago.Consignacion ? "la consignación" : "la transferencia";
+                Regla.ExigirTexto(dto.BancoConsignacion, $"La entidad bancaria de {pago}");
+                Regla.ExigirTexto(dto.NumeroCuenta, $"El número de cuenta de {pago}");
                 Regla.Exigir(
-                    dto.EsEfectivo || !string.IsNullOrWhiteSpace(dto.Cheque1Num),
-                    "Indique si el pago fue en efectivo o el número del cheque.");
+                    dto.TipoCuenta is not null && TiposDeCuenta.Contains(dto.TipoCuenta.Trim(), StringComparer.OrdinalIgnoreCase),
+                    "El tipo de cuenta es Ahorros o Corriente.");
             }
         }
         else

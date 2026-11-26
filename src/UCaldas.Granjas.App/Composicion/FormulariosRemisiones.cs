@@ -89,7 +89,7 @@ public sealed class FormulariosRemisiones(IServiceProvider servicios, IDialogSer
             vista.Lineas.Sum(l => l.CostoLibros),
             recibo is null ? null : new ReciboCajaDto
             {
-                Fecha = recibo.Fecha, FormaPago = recibo.FormaPago, BancoConsignacion = recibo.BancoConsignacion, EsEfectivo = recibo.EsEfectivo,
+                Fecha = recibo.Fecha, FormaPago = recibo.FormaPago, BancoConsignacion = recibo.BancoConsignacion, NumeroCuenta = recibo.NumeroCuenta, TipoCuenta = recibo.TipoCuenta, EsEfectivo = recibo.EsEfectivo,
                 Cheque1Num = recibo.Cheque1Num, Cheque2Num = recibo.Cheque2Num, Observaciones = recibo.Observaciones,
                 DescuentoPorcentaje = r.DescuentoPorcentaje, TotalPagado = recibo.TotalPagado,
             },

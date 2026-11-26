@@ -200,7 +200,8 @@ public sealed partial class RecibosCajaViewModel : ViewModelBase, ISeccion
         _navegador = navegador;
         Formas =
         [
-            new(null, "Todas las formas"), new(FormaPago.Consignacion, "Consignación bancaria"), new(FormaPago.EfectivoCheque, "Efectivo / Cheque"),
+            new(null, "Todas las formas"), new(FormaPago.Consignacion, "Consignación bancaria"), new(FormaPago.Transferencia, "Transferencia electrónica"),
+            new(FormaPago.RecursosPropios, "Recursos propios"), new(FormaPago.EfectivoCheque, "Efectivo / Cheque (anteriores)"),
         ];
         _forma = Formas[0];
     }
@@ -226,7 +227,10 @@ public sealed partial class RecibosCajaViewModel : ViewModelBase, ISeccion
     private string _consignacionTexto = Formato.Dinero(0);
 
     [ObservableProperty]
-    private string _efectivoTexto = Formato.Dinero(0);
+    private string _transferenciaTexto = Formato.Dinero(0);
+
+    [ObservableProperty]
+    private string _recursosPropiosTexto = Formato.Dinero(0);
 
     [ObservableProperty]
     private string _ultimoTexto = "—";
@@ -258,7 +262,8 @@ public sealed partial class RecibosCajaViewModel : ViewModelBase, ISeccion
 
             Seleccionado = Recibos.FirstOrDefault(r => r.Recibo.Id == previo);
             ConsignacionTexto = Formato.Dinero(resumen.Consignacion);
-            EfectivoTexto = Formato.Dinero(resumen.EfectivoCheque);
+            TransferenciaTexto = Formato.Dinero(resumen.Transferencia);
+            RecursosPropiosTexto = Formato.Dinero(resumen.RecursosPropios);
             UltimoTexto = resumen.UltimoConsecutivo;
         }, "consultar los recibos de caja");
     }

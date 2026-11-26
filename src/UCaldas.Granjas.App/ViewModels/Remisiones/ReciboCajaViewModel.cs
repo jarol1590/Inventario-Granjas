@@ -29,8 +29,8 @@ public sealed record ReciboContexto(
     bool PideComprador = false);
 
 /// <summary>
-/// Ventana del Recibo de Caja SP: consecutivo automático, comprador y suma en letras, forma de pago (consignación o cheque /
-/// efectivo; traslado interno en los traslados), descuento y total. Sirve para capturar el recibo antes de guardar la remisión
+/// Ventana del Recibo de Caja SP: consecutivo automático, comprador y suma en letras, forma de pago (consignación, transferencia o
+/// recursos propios; traslado interno en los traslados), descuento y total. Sirve para capturar el recibo antes de guardar la remisión
 /// y para editarlo o generarlo después.
 /// </summary>
 public sealed partial class ReciboCajaViewModel : DialogViewModelBase
@@ -48,11 +48,11 @@ public sealed partial class ReciboCajaViewModel : DialogViewModelBase
         Contexto = contexto;
         var existente = contexto.Existente;
         _fecha = existente?.Fecha ?? reloj.Hoy;
-        _esConsignacion = existente is null || existente.FormaPago == FormaPago.Consignacion;
-        _esEfectivo = existente?.EsEfectivo ?? false;
+        // Un recibo anterior de efectivo / cheque ya no es una opción: se propone consignación hasta que se elija otra.
+        _formaPagoElegida = existente?.FormaPago is FormaPago.Transferencia or FormaPago.RecursosPropios ? existente.FormaPago : FormaPago.Consignacion;
         _banco = existente?.BancoConsignacion ?? string.Empty;
-        _cheque1 = existente?.Cheque1Num ?? string.Empty;
-        _cheque2 = existente?.Cheque2Num ?? string.Empty;
+        _numeroCuenta = existente?.NumeroCuenta ?? string.Empty;
+        _tipoCuenta = existente?.TipoCuenta ?? string.Empty;
         _descuento = existente?.DescuentoPorcentaje ?? 0m;
         _observaciones = existente?.Observaciones ?? string.Empty;
         _totalTraslado = existente is { FormaPago: FormaPago.TrasladoInterno } ? existente.TotalPagado : contexto.ValorSugeridoDelTraslado;
@@ -62,7 +62,7 @@ public sealed partial class ReciboCajaViewModel : DialogViewModelBase
 
     public override string Titulo => $"Recibo de Caja — {Contexto.NumeroRecibo}";
 
-    public override double Ancho => 860;
+    public override double Ancho => 1000;
 
     /// <summary>Lo que se capturó; nulo si se canceló.</summary>
     public ReciboCajaDto? Resultado { get; private set; }
@@ -76,7 +76,7 @@ public sealed partial class ReciboCajaViewModel : DialogViewModelBase
 
     public IReadOnlyList<LineaRemision> Lineas => Contexto.Lineas;
 
-    public ObservableCollection<string> Bancos { get; } = [];
+    public IReadOnlyList<string> TiposCuenta { get; } = ["Ahorros", "Corriente"];
 
     public ObservableCollection<Convenio> Convenios { get; } = [];
 
@@ -103,31 +103,47 @@ public sealed partial class ReciboCajaViewModel : DialogViewModelBase
     [ObservableProperty]
     private DateTime? _fecha;
 
+    /// <summary>Forma de pago elegida de una venta (<see cref="FormaPago"/>): consignación, transferencia o recursos propios.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsEfectivoCheque), nameof(MostrarBanco))]
-    private bool _esConsignacion;
+    [NotifyPropertyChangedFor(nameof(EsConsignacion), nameof(EsTransferencia), nameof(EsRecursosPropios), nameof(MostrarBanco))]
+    private string _formaPagoElegida = FormaPago.Consignacion;
 
-    public bool EsEfectivoCheque
+    public bool EsConsignacion
     {
-        get => !EsConsignacion;
-        set => EsConsignacion = !value;
+        get => FormaPagoElegida == FormaPago.Consignacion;
+        set => Elegir(value, FormaPago.Consignacion);
     }
 
-    public bool MostrarBanco => EsVenta && EsConsignacion;
+    public bool EsTransferencia
+    {
+        get => FormaPagoElegida == FormaPago.Transferencia;
+        set => Elegir(value, FormaPago.Transferencia);
+    }
 
-    public bool MostrarCheques => EsVenta && !EsConsignacion;
+    public bool EsRecursosPropios
+    {
+        get => FormaPagoElegida == FormaPago.RecursosPropios;
+        set => Elegir(value, FormaPago.RecursosPropios);
+    }
+
+    private void Elegir(bool marcada, string forma)
+    {
+        if (marcada)
+        {
+            FormaPagoElegida = forma;
+        }
+    }
+
+    public bool MostrarBanco => EsVenta && (EsConsignacion || EsTransferencia);
 
     [ObservableProperty]
     private string _banco;
 
     [ObservableProperty]
-    private bool _esEfectivo;
+    private string _numeroCuenta;
 
     [ObservableProperty]
-    private string _cheque1;
-
-    [ObservableProperty]
-    private string _cheque2;
+    private string _tipoCuenta;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ValorDescuento), nameof(Total), nameof(TotalTexto), nameof(DescuentoTexto), nameof(TotalLetras))]
@@ -157,20 +173,22 @@ public sealed partial class ReciboCajaViewModel : DialogViewModelBase
         return await EjecutarAsync(async () =>
         {
             var config = await _comercial.GetConfiguracionAsync();
-            Bancos.Clear();
-            var principal = $"{config.EntidadBancaria} — CTA {config.TipoCuenta} {config.NumeroCuenta}";
-            Bancos.Add(principal);
-            foreach (var otro in new[] { "BANCOLOMBIA", "BANCO DE BOGOTÁ", "BANCO AGRARIO" })
+            // La cuenta registrada en Datos institucionales se propone; los tres datos se pueden cambiar si el pago fue a otra cuenta.
+            if (string.IsNullOrWhiteSpace(Banco))
             {
-                Bancos.Add(otro);
+                Banco = config.EntidadBancaria;
             }
 
-            if (!string.IsNullOrWhiteSpace(Banco) && !Bancos.Contains(Banco))
+            if (string.IsNullOrWhiteSpace(NumeroCuenta))
             {
-                Bancos.Add(Banco);
+                NumeroCuenta = config.NumeroCuenta;
             }
 
-            Banco = string.IsNullOrWhiteSpace(Banco) ? principal : Banco;
+            if (string.IsNullOrWhiteSpace(TipoCuenta))
+            {
+                TipoCuenta = config.TipoCuenta.Contains("corr", StringComparison.OrdinalIgnoreCase) ? "Corriente" : "Ahorros";
+            }
+
             if (PideComprador)
             {
                 foreach (var c in await _comercial.ListarConveniosAsync(soloActivos: true))
@@ -195,11 +213,10 @@ public sealed partial class ReciboCajaViewModel : DialogViewModelBase
         var dto = new ReciboCajaDto
         {
             Fecha = Fecha ?? default,
-            FormaPago = EsTraslado ? FormaPago.TrasladoInterno : EsConsignacion ? FormaPago.Consignacion : FormaPago.EfectivoCheque,
+            FormaPago = EsTraslado ? FormaPago.TrasladoInterno : FormaPagoElegida,
             BancoConsignacion = Banco,
-            EsEfectivo = EsEfectivo,
-            Cheque1Num = Cheque1,
-            Cheque2Num = Cheque2,
+            NumeroCuenta = NumeroCuenta,
+            TipoCuenta = TipoCuenta,
             Observaciones = Observaciones,
             DescuentoPorcentaje = EsVenta ? Descuento : 0m,
             TotalPagado = EsTraslado ? TotalTraslado : 0m,

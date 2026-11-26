@@ -464,7 +464,7 @@ public sealed partial class RemisionEditorViewModel : DialogViewModelBase
             0m,
             _recibo is null ? null : new ReciboCajaDto
             {
-                Fecha = _recibo.Fecha, FormaPago = _recibo.FormaPago, BancoConsignacion = _recibo.BancoConsignacion, EsEfectivo = _recibo.EsEfectivo,
+                Fecha = _recibo.Fecha, FormaPago = _recibo.FormaPago, BancoConsignacion = _recibo.BancoConsignacion, NumeroCuenta = _recibo.NumeroCuenta, TipoCuenta = _recibo.TipoCuenta, EsEfectivo = _recibo.EsEfectivo,
                 Cheque1Num = _recibo.Cheque1Num, Cheque2Num = _recibo.Cheque2Num, Observaciones = _recibo.Observaciones,
                 DescuentoPorcentaje = _descuentoActual, TotalPagado = _recibo.TotalPagado,
             });

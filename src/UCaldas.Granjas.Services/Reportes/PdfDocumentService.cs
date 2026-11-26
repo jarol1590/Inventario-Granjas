@@ -220,7 +220,11 @@ public sealed class PdfDocumentService(IUnitOfWorkFactory fabrica, IReloj reloj)
         forma.Format.SpaceBefore = Unit.FromPoint(10);
         if (recibo.FormaPago == FormaPago.Consignacion)
         {
-            Texto(seccion, $"Consignación a la cuenta {config.TipoCuenta} No. {config.NumeroCuenta} de {config.EntidadBancaria}.", pequeno: true);
+            Texto(seccion, $"Consignación a la cuenta {recibo.TipoCuenta ?? config.TipoCuenta} No. {recibo.NumeroCuenta ?? config.NumeroCuenta} de {recibo.BancoConsignacion ?? config.EntidadBancaria}.", pequeno: true);
+        }
+        else if (recibo.FormaPago == FormaPago.Transferencia)
+        {
+            Texto(seccion, $"Transferencia electrónica a la cuenta {recibo.TipoCuenta ?? config.TipoCuenta} No. {recibo.NumeroCuenta ?? config.NumeroCuenta} de {recibo.BancoConsignacion ?? config.EntidadBancaria}.", pequeno: true);
         }
         else if (recibo.FormaPago == FormaPago.EfectivoCheque)
         {

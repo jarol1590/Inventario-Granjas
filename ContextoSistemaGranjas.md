@@ -294,6 +294,7 @@ Hay dos caminos de valorización según `PROGRAMA.usa_valorizacion_biologica`:
 - Son exclusivos de ventas y de un solo programa. Un oficio **cerrado** no admite remisiones nuevas (animales, lotes ni productos); lo ya emitido sigue editable y anulable, y el oficio se puede **reabrir**.
 - Hay un **solo listado de oficios** para ambos módulos: Sistema Granjas crea el oficio al vender si no existe, y un oficio cerrado bloquea las ventas en los dos.
 - El programa de un oficio solo cambia si no tiene remisiones.
+- **Número automático:** `OF` + 3 primeras letras del programa (sin tildes) + `-` + últimos 2 dígitos del año + consecutivo de 3 cifras, p. ej. `OFGAN-26001`. El consecutivo es **por programa y año**: avanza con cada oficio nuevo y vuelve a 001 al cambiar de año (`OficioService.SiguienteNumeroAsync`, con `IReloj`). Se propone, editable, en «Nuevo oficio» y en la venta de Sistema Granjas cuando no hay un único oficio abierto. Los oficios con formato anterior (`OF-n`) se conservan y no cuentan en el consecutivo.
 
 **Bandeja.** Lista todas las ventas con su clase (Subproductos / Animales / Lotes), recibo SP y estado (Pagada, Pen. Recibo SP, Anulada). Doble clic: los subproductos abren el editor del módulo; los animales y lotes abren el «Detalle de la salida» de Sistema Granjas. Anular una remisión anula su recibo.
 

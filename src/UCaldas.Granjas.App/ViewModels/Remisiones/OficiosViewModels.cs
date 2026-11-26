@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
 using UCaldas.Granjas.App.Composicion;
 using UCaldas.Granjas.App.Infraestructura;
 using UCaldas.Granjas.Domain.Abstractions;
@@ -64,15 +63,30 @@ public sealed partial class NuevoOficioViewModel : DialogViewModelBase
             ProgramaSeleccionado = Programas.FirstOrDefault(p => p.Id == (_existente?.Oficio.ProgramaId ?? programaSugeridoId)) ?? Programas.FirstOrDefault();
             if (EsNuevo)
             {
-                var mayor = (await _oficios.ListarAsync())
-                    .Select(o => Regex.Match(o.Oficio.NumeroOficio, @"^OF-(\d+)$", RegexOptions.IgnoreCase))
-                    .Where(m => m.Success)
-                    .Select(m => int.Parse(m.Groups[1].Value))
-                    .DefaultIfEmpty(0)
-                    .Max();
-                NumeroOficio = $"OF-{mayor + 1}";
+                await ProponerNumeroAsync();
             }
+
+            _listo = true;
         }, "preparar el oficio");
+    }
+
+    private bool _listo;
+
+    /// <summary>Con otro programa cambia el prefijo y el consecutivo: se vuelve a proponer el número.</summary>
+    partial void OnProgramaSeleccionadoChanged(Programa? value)
+    {
+        if (_listo && EsNuevo)
+        {
+            _ = EjecutarAsync(ProponerNumeroAsync, "proponer el número del oficio");
+        }
+    }
+
+    private async Task ProponerNumeroAsync()
+    {
+        if (ProgramaSeleccionado is { } programa)
+        {
+            NumeroOficio = await _oficios.SiguienteNumeroAsync(programa.Id);
+        }
     }
 
     [RelayCommand]

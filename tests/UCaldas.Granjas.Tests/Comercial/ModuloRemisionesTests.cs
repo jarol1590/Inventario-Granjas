@@ -218,6 +218,32 @@ public class ModuloRemisionesTests
     }
 
     [Fact]
+    public async Task El_numero_de_oficio_sugerido_lleva_programa_y_anio_y_avanza_por_programa_y_se_reinicia_cada_anio()
+    {
+        await using var s = await CrearAsync();
+        var ganaderia = s.E.Ids.ProgramaGanaderia;
+
+        (await s.Oficios.SiguienteNumeroAsync(ganaderia)).Should().Be("OFGAN-26001");
+        await s.CrearOficioAsync("OFGAN-26001");
+        await s.CrearOficioAsync("OF-7");   // formato anterior: no cuenta
+        (await s.Oficios.SiguienteNumeroAsync(ganaderia)).Should().Be("OFGAN-26002");
+        (await s.Oficios.SiguienteNumeroAsync(s.ProgramaAves)).Should().Be("OFAVI-26001");   // otro programa, otro consecutivo
+
+        s.E.Reloj.Ahora = Datos.F("2027-01-05");
+        (await s.Oficios.SiguienteNumeroAsync(ganaderia)).Should().Be("OFGAN-27001");
+    }
+
+    [Fact]
+    public void El_siguiente_numero_de_oficio_ignora_tildes_mayusculas_y_otros_programas_y_pasa_de_999()
+    {
+        OficioService.CalcularSiguienteNumero("Ganadería (Bovinos)", 2026, ["ofgan-26009", "OFAVI-26500", "OFGAN-25800"])
+            .Should().Be("OFGAN-26010");
+        OficioService.CalcularSiguienteNumero("Ganadería (Bovinos)", 2026, ["OFGAN-26999"])
+            .Should().Be("OFGAN-261000");
+        OficioService.CalcularSiguienteNumero("Équidos", 2026, []).Should().Be("OFEQU-26001");
+    }
+
+    [Fact]
     public async Task Un_oficio_cerrado_no_admite_remisiones_nuevas_y_reabrirlo_lo_permite()
     {
         await using var s = await CrearAsync();

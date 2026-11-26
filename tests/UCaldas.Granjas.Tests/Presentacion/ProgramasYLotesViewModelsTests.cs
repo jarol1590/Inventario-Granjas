@@ -737,10 +737,10 @@ public class ProgramasYLotesViewModelsTests
         SalidaEditorViewModel Crear() => new(kardex, consultas, e.Catalogo, e.Lotes, new FormulariosFalso(), FormulariosRemisionesFalso.ConPago(e.Reloj.Ahora.Date), remisiones, contexto, e.Reloj, new DialogoFalso());
         var hoy = e.Reloj.Ahora.Date;
 
-        // Sin oficios abiertos el campo queda vacío (se puede escribir uno nuevo).
+        // Sin oficios abiertos el campo propone el siguiente número (se puede cambiar).
         var sin = Crear();
         await sin.InicializarNuevaAsync();
-        sin.NumeroOficio.Should().BeEmpty();
+        sin.NumeroOficio.Should().Be($"OFAVI-{hoy:yy}001");
         sin.OficiosAbiertos.Should().BeEmpty();
 
         // Uno abierto: aparece solo en el campo. Uno cerrado o de otro programa no cuenta.
@@ -754,11 +754,11 @@ public class ProgramasYLotesViewModelsTests
         conUno.OficiosAbiertos.Should().Equal("OF-2");
         (await remisiones.ListarOficiosAbiertosAsync(e.Aves.Id)).Select(o => o.NumeroOficio).Should().Equal("OF-2");
 
-        // Varios abiertos: el campo queda vacío y la lista los ofrece.
+        // Varios abiertos: el campo propone el siguiente número y la lista ofrece los abiertos.
         await oficios.CrearAsync(new OficioDto { NumeroOficio = "OF-3", ProgramaId = e.Aves.Id, Fecha = hoy });
         var conVarios = Crear();
         await conVarios.InicializarNuevaAsync();
-        conVarios.NumeroOficio.Should().BeEmpty();
+        conVarios.NumeroOficio.Should().Be($"OFAVI-{hoy:yy}001");
         conVarios.OficiosAbiertos.Should().BeEquivalentTo(["OF-2", "OF-3"]);
     }
 

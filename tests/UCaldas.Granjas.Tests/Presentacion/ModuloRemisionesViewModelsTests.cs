@@ -162,8 +162,14 @@ public class ModuloRemisionesViewModelsTests
         vm.CierreSolicitado += cierres.Add;
 
         (await vm.InicializarAsync(s.Aves)).Should().BeTrue();
-        vm.NumeroOficio.Should().Be("OF-1", "el único oficio existente no sigue el patrón OF-n");
+        var yy = s.E.Reloj.Ahora.ToString("yy");
+        vm.NumeroOficio.Should().Be($"OFAVI-{yy}001", "ningún oficio existente sigue el formato nuevo");
         vm.ProgramaSeleccionado!.Id.Should().Be(s.Aves);
+
+        // Con otro programa cambia el prefijo y se vuelve a proponer.
+        vm.ProgramaSeleccionado = vm.Programas.First(p => p.Id != s.Aves);
+        await Task.Delay(200);
+        vm.NumeroOficio.Should().StartWith("OF").And.EndWith($"-{yy}001").And.NotStartWith("OFAVI");
 
         vm.NumeroOficio = "OF-200";
         await vm.GuardarCommand.ExecuteAsync(null);

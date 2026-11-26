@@ -159,6 +159,9 @@ public interface IRemisionesQueryService
     /// <summary>Oficios de venta abiertos (no cerrados) de un programa, del más reciente al más antiguo.</summary>
     Task<IReadOnlyList<OficioVenta>> ListarOficiosAbiertosAsync(int programaId, CancellationToken ct = default);
 
+    /// <summary>Siguiente número de oficio del programa en el año de <paramref name="fecha"/> (<c>OFGAN-26001</c>).</summary>
+    Task<string> SiguienteNumeroOficioAsync(int programaId, DateTime fecha, CancellationToken ct = default);
+
     /// <summary>Oficio de venta con ese número, o nulo si no existe.</summary>
     Task<OficioVenta?> BuscarOficioPorNumeroAsync(string numero, CancellationToken ct = default);
 
@@ -452,6 +455,14 @@ public sealed class RemisionesQueryService(IUnitOfWorkFactory fabrica) : IRemisi
     }
 
     // ---- Consecutivos -----------------------------------------------------------------------------------------------------
+
+    public async Task<string> SiguienteNumeroOficioAsync(int programaId, DateTime fecha, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        var programa = await uow.Programas.GetByIdAsync(programaId, ct) ?? throw Regla.Violada("El programa del oficio no existe.");
+        var oficios = await uow.Oficios.GetAllAsync(ct);
+        return OficioService.CalcularSiguienteNumero(programa.Nombre, fecha.Year, oficios.Select(o => o.NumeroOficio));
+    }
 
     public async Task<IReadOnlyList<OficioVenta>> ListarOficiosAbiertosAsync(int programaId, CancellationToken ct = default)
     {

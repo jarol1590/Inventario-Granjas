@@ -1,6 +1,6 @@
 ﻿namespace UCaldas.Granjas.Domain.Entities;
 
-/// <summary>Oficio de venta: documento formal asignado a un solo programa productivo (ej. OF-120).</summary>
+/// <summary>Oficio de venta: documento formal asignado a un solo programa productivo (ej. OFGAN-26001).</summary>
 public class OficioVenta
 {
     public int Id { get; set; }

@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Abstractions;
 using UCaldas.Granjas.Domain.Entities;
@@ -49,6 +52,12 @@ public interface IOficioService
     Task CerrarAsync(int oficioId, CancellationToken ct = default);
 
     Task ReabrirAsync(int oficioId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Siguiente número de oficio del programa con el formato <c>OF[3 primeras letras]-[año a 2 dígitos]###</c>
+    /// (p. ej. <c>OFGAN-26001</c>). El consecutivo es por programa y año: al cambiar de año vuelve a 001.
+    /// </summary>
+    Task<string> SiguienteNumeroAsync(int programaId, DateTime? fecha = null, CancellationToken ct = default);
 }
 
 public sealed class OficioService(IUnitOfWorkFactory fabrica, IReloj reloj) : IOficioService
@@ -143,6 +152,49 @@ public sealed class OficioService(IUnitOfWorkFactory fabrica, IReloj reloj) : IO
         oficio.FechaCierre = null;
         await uow.Oficios.UpdateAsync(oficio, ct);
         await uow.CommitAsync(ct);
+    }
+
+    public async Task<string> SiguienteNumeroAsync(int programaId, DateTime? fecha = null, CancellationToken ct = default)
+    {
+        await using var uow = await fabrica.OpenReadOnlyAsync(ct);
+        var programa = await uow.Programas.GetByIdAsync(programaId, ct) ?? throw Regla.Violada("El programa del oficio no existe.");
+        var oficios = await uow.Oficios.GetAllAsync(ct);
+        return CalcularSiguienteNumero(programa.Nombre, (fecha ?? reloj.Hoy).Year, oficios.Select(o => o.NumeroOficio));
+    }
+
+    /// <summary>Calcula el siguiente número a partir de los existentes; no consulta la base (se prueba por separado).</summary>
+    public static string CalcularSiguienteNumero(string nombrePrograma, int anio, IEnumerable<string> existentes)
+    {
+        var prefijo = $"OF{TresLetras(nombrePrograma)}-{anio % 100:D2}";
+        var patron = new Regex($"^{Regex.Escape(prefijo)}(\\d+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var mayor = existentes
+            .Select(n => patron.Match(n ?? string.Empty))
+            .Where(m => m.Success && int.TryParse(m.Groups[1].Value, out _))
+            .Select(m => int.Parse(m.Groups[1].Value))
+            .DefaultIfEmpty(0)
+            .Max();
+        return $"{prefijo}{mayor + 1:D3}";
+    }
+
+    /// <summary>Las tres primeras letras del nombre, en mayúscula y sin tildes («Ganadería (Bovinos)» → GAN).</summary>
+    private static string TresLetras(string nombre)
+    {
+        var letras = new StringBuilder();
+        foreach (var c in (nombre ?? string.Empty).Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark || !char.IsAsciiLetter(c))
+            {
+                continue;
+            }
+
+            letras.Append(char.ToUpperInvariant(c));
+            if (letras.Length == 3)
+            {
+                break;
+            }
+        }
+
+        return letras.ToString();
     }
 
     private string Validar(OficioDto dto)

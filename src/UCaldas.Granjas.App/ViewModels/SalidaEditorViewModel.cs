@@ -30,6 +30,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
     private readonly IFormulariosRemisiones _formulariosRemisiones;
     private readonly IRemisionesQueryService _remisiones;
     private readonly ContextoGlobal _contexto;
+    private readonly IReloj _reloj;
     private ReciboCaja? _reciboExistente;
     private int? _remisionId;
     private int _programaId;
@@ -57,6 +58,7 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
         _lotes = lotes;
         _formularios = formularios;
         _contexto = contexto;
+        _reloj = reloj;
         _fechaSalida = reloj.Hoy;
         _claseSeleccionada = Clases[0];
         Animales.CollectionChanged += AlCambiarAnimales;
@@ -224,10 +226,10 @@ public sealed partial class SalidaEditorViewModel : DialogViewModelBase
                 OficiosAbiertos.Add(oficio.NumeroOficio);
             }
 
-            if (OficiosAbiertos.Count == 1)
-            {
-                NumeroOficio = OficiosAbiertos[0];
-            }
+            // Sin un único oficio abierto se propone el siguiente número (OFGAN-26001); el usuario puede cambiarlo o elegir uno existente.
+            NumeroOficio = OficiosAbiertos.Count == 1
+                ? OficiosAbiertos[0]
+                : await _remisiones.SiguienteNumeroOficioAsync(await ProgramaDeGanaderiaAsync(), _reloj.Hoy);
 
             Modo = ModoDocumento.Nuevo;
         }, "preparar el formulario de salida");

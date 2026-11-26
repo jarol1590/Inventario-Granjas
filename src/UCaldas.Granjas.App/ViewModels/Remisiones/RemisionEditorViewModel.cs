@@ -105,7 +105,7 @@ public sealed partial class LineaEditable : ObservableObject
 public sealed partial class RemisionEditorViewModel : DialogViewModelBase
 {
     /// <summary>Unidades que se sugieren en la tabla (la celda admite cualquier otra).</summary>
-    public static IReadOnlyList<string> UnidadesSugeridas { get; } = ["Unidad", "Kg", "Litro", "Cubeta", "Bulto", "Docena", "Canastilla", "Caja"];
+    public static IReadOnlyList<string> UnidadesSugeridas { get; } = ["Unidad", "Kg", "Litro", "Cubeta", "Bulto", "Docena", "Canastilla", "Caja", "Tonelada", "Manojo"];
 
     private readonly IKardexService _kardex;
     private readonly IRemisionesQueryService _consultas;

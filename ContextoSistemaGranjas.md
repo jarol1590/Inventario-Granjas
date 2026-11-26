@@ -49,7 +49,7 @@ Se ejecuta en computadores locales, sin servidor ni internet. Hay una sola contr
 - **Kardex**: un libro mayor de movimientos (entradas, salidas, traslados, valorizaciones) por granja, siempre cuadrado con el inventario.
 - **Documentos comerciales**: compras, ventas (Oficio → Remisión → Recibo de Caja SP), traslados entre granjas y bajas (muerte, hurto, descarte sanitario).
 - **Venta de subproductos** (leche, huevos, gallinaza, fruta…) en el módulo Remisiones.
-- **Informes oficiales** en Excel (y remisión, recibo y ventas por programa también en PDF), con bloque de firmas.
+- **Informes oficiales** en Excel, con bloque de firmas.
 
 **Programas.** Un *programa* es una línea productiva. Vienen sembrados **Ganadería (Bovinos)** — inventario individual — y **Avicultura (Aves)** — por lotes —. Se pueden crear más desde la interfaz (Configuración › Granjas y Programas), por ejemplo Equinos, o un programa de productos sin animales.
 
@@ -66,7 +66,6 @@ Se ejecuta en computadores locales, sin servidor ni internet. Hay una sola contr
 | MVVM | CommunityToolkit.Mvvm (`[ObservableProperty]`, `[RelayCommand]`) |
 | Inyección de dependencias | Microsoft.Extensions.DependencyInjection |
 | Excel | ClosedXML |
-| PDF | PDFsharp-MigraDoc (licencia MIT) |
 | Gráficas | LiveCharts2 (SkiaSharp) |
 | Pruebas | xUnit + FluentAssertions **7.2.0** (no actualizar: la 8.x exige licencia de pago) |
 
@@ -304,7 +303,7 @@ Hay dos caminos de valorización según `PROGRAMA.usa_valorizacion_biologica`:
 
 **Datos institucionales** (entidad bancaria, cuenta, jefe de tesorería, consecutivo inicial) en `CONFIGURACION_REMISIONES`.
 
-**Informes.** «Ventas por Programas» (solo `VENTA` vigentes; rango de fechas y programa; subtotales, descuentos, total recaudado y firma) en Excel y PDF, más la remisión y el recibo en PDF.
+**Informes.** «Ventas por Programas» (solo `VENTA` vigentes; rango de fechas y programa, por defecto «Todos los programas»): un libro Excel con una hoja por programa (oficio, remisión, recibo de caja, cliente, año, mes, producto, cantidad, valor unitario y total, con subtotal) y una hoja final «Consolidado» que agrupa por programa y oficio, con subtotal por programa y total general, más la firma. La remisión y el recibo de caja también se generan en Excel (botones «Remisión Excel» / «Recibo Excel»).
 
 ---
 
@@ -367,10 +366,10 @@ Los combos **Granja** y **Programa** de la parte superior son filtros globales (
 | **Inventario físico individual** | Excel | Por animal (una hoja por granja, solo Disponibles): clase de entrada, fecha de nacimiento, sexo, chapeta, peso, observaciones. |
 | **Kardex mensual de lotes** | Excel | «Movimientos inventario aves»: un bloque de 13 columnas por lote, con subtotal por lote y total general. «Vienen» se reconstruye hacia atrás desde el estado actual del lote. |
 | **Hoja de vida del animal** | Excel | Ficha completa del animal. |
-| **Ventas por programas** | Excel y PDF | Solo ventas vigentes; subtotales, descuentos, total recaudado y firma. |
-| **Remisión y recibo de caja** | PDF | Documentos imprimibles del módulo Remisiones. |
+| **Ventas por programas** | Excel | Hoja por programa (oficio, remisión, recibo de caja…) y hoja final «Consolidado» con subtotal por programa y total general. |
+| **Remisión y recibo de caja** | Excel | Documentos del módulo Remisiones. |
 
-Todos llevan el bloque de firmas de `CONFIGURACION_FIRMA`. Los informes de Excel usan el azul institucional, verde en los totales y Times New Roman. Los informes son **solo Excel**, con la excepción de los PDF del módulo Remisiones.
+Todos llevan el bloque de firmas de `CONFIGURACION_FIRMA`. Los informes de Excel usan el azul institucional, verde en los totales y Times New Roman. Todos los informes y documentos son **solo Excel**.
 
 ---
 
@@ -383,7 +382,7 @@ El proyecto `tests/UCaldas.Granjas.Tests` reúne cerca de 880 pruebas (todas ver
 | `Valorizacion/`, `Animales/`, `Programas/` | Motor de edades, selección y validación de tarifas, vigencias, programas generalizados. |
 | `Kardex/` | Compras, ventas, bajas, traslados, ediciones y anulaciones; lotes; cuadre del libro. |
 | `Comercial/` | Oficios, recibos, consecutivos y remisiones de subproductos. |
-| `Consultas/`, `Reportes/` | Listados, tableros, Excel y PDF. |
+| `Consultas/`, `Reportes/` | Listados, tableros, informes en Excel. |
 | `Data/` | Inicializador y migraciones, restricciones de la base, repositorios, unidad de trabajo. |
 | `Seguridad/`, `Respaldos/` | Acceso, recuperación de contraseña, respaldo y restauración. |
 | `Presentacion/` | ViewModels con dobles de prueba, y carga de vistas en un hilo STA. |

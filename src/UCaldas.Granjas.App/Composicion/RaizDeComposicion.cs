@@ -51,7 +51,6 @@ public static class RaizDeComposicion
         servicios.AddSingleton<IOficioService, OficioService>();
         servicios.AddSingleton<IRemisionesQueryService, RemisionesQueryService>();
         servicios.AddSingleton<IReciboCajaService, ReciboCajaService>();
-        servicios.AddSingleton<IPdfDocumentService, PdfDocumentService>();
         servicios.AddSingleton<ITarifaProgramaService, TarifaProgramaService>();
         servicios.AddSingleton<ILoteService, LoteService>();
 

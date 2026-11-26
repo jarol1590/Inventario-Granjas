@@ -113,7 +113,7 @@ public sealed partial class RemisionEditorViewModel : DialogViewModelBase
     private readonly ICatalogoService _catalogo;
     private readonly ICatalogoComercialService _comercial;
     private readonly IFormulariosRemisiones _formulariosRemisiones;
-    private readonly IPdfDocumentService _pdf;
+    private readonly IExcelReportingEngine _excel;
     private readonly ContextoGlobal _contexto;
     private bool _cargando;
     private int? _remisionId;
@@ -127,7 +127,7 @@ public sealed partial class RemisionEditorViewModel : DialogViewModelBase
         ICatalogoService catalogo,
         ICatalogoComercialService comercial,
         IFormulariosRemisiones formulariosRemisiones,
-        IPdfDocumentService pdf,
+        IExcelReportingEngine excel,
         ContextoGlobal contexto,
         IReloj reloj,
         IDialogService dialogos)
@@ -139,7 +139,7 @@ public sealed partial class RemisionEditorViewModel : DialogViewModelBase
         _catalogo = catalogo;
         _comercial = comercial;
         _formulariosRemisiones = formulariosRemisiones;
-        _pdf = pdf;
+        _excel = excel;
         _contexto = contexto;
         _fechaRemision = reloj.Hoy;
         Lineas.CollectionChanged += LineasCambiadas;
@@ -621,8 +621,8 @@ public sealed partial class RemisionEditorViewModel : DialogViewModelBase
 
     private async Task ImprimirAsync(int remisionId, bool recibo)
     {
-        var nombre = recibo ? $"Recibo_{_recibo?.NumeroRecibo}_SP.pdf" : $"Remision_{NumeroRemision}.pdf";
-        var ruta = Dialogos.GuardarArchivo(recibo ? "Guardar el recibo de caja" : "Guardar la remisión", "Documento PDF (*.pdf)|*.pdf", nombre);
+        var nombre = recibo ? $"Recibo_{_recibo?.NumeroRecibo}_SP.xlsx" : $"Remision_{NumeroRemision}.xlsx";
+        var ruta = Dialogos.GuardarArchivo(recibo ? "Guardar el recibo de caja" : "Guardar la remisión", "Libro de Excel (*.xlsx)|*.xlsx", nombre);
         if (ruta is null)
         {
             return;
@@ -630,8 +630,8 @@ public sealed partial class RemisionEditorViewModel : DialogViewModelBase
 
         string? generado = null;
         if (await EjecutarAsync(
-                async () => generado = recibo ? await _pdf.GenerarReciboAsync(remisionId, ruta) : await _pdf.GenerarRemisionAsync(remisionId, ruta),
-                "generar el PDF") && generado is not null)
+                async () => generado = recibo ? await _excel.GenerarReciboAsync(remisionId, ruta) : await _excel.GenerarRemisionAsync(remisionId, ruta),
+                "generar el Excel") && generado is not null)
         {
             Dialogos.Abrir(generado);
         }

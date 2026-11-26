@@ -12,8 +12,6 @@
 
     <!-- Servicios / reportes -->
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
-    <!-- PDF de informes, remisiones y recibos (licencia MIT). -->
-    <PackageVersion Include="PDFsharp-MigraDoc" Version="6.1.1" />
 
     <!-- Presentación -->
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />

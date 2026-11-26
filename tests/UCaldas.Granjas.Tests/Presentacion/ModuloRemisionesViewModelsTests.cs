@@ -83,9 +83,11 @@ public class ModuloRemisionesViewModelsTests
 
         public RemisionesQueryService Consultas => new(E.Db.Uow);
 
+        public ExcelReportingEngine Motor => new(E.Db.Uow, new KardexReportBuilder(E.Db.Uow), new FichaService(E.Db.Uow, E.Reloj), E.Reloj);
+
         public RemisionEditorViewModel Editor() => new(
             E.Kardex, Consultas, Oficios, new CatalogoService(E.Db.Uow), new CatalogoComercialService(E.Db.Uow),
-            Formularios, new PdfDocumentService(E.Db.Uow, E.Reloj), Contexto, E.Reloj, Dialogos);
+            Formularios, Motor, Contexto, E.Reloj, Dialogos);
 
         public static ReciboCajaDto Pago(decimal descuento = 0m) => new()
         {
@@ -328,22 +330,22 @@ public class ModuloRemisionesViewModelsTests
     }
 
     [Fact]
-    public async Task Imprimir_la_remision_y_el_recibo_genera_los_pdf_y_los_abre()
+    public async Task Imprimir_la_remision_y_el_recibo_genera_los_excel_y_los_abre()
     {
         await using var s = await CrearAsync();
         var r = await RegistrarVentaDeHuevosAsync(s);
         var vm = s.Editor();
         await vm.InicializarExistenteAsync(r.RemisionId);
-        var carpeta = Path.Combine(s.E.Db.Carpeta, "pdf");
-        s.Dialogos.RutaAGuardar = Path.Combine(carpeta, "remision.pdf");
+        var carpeta = Path.Combine(s.E.Db.Carpeta, "excel");
+        s.Dialogos.RutaAGuardar = Path.Combine(carpeta, "remision.xlsx");
         await vm.ImprimirRemisionCommand.ExecuteAsync(null);
-        s.Dialogos.RutaAGuardar = Path.Combine(carpeta, "recibo.pdf");
+        s.Dialogos.RutaAGuardar = Path.Combine(carpeta, "recibo.xlsx");
         await vm.ImprimirReciboCommand.ExecuteAsync(null);
 
-        s.Dialogos.NombresSugeridos.Should().Equal("Remision_REM-9.pdf", "Recibo_829_SP.pdf");
+        s.Dialogos.NombresSugeridos.Should().Equal("Remision_REM-9.xlsx", "Recibo_829_SP.xlsx");
         s.Dialogos.Abiertos.Should().HaveCount(2);
-        File.Exists(Path.Combine(carpeta, "remision.pdf")).Should().BeTrue();
-        File.Exists(Path.Combine(carpeta, "recibo.pdf")).Should().BeTrue();
+        File.Exists(Path.Combine(carpeta, "remision.xlsx")).Should().BeTrue();
+        File.Exists(Path.Combine(carpeta, "recibo.xlsx")).Should().BeTrue();
     }
 
     private static async Task<ProductosResultado> RegistrarVentaDeHuevosAsync(Entorno s) => await s.E.Kardex.RegistrarRemisionProductosAsync(new RemisionProductosDto
@@ -362,7 +364,7 @@ public class ModuloRemisionesViewModelsTests
         await using var s = await CrearAsync();
         await RegistrarVentaDeHuevosAsync(s);
         s.Contexto.ProgramaId = s.Aves;
-        var vm = new RemisionesViewModel(s.Consultas, s.Formularios, new PdfDocumentService(s.E.Db.Uow, s.E.Reloj), s.Contexto, s.E.Reloj, s.Dialogos);
+        var vm = new RemisionesViewModel(s.Consultas, s.Formularios, s.Motor, s.Contexto, s.E.Reloj, s.Dialogos);
         vm.Rango.MesDesde = FiltroMensual.Meses[10];
 
         await vm.CargarAsync();
@@ -391,7 +393,7 @@ public class ModuloRemisionesViewModelsTests
         venta.FechaRemision = Datos.F("2026-11-04");
         venta.FechaOficio = Datos.F("2026-11-04");
         await s.E.Kardex.RegistrarVentaAsync(venta);
-        var vm = new RemisionesViewModel(s.Consultas, s.Formularios, new PdfDocumentService(s.E.Db.Uow, s.E.Reloj), s.Contexto, s.E.Reloj, s.Dialogos);
+        var vm = new RemisionesViewModel(s.Consultas, s.Formularios, s.Motor, s.Contexto, s.E.Reloj, s.Dialogos);
         vm.Rango.MesDesde = FiltroMensual.Meses[10];
 
         await vm.CargarAsync();
@@ -428,7 +430,7 @@ public class ModuloRemisionesViewModelsTests
     {
         await using var s = await CrearAsync();
         var r = await RegistrarVentaDeHuevosAsync(s);
-        var vm = new RecibosCajaViewModel(s.Consultas, s.Formularios, new PdfDocumentService(s.E.Db.Uow, s.E.Reloj), new NavegadorFalso(), s.Dialogos);
+        var vm = new RecibosCajaViewModel(s.Consultas, s.Formularios, s.Motor, new NavegadorFalso(), s.Dialogos);
 
         await vm.CargarAsync();
 
@@ -439,9 +441,9 @@ public class ModuloRemisionesViewModelsTests
         await vm.AbrirReciboCommand.ExecuteAsync(null);
         s.Formularios.Llamadas.Should().Equal($"recibo:{r.RemisionId}");
 
-        s.Dialogos.RutaAGuardar = Path.Combine(s.E.Db.Carpeta, "pdf", "recibo.pdf");
+        s.Dialogos.RutaAGuardar = Path.Combine(s.E.Db.Carpeta, "excel", "recibo.xlsx");
         await vm.ReimprimirCommand.ExecuteAsync(null);
-        s.Dialogos.NombresSugeridos.Should().Equal("Recibo_829_SP.pdf");
+        s.Dialogos.NombresSugeridos.Should().Equal("Recibo_829_SP.xlsx");
         File.Exists(s.Dialogos.RutaAGuardar).Should().BeTrue();
     }
 
@@ -492,14 +494,14 @@ public class ModuloRemisionesViewModelsTests
     // ---- Informes y configuración ------------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task El_informe_de_ventas_se_genera_en_Excel_o_PDF_segun_el_formato()
+    public async Task El_informe_de_ventas_se_genera_en_Excel()
     {
         await using var s = await CrearAsync();
         await RegistrarVentaDeHuevosAsync(s);
         var motor = new ExcelReportingEngine(s.E.Db.Uow, new KardexReportBuilder(s.E.Db.Uow), new FichaService(s.E.Db.Uow, s.E.Reloj), s.E.Reloj);
         s.Dialogos.RespuestaConfirmar = false;
         var vm = new InformesRemisionesViewModel(
-            motor, new PdfDocumentService(s.E.Db.Uow, s.E.Reloj), new CatalogoService(s.E.Db.Uow), s.Contexto, s.E.Reloj, s.Dialogos);
+            motor, new CatalogoService(s.E.Db.Uow), s.Contexto, s.E.Reloj, s.Dialogos);
         await vm.CargarAsync();
         vm.Programas.Select(p => p.Nombre).Should().StartWith("Todos los programas");
         vm.Desde = Datos.F("2026-10-01");
@@ -508,15 +510,23 @@ public class ModuloRemisionesViewModelsTests
         var excel = Path.Combine(s.E.Db.Carpeta, "informes", "ventas.xlsx");
         s.Dialogos.RutaAGuardar = excel;
         await vm.GenerarCommand.ExecuteAsync(null);
-        vm.EsPdf = true;
-        var pdf = Path.Combine(s.E.Db.Carpeta, "informes", "ventas.pdf");
-        s.Dialogos.RutaAGuardar = pdf;
-        await vm.GenerarCommand.ExecuteAsync(null);
 
         File.Exists(excel).Should().BeTrue();
-        File.Exists(pdf).Should().BeTrue();
-        s.Dialogos.NombresSugeridos.Should().Equal("Ventas_por_Programas_20261001_20261130.xlsx", "Ventas_por_Programas_20261001_20261130.pdf");
-        vm.UltimoArchivo.Should().Be(pdf);
+        s.Dialogos.NombresSugeridos.Should().Equal("Ventas_por_Programas_20261001_20261130.xlsx");
+        vm.UltimoArchivo.Should().Be(excel);
+    }
+
+    [Fact]
+    public async Task El_informe_de_ventas_empieza_en_todos_los_programas_aunque_el_combo_global_tenga_uno()
+    {
+        await using var s = await CrearAsync();
+        s.Contexto.ProgramaId = s.Aves;
+        var vm = new InformesRemisionesViewModel(s.Motor, new CatalogoService(s.E.Db.Uow), s.Contexto, s.E.Reloj, s.Dialogos);
+
+        await vm.CargarAsync();
+
+        vm.Programa!.Id.Should().BeNull();
+        vm.Programa.Nombre.Should().Be("Todos los programas");
     }
 
     [Fact]
@@ -525,7 +535,7 @@ public class ModuloRemisionesViewModelsTests
         await using var s = await CrearAsync();
         var motor = new ExcelReportingEngine(s.E.Db.Uow, new KardexReportBuilder(s.E.Db.Uow), new FichaService(s.E.Db.Uow, s.E.Reloj), s.E.Reloj);
         var vm = new InformesRemisionesViewModel(
-            motor, new PdfDocumentService(s.E.Db.Uow, s.E.Reloj), new CatalogoService(s.E.Db.Uow), s.Contexto, s.E.Reloj, s.Dialogos) { Desde = null };
+            motor, new CatalogoService(s.E.Db.Uow), s.Contexto, s.E.Reloj, s.Dialogos) { Desde = null };
 
         await vm.GenerarCommand.ExecuteAsync(null);
 

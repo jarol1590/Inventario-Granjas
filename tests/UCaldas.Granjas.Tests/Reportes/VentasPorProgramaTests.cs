@@ -10,7 +10,7 @@ using UCaldas.Granjas.Tests.Kardex;
 
 namespace UCaldas.Granjas.Tests.Reportes;
 
-/// <summary>Informe de Ventas por Programas (Excel y PDF), remisión y recibo en PDF.</summary>
+/// <summary>Informe de Ventas por Programas (Excel), remisión y recibo (Excel).</summary>
 public class VentasPorProgramaTests
 {
     private sealed record Escenario(EscenarioKardex E, int RemisionGanado, int RemisionHuevos, int ProgramaAves, int ProgramaGanaderia);
@@ -103,8 +103,8 @@ public class VentasPorProgramaTests
         var ruta = await Motor(s.E).GenerarVentasPorProgramaAsync(new VentasReporteRequest(Datos.F("2026-10-01"), Datos.F("2026-11-30"), null, Ruta(s.E, "ventas.xlsx")));
 
         using var libro = new XLWorkbook(ruta);
-        libro.Worksheets.Select(w => w.Name).Should().Equal("Avicultura (Aves)", "Ganadería (Bovinos)");
-        string[] encabezados = ["Remisión", "Cliente", "Año", "Mes", "Producto", "Cantidad (unidad)", "Precio Unitario", "Total"];
+        libro.Worksheets.Select(w => w.Name).Should().Equal("Avicultura (Aves)", "Ganadería (Bovinos)", "Consolidado");
+        string[] encabezados = ["Oficio", "Remisión", "Recibo de caja", "Cliente", "Año", "Mes", "Producto", "Cantidad (unidad)", "Precio Unitario", "Total"];
 
         var aves = libro.Worksheet("Avicultura (Aves)");
         aves.Cell("A2").GetString().Should().Be("INFORME DE VENTAS - AVICULTURA (AVES)");
@@ -113,21 +113,33 @@ public class VentasPorProgramaTests
             aves.Cell(5, i + 1).GetString().Should().Be(encabezados[i]);
         }
 
-        (aves.Cell("A6").GetString(), aves.Cell("B6").GetString(), (int)aves.Cell("C6").GetDouble(), aves.Cell("D6").GetString(), aves.Cell("E6").GetString(),
-                aves.Cell("F6").GetDouble(), aves.Cell("G6").GetDouble(), aves.Cell("H6").GetDouble())
-            .Should().Be(("REM-4", "Convenio Frigocaldas", 2026, "Noviembre", "Huevo cubeta x30", 12.5, 18_000d, 225_000d));
+        (aves.Cell("A6").GetString(), aves.Cell("B6").GetString(), aves.Cell("D6").GetString(), (int)aves.Cell("E6").GetDouble(), aves.Cell("F6").GetString(),
+                aves.Cell("G6").GetString(), aves.Cell("H6").GetDouble(), aves.Cell("I6").GetDouble(), aves.Cell("J6").GetDouble())
+            .Should().Be(("OF-2", "REM-4", "Convenio Frigocaldas", 2026, "Noviembre", "Huevo cubeta x30", 12.5, 18_000d, 225_000d));
+        aves.Cell("C6").GetString().Should().EndWith(" SP", "lleva el número de su recibo de caja");
         aves.Cell("A7").GetString().Should().Be("Subtotal");
-        aves.Cell("H7").FormulaA1.Should().Be("SUM(H6:H6)");
-        aves.Cell("H7").GetDouble().Should().Be(225_000);
+        aves.Cell("J7").FormulaA1.Should().Be("SUM(J6:J6)");
+        aves.Cell("J7").GetDouble().Should().Be(225_000);
 
         // Ganadería: REM-2 y REM-5 (28/10) y REM-1 (04/11); la anulada y el traslado no salen.
         var ganado = libro.Worksheet("Ganadería (Bovinos)");
         ganado.Cell("A2").GetString().Should().Be("INFORME DE VENTAS - GANADERÍA (BOVINOS)");
-        (ganado.Cell("A6").GetString(), ganado.Cell("F6").GetDouble(), ganado.Cell("H6").GetDouble()).Should().Be(("REM-2", 1d, 4_000_000d));
-        (ganado.Cell("A7").GetString(), ganado.Cell("D7").GetString(), ganado.Cell("E7").GetString(), ganado.Cell("H7").GetDouble())
+        (ganado.Cell("A6").GetString(), ganado.Cell("B6").GetString(), ganado.Cell("H6").GetDouble(), ganado.Cell("J6").GetDouble()).Should().Be(("OF-1", "REM-2", 1d, 4_000_000d));
+        (ganado.Cell("B7").GetString(), ganado.Cell("F7").GetString(), ganado.Cell("G7").GetString(), ganado.Cell("J7").GetDouble())
             .Should().Be(("REM-5", "Octubre", "Leche", 200_000d));
-        (ganado.Cell("A8").GetString(), ganado.Cell("D8").GetString(), ganado.Cell("H8").GetDouble()).Should().Be(("REM-1", "Noviembre", 6_000_000d));
-        ganado.Cell("H9").GetDouble().Should().Be(10_200_000);
+        (ganado.Cell("B8").GetString(), ganado.Cell("F8").GetString(), ganado.Cell("J8").GetDouble()).Should().Be(("REM-1", "Noviembre", 6_000_000d));
+        ganado.Cell("J9").GetDouble().Should().Be(10_200_000);
+
+        // Consolidado (última hoja): programas y oficios agrupados, subtotal por programa y total general.
+        var consolidado = libro.Worksheet("Consolidado");
+        consolidado.Cell("A2").GetString().Should().Be("INFORME DE VENTAS - CONSOLIDADO DE PROGRAMAS");
+        consolidado.Cell("A6").GetString().Should().Be("PROGRAMA: AVICULTURA (AVES)");
+        (consolidado.Cell("B7").GetString(), consolidado.Cell("A8").GetString(), consolidado.Cell("J8").GetDouble()).Should().Be(("REM-4", "Subtotal oficio OF-2", 225_000d));
+        (consolidado.Cell("A9").GetString(), consolidado.Cell("J9").GetDouble()).Should().Be(("Subtotal Avicultura (Aves)", 225_000d));
+        consolidado.Cell("A10").GetString().Should().Be("PROGRAMA: GANADERÍA (BOVINOS)");
+        (consolidado.Cell("A14").GetString(), consolidado.Cell("J14").GetDouble()).Should().Be(("Subtotal oficio OF-1", 10_200_000d));
+        (consolidado.Cell("A15").GetString(), consolidado.Cell("J15").GetDouble()).Should().Be(("Subtotal Ganadería (Bovinos)", 10_200_000d));
+        (consolidado.Cell("A16").GetString(), consolidado.Cell("J16").GetDouble()).Should().Be(("TOTAL GENERAL", 10_425_000d));
         foreach (var hoja in libro.Worksheets)
         {
             TieneTexto(hoja, "REM-3").Should().BeFalse("la venta anulada no cuenta");
@@ -148,14 +160,16 @@ public class VentasPorProgramaTests
 
         using (var libro = new XLWorkbook(soloAves))
         {
-            var h = libro.Worksheets.Single();
+            var h = libro.Worksheets.First();
             h.Name.Should().Be("Avicultura (Aves)");
-            h.Cell("H7").GetDouble().Should().Be(225_000, "el total es solo el de avicultura");
+            h.Cell("J7").GetDouble().Should().Be(225_000, "el total es solo el de avicultura");
+            libro.Worksheets.Last().Name.Should().Be("Consolidado");
+            libro.Worksheet("Consolidado").Cell("J10").GetDouble().Should().Be(225_000);
         }
 
         using (var libro = new XLWorkbook(soloOctubre))
         {
-            var h = libro.Worksheets.Single();
+            var h = libro.Worksheets.First();
             h.Name.Should().Be("Ganadería (Bovinos)");
             TieneTexto(h, "REM-5").Should().BeTrue();
             TieneTexto(h, "REM-4").Should().BeFalse("REM-4 es de noviembre");
@@ -163,7 +177,8 @@ public class VentasPorProgramaTests
 
         using (var libro = new XLWorkbook(vacio))
         {
-            TieneTexto(libro.Worksheets.Single(), "Sin ventas en el rango seleccionado.").Should().BeTrue();
+            libro.Worksheets.Select(w => w.Name).Should().Equal("Ventas", "Consolidado");
+            libro.Worksheets.All(w => TieneTexto(w, "Sin ventas en el rango seleccionado.")).Should().BeTrue();
         }
     }
 
@@ -180,34 +195,10 @@ public class VentasPorProgramaTests
         await inexistente.Should().ThrowAsync<System.ComponentModel.DataAnnotations.ValidationException>().WithMessage("*no existe*");
     }
 
-    // ---- PDF ---------------------------------------------------------------------------------------------------------------
-
-    private static PdfDocumentService Pdf(EscenarioKardex e) => new(e.Db.Uow, e.Reloj);
-
-    private static async Task ExigirPdfValidoAsync(string ruta)
-    {
-        File.Exists(ruta).Should().BeTrue();
-        var bytes = await File.ReadAllBytesAsync(ruta);
-        bytes.Length.Should().BeGreaterThan(1_500);
-        System.Text.Encoding.ASCII.GetString(bytes, 0, 5).Should().Be("%PDF-");
-        File.Exists(ruta + ".tmp").Should().BeFalse("no queda el temporal");
-    }
+    // ---- Remisión y recibo en Excel --------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task El_informe_de_ventas_tambien_sale_en_PDF()
-    {
-        var s = await CrearAsync();
-        await using var _ = s.E;
-
-        var ruta = await Pdf(s.E).GenerarVentasPorProgramaAsync(new VentasReporteRequest(Datos.F("2026-10-01"), Datos.F("2026-11-30"), null, Ruta(s.E, "ventas.pdf")));
-        var vacio = await Pdf(s.E).GenerarVentasPorProgramaAsync(new VentasReporteRequest(Datos.F("2026-01-01"), Datos.F("2026-01-31"), null, Ruta(s.E, "vacio.pdf")));
-
-        await ExigirPdfValidoAsync(ruta);
-        await ExigirPdfValidoAsync(vacio);
-    }
-
-    [Fact]
-    public async Task La_remision_y_el_recibo_se_imprimen_en_PDF_de_ventas_traslados_y_productos()
+    public async Task La_remision_y_el_recibo_se_generan_en_Excel_de_ventas_traslados_y_productos()
     {
         var s = await CrearAsync();
         await using var _ = s.E;
@@ -215,9 +206,35 @@ public class VentasPorProgramaTests
 
         foreach (var (id, nombre) in new[] { (s.RemisionGanado, "ganado"), (s.RemisionHuevos, "huevos"), (traslado.Id, "traslado") })
         {
-            await ExigirPdfValidoAsync(await Pdf(s.E).GenerarRemisionAsync(id, Ruta(s.E, $"remision-{nombre}.pdf")));
-            await ExigirPdfValidoAsync(await Pdf(s.E).GenerarReciboAsync(id, Ruta(s.E, $"recibo-{nombre}.pdf")));
+            var remision = await Motor(s.E).GenerarRemisionAsync(id, Ruta(s.E, $"remision-{nombre}.xlsx"));
+            var recibo = await Motor(s.E).GenerarReciboAsync(id, Ruta(s.E, $"recibo-{nombre}.xlsx"));
+
+            using var libroRemision = new XLWorkbook(remision);
+            libroRemision.Worksheets.Single().Cell("A2").GetString().Should().StartWith("REMISIÓN N° REM-");
+            using var libroRecibo = new XLWorkbook(recibo);
+            libroRecibo.Worksheets.Single().Cell("A2").GetString().Should().StartWith("RECIBO DE CAJA No.");
+            File.Exists(remision + ".tmp").Should().BeFalse("no queda el temporal");
         }
+    }
+
+    [Fact]
+    public async Task La_remision_y_el_recibo_en_Excel_traen_totales_forma_de_pago_y_firma()
+    {
+        var s = await CrearAsync();
+        await using var _ = s.E;
+
+        using var remision = new XLWorkbook(await Motor(s.E).GenerarRemisionAsync(s.RemisionHuevos, Ruta(s.E, "huevos-remision.xlsx")));
+        using var recibo = new XLWorkbook(await Motor(s.E).GenerarReciboAsync(s.RemisionHuevos, Ruta(s.E, "huevos-recibo.xlsx")));
+
+        var hr = remision.Worksheets.Single();
+        TieneTexto(hr, "TOTAL REMISIÓN").Should().BeTrue();
+        hr.CellsUsed().Any(c => c.GetString() == "Huevo cubeta x30").Should().BeTrue();
+        TieneTexto(hr, "PAULA VALENCIA ARANGO").Should().BeTrue("lleva el bloque de firma institucional");
+
+        var hc = recibo.Worksheets.Single();
+        TieneTexto(hc, "TOTAL RECIBO").Should().BeTrue();
+        TieneTexto(hc, "Forma de pago").Should().BeTrue();
+        hc.CellsUsed().Any(c => c.GetString().StartsWith("Consignación a la cuenta Ahorros No. 123456 de DAVIVIENDA")).Should().BeTrue();
     }
 
     [Fact]
@@ -229,7 +246,7 @@ public class VentasPorProgramaTests
         var legado = await s.E.Kardex.RegistrarVentaAsync(await s.E.VentaAsync("REM-OLD", "OF-OLD", "RC-1", null, ("L-1", 5_100_000m)));
         await s.E.Db.EjecutarAsync("DELETE FROM RECIBO_CAJA");   // un documento al que, por algún motivo, le falta el recibo
 
-        var act = () => Pdf(s.E).GenerarReciboAsync(legado.RemisionId, Ruta(s.E, "sin-recibo.pdf"));
+        var act = () => Motor(s.E).GenerarReciboAsync(legado.RemisionId, Ruta(s.E, "sin-recibo.xlsx"));
 
         await act.Should().ThrowAsync<System.ComponentModel.DataAnnotations.ValidationException>().WithMessage("*todavía no tiene recibo*");
     }

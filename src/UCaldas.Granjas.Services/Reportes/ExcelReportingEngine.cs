@@ -33,6 +33,12 @@ public interface IExcelReportingEngine
     /// <summary>Ventas por programas (módulo Remisiones): solo remisiones de venta vigentes del rango, agrupadas por programa, con subtotales y total recaudado.</summary>
     Task<string> GenerarVentasPorProgramaAsync(VentasReporteRequest request, CancellationToken ct = default);
 
+    /// <summary>Remisión (venta o traslado) en Excel: cabecera, líneas, totales y firma.</summary>
+    Task<string> GenerarRemisionAsync(int remisionId, string rutaDestino, CancellationToken ct = default);
+
+    /// <summary>Recibo de caja SP de la remisión en Excel: «recibí de», suma en letras, forma de pago, detalle y firmas.</summary>
+    Task<string> GenerarReciboAsync(int remisionId, string rutaDestino, CancellationToken ct = default);
+
     /// <summary>Hoja de vida individual de un bovino: datos, doble valoración, genealogía e historial.</summary>
     Task<string> GenerarHojaDeVidaAsync(int animalId, string rutaDestino, CancellationToken ct = default);
 }

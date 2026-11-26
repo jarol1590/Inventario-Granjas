@@ -166,9 +166,9 @@
               Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
       <Button Content="🧾 EDITAR RECIBO" Command="{Binding EditarReciboCommand}" Padding="14,10" Margin="0,0,10,6"
               Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />
-      <Button Content="🖨 REMISIÓN PDF" Command="{Binding ImprimirRemisionCommand}" Padding="14,10" Margin="0,0,10,6"
+      <Button Content="🖨 REMISIÓN EXCEL" Command="{Binding ImprimirRemisionCommand}" Padding="14,10" Margin="0,0,10,6"
               Visibility="{Binding EsLectura, Converter={StaticResource BoolAVisibilidad}}" />
-      <Button Content="🖨 RECIBO PDF" Command="{Binding ImprimirReciboCommand}" Padding="14,10" Margin="0,0,10,6"
+      <Button Content="🖨 RECIBO EXCEL" Command="{Binding ImprimirReciboCommand}" Padding="14,10" Margin="0,0,10,6"
               Visibility="{Binding EsLectura, Converter={StaticResource BoolAVisibilidad}}" />
       <Button Content="🗑 ANULAR" Command="{Binding AnularCommand}" Style="{StaticResource Boton.Peligro}" Padding="14,10" Margin="0,0,10,6"
               Visibility="{Binding PuedeEditarODesechar, Converter={StaticResource BoolAVisibilidad}}" />

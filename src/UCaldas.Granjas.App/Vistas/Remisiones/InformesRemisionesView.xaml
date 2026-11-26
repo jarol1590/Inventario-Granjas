@@ -10,7 +10,7 @@
         <StackPanel>
           <TextBlock Text="Ventas por Programas" FontSize="14" FontWeight="Medium" />
           <TextBlock Margin="0,4,0,0" Style="{StaticResource Texto.Suave}" TextWrapping="Wrap"
-                     Text="Solo remisiones de VENTA vigentes, agrupadas por programa: fecha, oficio, remisión, recibo SP, convenio o comprador, ítem, unidad, cantidad, valor unitario y total, con subtotales por programa, total recaudado y firma institucional." />
+                     Text="Solo remisiones de VENTA vigentes, con una hoja por programa (oficio, remisión, recibo de caja, cliente, año, mes, producto, cantidad, valor unitario y total, con subtotal) y una hoja final «Consolidado» que reúne todos los programas por oficio, con subtotal por programa, total general y firma institucional." />
         </StackPanel>
       </Border>
 
@@ -26,11 +26,6 @@
           <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
             <TextBlock Text="Programa:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,8,0" />
             <ComboBox Width="280" ItemsSource="{Binding Programas}" SelectedItem="{Binding Programa}" DisplayMemberPath="Nombre" />
-          </StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="Formato:" Style="{StaticResource Texto.Etiqueta}" VerticalAlignment="Center" Margin="0,0,12,0" />
-            <RadioButton GroupName="Formato" Content="Excel (.xlsx)" IsChecked="{Binding EsExcel}" Margin="0,0,20,0" />
-            <RadioButton GroupName="Formato" Content="PDF (.pdf)" IsChecked="{Binding EsPdf}" />
           </StackPanel>
         </StackPanel>
       </Border>

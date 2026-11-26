@@ -18,7 +18,7 @@ public sealed partial class RemisionesViewModel : ViewModelBase, IUsaFiltroGloba
 {
     private readonly IRemisionesQueryService _consultas;
     private readonly IFormulariosRemisiones _formularios;
-    private readonly IPdfDocumentService _pdf;
+    private readonly IExcelReportingEngine _excel;
     private readonly ContextoGlobal _contexto;
     private readonly IReloj _reloj;
     private int _version;
@@ -26,7 +26,7 @@ public sealed partial class RemisionesViewModel : ViewModelBase, IUsaFiltroGloba
     public RemisionesViewModel(
         IRemisionesQueryService consultas,
         IFormulariosRemisiones formularios,
-        IPdfDocumentService pdf,
+        IExcelReportingEngine excel,
         ContextoGlobal contexto,
         IReloj reloj,
         IDialogService dialogos)
@@ -34,7 +34,7 @@ public sealed partial class RemisionesViewModel : ViewModelBase, IUsaFiltroGloba
     {
         _consultas = consultas;
         _formularios = formularios;
-        _pdf = pdf;
+        _excel = excel;
         _contexto = contexto;
         _reloj = reloj;
         Rango = new FiltroMensual(reloj.Hoy);
@@ -163,14 +163,14 @@ public sealed partial class RemisionesViewModel : ViewModelBase, IUsaFiltroGloba
             return;
         }
 
-        var ruta = Dialogos.GuardarArchivo("Guardar la remisión", "Documento PDF (*.pdf)|*.pdf", $"Remision_{fila.Numero}.pdf");
+        var ruta = Dialogos.GuardarArchivo("Guardar la remisión", "Libro de Excel (*.xlsx)|*.xlsx", $"Remision_{fila.Numero}.xlsx");
         if (ruta is null)
         {
             return;
         }
 
         string? generado = null;
-        if (await EjecutarAsync(async () => generado = await _pdf.GenerarRemisionAsync(fila.Id, ruta), "generar el PDF de la remisión") && generado is not null)
+        if (await EjecutarAsync(async () => generado = await _excel.GenerarRemisionAsync(fila.Id, ruta), "generar el Excel de la remisión") && generado is not null)
         {
             Dialogos.Abrir(generado);
         }
@@ -182,21 +182,21 @@ public sealed partial class RecibosCajaViewModel : ViewModelBase, ISeccion
 {
     private readonly IRemisionesQueryService _consultas;
     private readonly IFormulariosRemisiones _formularios;
-    private readonly IPdfDocumentService _pdf;
+    private readonly IExcelReportingEngine _excel;
     private readonly INavegador _navegador;
     private int _version;
 
     public RecibosCajaViewModel(
         IRemisionesQueryService consultas,
         IFormulariosRemisiones formularios,
-        IPdfDocumentService pdf,
+        IExcelReportingEngine excel,
         INavegador navegador,
         IDialogService dialogos)
         : base(dialogos)
     {
         _consultas = consultas;
         _formularios = formularios;
-        _pdf = pdf;
+        _excel = excel;
         _navegador = navegador;
         Formas =
         [
@@ -303,32 +303,30 @@ public sealed partial class RecibosCajaViewModel : ViewModelBase, ISeccion
             return;
         }
 
-        var ruta = Dialogos.GuardarArchivo("Guardar el recibo de caja", "Documento PDF (*.pdf)|*.pdf", $"Recibo_{fila.Recibo.NumeroRecibo}_SP.pdf");
+        var ruta = Dialogos.GuardarArchivo("Guardar el recibo de caja", "Libro de Excel (*.xlsx)|*.xlsx", $"Recibo_{fila.Recibo.NumeroRecibo}_SP.xlsx");
         if (ruta is null)
         {
             return;
         }
 
         string? generado = null;
-        if (await EjecutarAsync(async () => generado = await _pdf.GenerarReciboAsync(fila.Recibo.RemisionId, ruta), "generar el PDF del recibo") && generado is not null)
+        if (await EjecutarAsync(async () => generado = await _excel.GenerarReciboAsync(fila.Recibo.RemisionId, ruta), "generar el Excel del recibo") && generado is not null)
         {
             Dialogos.Abrir(generado);
         }
     }
 }
 
-/// <summary>Informe de Ventas por Programas: rango de fechas y programa; Excel o PDF.</summary>
+/// <summary>Informe de Ventas por Programas: rango de fechas y programa; solo Excel.</summary>
 public sealed partial class InformesRemisionesViewModel : ViewModelBase, ISeccion
 {
     private readonly IExcelReportingEngine _excel;
-    private readonly IPdfDocumentService _pdf;
     private readonly ICatalogoService _catalogo;
     private readonly ContextoGlobal _contexto;
     private readonly IReloj _reloj;
 
     public InformesRemisionesViewModel(
         IExcelReportingEngine excel,
-        IPdfDocumentService pdf,
         ICatalogoService catalogo,
         ContextoGlobal contexto,
         IReloj reloj,
@@ -336,7 +334,6 @@ public sealed partial class InformesRemisionesViewModel : ViewModelBase, ISeccio
         : base(dialogos)
     {
         _excel = excel;
-        _pdf = pdf;
         _catalogo = catalogo;
         _contexto = contexto;
         _reloj = reloj;
@@ -356,16 +353,6 @@ public sealed partial class InformesRemisionesViewModel : ViewModelBase, ISeccio
     private DateTime? _hasta;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsPdf))]
-    private bool _esExcel = true;
-
-    public bool EsPdf
-    {
-        get => !EsExcel;
-        set => EsExcel = !value;
-    }
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AbrirUltimoCommand))]
     private string? _ultimoArchivo;
 
@@ -381,7 +368,8 @@ public sealed partial class InformesRemisionesViewModel : ViewModelBase, ISeccio
                 Programas.Add(new OpcionFiltro(p.Id, p.Nombre));
             }
 
-            Programa = Programas.FirstOrDefault(o => o.Id == (previo ?? _contexto.ProgramaId)) ?? Programas[0];
+            // Por defecto «Todos los programas» (no sigue al combo global); se conserva la elección del usuario al recargar.
+            Programa = Programas.FirstOrDefault(o => previo is not null && o.Id == previo) ?? Programas[0];
         }, "preparar el informe");
     }
 
@@ -395,9 +383,7 @@ public sealed partial class InformesRemisionesViewModel : ViewModelBase, ISeccio
         }
 
         var sufijo = $"{Desde:yyyyMMdd}_{Hasta:yyyyMMdd}";
-        var ruta = EsExcel
-            ? Dialogos.GuardarArchivo("Guardar el informe", "Libro de Excel (*.xlsx)|*.xlsx", $"Ventas_por_Programas_{sufijo}.xlsx")
-            : Dialogos.GuardarArchivo("Guardar el informe", "Documento PDF (*.pdf)|*.pdf", $"Ventas_por_Programas_{sufijo}.pdf");
+        var ruta = Dialogos.GuardarArchivo("Guardar el informe", "Libro de Excel (*.xlsx)|*.xlsx", $"Ventas_por_Programas_{sufijo}.xlsx");
         if (ruta is null)
         {
             return;
@@ -406,7 +392,7 @@ public sealed partial class InformesRemisionesViewModel : ViewModelBase, ISeccio
         var request = new VentasReporteRequest(Desde.Value, Hasta.Value, Programa?.Id, ruta);
         string? generado = null;
         var terminado = await EjecutarAsync(
-            async () => generado = EsExcel ? await _excel.GenerarVentasPorProgramaAsync(request) : await _pdf.GenerarVentasPorProgramaAsync(request),
+            async () => generado = await _excel.GenerarVentasPorProgramaAsync(request),
             "generar el informe de ventas");
         if (!terminado || generado is null)
         {

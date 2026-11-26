@@ -154,6 +154,18 @@ public class ModuloRemisionesTests
     }
 
     [Fact]
+    public async Task El_NIT_del_cliente_es_opcional_y_varios_clientes_pueden_no_tenerlo()
+    {
+        await using var s = await CrearAsync();
+        var a = await s.Catalogo.GuardarClienteAsync(new Cliente { NombreRazonSocial = "Sin NIT A", NitCc = "  " });
+        var b = await s.Catalogo.GuardarClienteAsync(new Cliente { NombreRazonSocial = "Sin NIT B" });
+
+        a.NitCc.Should().BeNull();
+        b.NitCc.Should().BeNull();
+        (await s.Catalogo.ListarClientesAsync()).Should().Contain(c => c.NombreRazonSocial == "Sin NIT A").And.Contain(c => c.NombreRazonSocial == "Sin NIT B");
+    }
+
+    [Fact]
     public async Task Los_clientes_y_productos_validan_sus_datos_y_no_repiten_codigo_ni_NIT()
     {
         await using var s = await CrearAsync();

@@ -122,3 +122,7 @@ Nunca borra datos y no pisa lo que el usuario haya editado:
 - Reglas de servicio: toda venta (animales, lotes o subproductos) tiene su Recibo SP; si el DTO no lo trae se crea uno por defecto
   (o se conserva el existente al editar). Remisiones solo registra ventas de subproductos; los traslados con recibo siguen
   existiendo en `KardexService` pero se manejan desde Sistema Granjas.
+
+## v2.10 (`user_version = 10`, `Schema/migracion_v10.sql`): NIT / cédula del cliente opcional
+
+- `CLIENTE.nit_cc` pasa a admitir `NULL` (sigue `UNIQUE COLLATE NOCASE`; varios clientes pueden no tener NIT). La tabla se reconstruye conservando datos e ids (ninguna tabla tiene FK hacia `CLIENTE`). El NIT del convenio sigue siendo obligatorio.

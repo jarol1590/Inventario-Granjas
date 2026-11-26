@@ -299,7 +299,7 @@ CREATE TABLE CONVENIO (
 CREATE TABLE CLIENTE (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre_razon_social TEXT NOT NULL,
-    nit_cc              TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    nit_cc              TEXT UNIQUE COLLATE NOCASE,                                          -- [v2.10] opcional
     direccion           TEXT,
     telefono            TEXT,
     correo_electronico  TEXT,

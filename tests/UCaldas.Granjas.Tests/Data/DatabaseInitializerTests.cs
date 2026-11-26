@@ -215,6 +215,24 @@ public class DatabaseInitializerTests
     }
 
     [Fact]
+    public async Task Una_base_de_la_version_9_se_migra_haciendo_opcional_el_NIT_del_cliente_sin_perder_datos()
+    {
+        await using var db = await BaseDeDatosDePrueba.CrearAsync();
+        await db.EjecutarAsync("DROP TABLE CLIENTE");
+        await db.EjecutarAsync("CREATE TABLE CLIENTE (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre_razon_social TEXT NOT NULL, nit_cc TEXT NOT NULL UNIQUE COLLATE NOCASE, direccion TEXT, telefono TEXT, correo_electronico TEXT, activo BOOLEAN NOT NULL DEFAULT 1)");
+        await db.EjecutarAsync("INSERT INTO CLIENTE (nombre_razon_social, nit_cc) VALUES ('Fruver', '900.1')");
+        await db.EjecutarAsync("PRAGMA user_version = 9");
+
+        await new DatabaseInitializer(db.Conexiones).InitializeAsync();
+
+        (await db.EscalarAsync<long>("PRAGMA user_version")).Should().Be(DatabaseInitializer.VersionEsquemaActual);
+        (await db.EscalarAsync<string>("SELECT nit_cc FROM CLIENTE WHERE nombre_razon_social = 'Fruver'")).Should().Be("900.1");
+        await db.EjecutarAsync("INSERT INTO CLIENTE (nombre_razon_social) VALUES ('Sin NIT 1')");
+        await db.EjecutarAsync("INSERT INTO CLIENTE (nombre_razon_social) VALUES ('Sin NIT 2')");
+        (await db.EscalarAsync<long>("SELECT COUNT(*) FROM CLIENTE")).Should().Be(3);
+    }
+
+    [Fact]
     public async Task Una_base_de_la_version_1_se_migra_completando_la_matriz_y_agregando_las_columnas_de_recuperacion()
     {
         await using var db = await BaseDeDatosDePrueba.CrearAsync();

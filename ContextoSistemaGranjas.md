@@ -1,7 +1,7 @@
 # Contexto del Sistema Unificado de Gestión de Granjas
 
 **Universidad de Caldas · Facultad de Ciencias Agropecuarias**
-Estado documentado: **v2.9** (`PRAGMA user_version = 9`), actualizado el 23/11/2026.
+Estado documentado: **v2.10** (`PRAGMA user_version = 10`), actualizado el 26/11/2026.
 
 Este documento da una visión completa y autocontenida del sistema para quien llega sin contexto (una persona del equipo o un asistente de IA). Explica **qué hace, cómo está armado y qué reglas no se pueden romper**. No reemplaza a los documentos de detalle, a los que remite:
 
@@ -202,7 +202,8 @@ El esquema completo, columna por columna y ampliación por ampliación, está en
 | v2.6 | Vacas General con parto desde los 14 meses (`migracion_v6.sql`) |
 | v2.7 | `ANIMAL.observaciones`, `MOVIMIENTO_INVENTARIO.observaciones`, lotes sin ubicación ni orden de compra (`migracion_v7.sql`) |
 | v2.8 | Módulo Remisiones: convenios, clientes, productos, oficios cerrables, recibos de caja SP (`migracion_v8.sql` + `migracion_v8_detalle.sql`) |
-| **v2.9** | Líneas de subproducto escritas a mano (`migracion_v9_detalle.sql`) y **conversión de los recibos escritos a mano en Recibos SP** (paso en C# dentro de `DatabaseInitializer`) |
+| v2.9 | Líneas de subproducto escritas a mano (`migracion_v9_detalle.sql`) y **conversión de los recibos escritos a mano en Recibos SP** (paso en C# dentro de `DatabaseInitializer`) |
+| **v2.10** | NIT o cédula del cliente («Otro comprador») opcional: `CLIENTE.nit_cc` admite NULL (`migracion_v10.sql`) |
 
 Detalles de la v2.9: cada venta sin fila en `RECIBO_CAJA` recibe el siguiente consecutivo (por fecha e id), con forma de pago consignación al banco configurado, el total de sus líneas y la observación «Recibo anterior: …» con el número que tenía escrito; `REMISION.recibo_caja` pasa a «N SP».
 

@@ -9,7 +9,7 @@
       </Grid.RowDefinitions>
       <TextBlock Text="*Nombre / razón social:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" VerticalAlignment="Center" />
       <TextBox Grid.Column="1" Margin="0,0,0,10" Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="120" />
-      <TextBlock Grid.Row="1" Text="*NIT / Cédula:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="1" Text="NIT / Cédula:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" VerticalAlignment="Center" />
       <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Nit, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
       <TextBlock Grid.Row="2" Text="Dirección:" Style="{StaticResource Texto.Etiqueta}" Margin="0,0,0,10" VerticalAlignment="Center" />
       <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,10" Text="{Binding Direccion, UpdateSourceTrigger=PropertyChanged}" MaxLength="150" />

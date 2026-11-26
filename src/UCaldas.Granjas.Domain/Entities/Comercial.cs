@@ -17,7 +17,7 @@ public class Cliente
 {
     public int Id { get; set; }
     public string NombreRazonSocial { get; set; } = string.Empty;
-    public string NitCc { get; set; } = string.Empty;
+    public string? NitCc { get; set; }
     public string? Direccion { get; set; }
     public string? Telefono { get; set; }
     public string? CorreoElectronico { get; set; }

@@ -19,7 +19,7 @@ public interface ICatalogoComercialService
 
     Task<IReadOnlyList<Cliente>> ListarClientesAsync(bool soloActivos = false, CancellationToken ct = default);
 
-    /// <summary>Crea (Id = 0) o actualiza un cliente. El NIT o cédula no se puede repetir.</summary>
+    /// <summary>Crea (Id = 0) o actualiza un cliente. El NIT o cédula es opcional; si se indica, no se puede repetir.</summary>
     Task<Cliente> GuardarClienteAsync(Cliente cliente, CancellationToken ct = default);
 
     Task CambiarEstadoClienteAsync(int clienteId, bool activo, CancellationToken ct = default);
@@ -105,15 +105,14 @@ public sealed class CatalogoComercialService(IUnitOfWorkFactory fabrica) : ICata
     {
         ArgumentNullException.ThrowIfNull(cliente);
         var nombre = (cliente.NombreRazonSocial ?? string.Empty).Trim();
-        var nit = (cliente.NitCc ?? string.Empty).Trim();
+        var nit = Limpio(cliente.NitCc);
         Regla.ExigirTexto(nombre, "El nombre o razón social del cliente");
-        Regla.ExigirTexto(nit, "El NIT o cédula del cliente");
         Regla.ExigirTelefono(cliente.Telefono, "El teléfono del cliente");
         var correo = Limpio(cliente.CorreoElectronico);
         Regla.Exigir(correo is null || EsCorreo(correo), "El correo electrónico no es válido.");
 
         await using var uow = await fabrica.BeginAsync(ct);
-        var otro = await uow.Clientes.GetByNitAsync(nit, ct);
+        var otro = nit is null ? null : await uow.Clientes.GetByNitAsync(nit, ct);
         Regla.Exigir(otro is null || otro.Id == cliente.Id, $"Ya existe un cliente con el NIT o cédula {nit}.");
 
         var guardado = new Cliente

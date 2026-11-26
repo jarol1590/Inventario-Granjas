@@ -24,7 +24,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
     /// 8 = v2.8 (módulo Remisiones: convenios, clientes, productos, oficios cerrables y recibos de caja SP);
     /// 9 = v2.9 (líneas de subproductos escritas a mano y toda venta con su Recibo de Caja SP).
     /// </summary>
-    public const int VersionEsquemaActual = 9;
+    public const int VersionEsquemaActual = 10;
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -43,7 +43,7 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
             return;
         }
 
-        if (version is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8))
+        if (version is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
         {
             throw new InvalidOperationException(
                 $"La base de datos tiene una versión de esquema desconocida ({version}); se esperaba {VersionEsquemaActual}. " +
@@ -113,6 +113,12 @@ public sealed class DatabaseInitializer(IDbConnectionFactory conexiones) : IData
             }
 
             await ConvertirRecibosAnterioresAsync(connection, transaction, ct);
+
+            // v2.10: el NIT o cédula del cliente pasa a ser opcional (CLIENTE se reconstruye).
+            if (version <= 9)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(LeerScript("migracion_v10.sql"), transaction: transaction, cancellationToken: ct));
+            }
         }
 
         await connection.ExecuteAsync(new CommandDefinition(

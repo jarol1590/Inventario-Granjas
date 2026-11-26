@@ -3,6 +3,7 @@ using UCaldas.Granjas.Domain;
 using UCaldas.Granjas.Domain.Entities;
 using UCaldas.Granjas.Services.Comercial;
 
+
 namespace UCaldas.Granjas.Services.Reportes;
 
 /// <param name="Desde">Primer día del rango (incluido).</param>
@@ -96,11 +97,11 @@ public sealed partial class ExcelReportingEngine
                 ExcelEstilos.Texto(hoja.Cell(fila, 1), l.Remision);
                 hoja.Cell(fila, 2).Value = l.Comprador;
                 hoja.Cell(fila, 3).Value = l.Fecha.Year;
-                hoja.Cell(fila, 3).Style.NumberFormat.Format = "0";
+                hoja.Cell(fila, 3).Style.NumberFormat.Format = ExcelEstilos.FormatoAnio;
                 hoja.Cell(fila, 4).Value = Cultura.TextInfo.ToTitleCase(Cultura.DateTimeFormat.GetMonthName(l.Fecha.Month));
                 hoja.Cell(fila, 5).Value = l.Item;
                 hoja.Cell(fila, 6).Value = l.Cantidad;
-                hoja.Cell(fila, 6).Style.NumberFormat.Format = "#,##0.##";
+                hoja.Cell(fila, 6).Style.NumberFormat.Format = ExcelEstilos.FormatoNumero;
                 hoja.Cell(fila, 7).Value = l.ValorUnitario;
                 hoja.Cell(fila, 8).Value = l.ValorTotal;
                 fila++;
@@ -121,7 +122,7 @@ public sealed partial class ExcelReportingEngine
 
         if (lineas.Count > 0)
         {
-            hoja.Cell(ultimaTabla, 6).Style.NumberFormat.Format = "#,##0.##";
+            hoja.Cell(ultimaTabla, 6).Style.NumberFormat.Format = ExcelEstilos.FormatoNumero;
             ExcelEstilos.Totales(hoja.Range(ultimaTabla, 1, ultimaTabla, ultima));
         }
 

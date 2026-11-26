@@ -94,7 +94,7 @@ public sealed partial class ExcelReportingEngine
             ExcelEstilos.Texto(hoja.Cell(fila, 4), animal.ChapetaAmarilla);
             hoja.Cell(fila, 4).Style.Font.Bold = true;
             hoja.Cell(fila, 5).Value = animal.PesoActualKg;
-            hoja.Cell(fila, 5).Style.NumberFormat.Format = "#,##0.0";
+            hoja.Cell(fila, 5).Style.NumberFormat.Format = ExcelEstilos.FormatoPeso;
             if (!string.IsNullOrWhiteSpace(animal.Observaciones))
             {
                 hoja.Cell(fila, 6).Value = animal.Observaciones;

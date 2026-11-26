@@ -658,12 +658,12 @@ public sealed partial class ExcelReportingEngine(
                 break;
             case int entero:
                 celda.Value = entero;
-                celda.Style.NumberFormat.Format = formato ?? "#,##0";
+                celda.Style.NumberFormat.Format = formato ?? ExcelEstilos.FormatoNumero;
                 break;
             case decimal numero:
                 celda.Value = numero;
                 // Dos decimales fijos: "#,##0.##" deja el separador colgando en los enteros ("400,").
-                celda.Style.NumberFormat.Format = formato ?? "#,##0.00";
+                celda.Style.NumberFormat.Format = formato ?? ExcelEstilos.FormatoDecimal;
                 break;
             default:
                 ExcelEstilos.Texto(celda, valor.ToString() ?? "—");

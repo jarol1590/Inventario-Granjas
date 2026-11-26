@@ -47,6 +47,18 @@ internal static class ExcelEstilos
 
     public const string FormatoFecha = "dd/MM/yyyy";
 
+    /// <summary>Entero que muestra el cero como "0" (a diferencia de <see cref="FormatoEntero"/>, que lo oculta como "-").</summary>
+    public const string FormatoNumero = "#,##0";
+
+    /// <summary>Dos decimales fijos: "#,##0.##" deja el separador colgando en los enteros ("400,").</summary>
+    public const string FormatoDecimal = "#,##0.00";
+
+    /// <summary>Peso con un decimal.</summary>
+    public const string FormatoPeso = "#,##0.0";
+
+    /// <summary>Año sin separador de miles.</summary>
+    public const string FormatoAnio = "0";
+
     public static void Encabezado(IXLRange rango)
     {
         rango.Style.Fill.BackgroundColor = AzulInstitucional;
